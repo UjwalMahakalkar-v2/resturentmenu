@@ -119,11 +119,36 @@ export const mockMenuAPI = {
 };
 
 export const mockAuthAPI = {
-  login: async (username: string, password: string): Promise<{ token: string }> => {
+  login: async (username: string, password: string, tenantId?: string): Promise<{ token: string }> => {
     await delay(500);
-    if (username === 'admin' && password === 'admin123') {
+    
+    // Check tenant-specific admin users first
+    const users = JSON.parse(localStorage.getItem('saas_users') || '[]');
+    
+    // Find user by name (username) or email and password
+    const user = users.find((u: any) => 
+      (u.name === username || u.email === username) && 
+      u.password === password &&
+      (tenantId ? u.tenantId === tenantId : true) &&
+      u.active === true
+    );
+    
+    if (user) {
+      // Store user info in token for later use
+      const token = btoa(JSON.stringify({
+        userId: user.id,
+        tenantId: user.tenantId,
+        role: user.role,
+        timestamp: Date.now()
+      }));
+      return { token };
+    }
+    
+    // Fallback to default admin for backward compatibility
+    if (username === 'admin' && password === 'admin123' && !tenantId) {
       return { token: 'mock-token-' + Date.now() };
     }
+    
     throw new Error('Invalid credentials');
   },
 };

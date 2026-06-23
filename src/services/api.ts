@@ -103,12 +103,12 @@ export const restaurantAPI = {
 
 // Auth API
 export const authAPI = {
-  login: async (username: string, password: string): Promise<{ token: string; admin?: Admin }> => {
+  login: async (username: string, password: string, tenantId?: string): Promise<{ token: string; admin?: Admin }> => {
     if (USE_MOCK_API) {
-      const { token } = await mockAuthAPI.login(username, password);
+      const { token } = await mockAuthAPI.login(username, password, tenantId);
       return { token };
     }
-    const response = await api.post('/auth/login', { username, password });
+    const response = await api.post('/auth/login', { username, password, tenantId });
     return response.data;
   },
   

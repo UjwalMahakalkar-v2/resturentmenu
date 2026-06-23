@@ -1,14 +1,30 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
 import { authAPI } from '@/services/api';
+import { tenantAPI } from '@/services/tenantApi';
 import toast from 'react-hot-toast';
 
 export default function AdminLogin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [tenantId, setTenantId] = useState<string | null>(null);
+  const [tenantName, setTenantName] = useState<string>('');
   const navigate = useNavigate();
+  const { tenantSlug } = useParams();
+
+  useEffect(() => {
+    // Load tenant info if tenantSlug is present
+    if (tenantSlug) {
+      tenantAPI.getBySlug(tenantSlug).then(tenant => {
+        if (tenant) {
+          setTenantId(tenant.id);
+          setTenantName(tenant.name);
+        }
+      });
+    }
+  }, [tenantSlug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,10 +36,22 @@ export default function AdminLogin() {
 
     setLoading(true);
     try {
-      const { token } = await authAPI.login(username, password);
+      const { token } = await authAPI.login(username, password, tenantId || undefined);
       localStorage.setItem('admin_token', token);
+      
+      // Store tenant context if available
+      if (tenantId) {
+        localStorage.setItem('current_tenant_id', tenantId);
+      }
+      
       toast.success('Login successful!');
-      navigate('/admin/dashboard');
+      
+      // Navigate to appropriate dashboard
+      if (tenantSlug) {
+        navigate(`/${tenantSlug}/admin/dashboard`);
+      } else {
+        navigate('/admin/dashboard');
+      }
     } catch (error) {
       toast.error('Invalid credentials');
       console.error(error);
@@ -40,7 +68,9 @@ export default function AdminLogin() {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
-          <p className="text-gray-600">Sign in to manage your restaurant menu</p>
+          <p className="text-gray-600">
+            {tenantName ? `Sign in to manage ${tenantName}` : 'Sign in to manage your restaurant menu'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
