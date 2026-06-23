@@ -5,6 +5,7 @@ pages_build_output_dir = "dist"
 
 [assets]
 directory = "./dist"
+single_page_app = true
 
 [build]
 command = "npm run build"
