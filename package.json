@@ -1,0 +1,42 @@
+{
+  "name": "resturentmenu",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Modern restaurant digital menu with admin panel",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler pages deploy dist",
+    "deploy:gh": "npm run build && gh-pages -d dist"
+  },
+  "keywords": [
+    "restaurant",
+    "menu",
+    "digital-menu"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.5.0",
+    "axios": "^1.18.0",
+    "lucide-react": "^1.21.0",
+    "mongodb": "^6.0.0",
+    "pdf-parse": "^2.4.5",
+    "postcss": "^8.5.15",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.18.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^6.0.3",
+    "vite": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "tsx": "^4.22.4"
+  }
+}
