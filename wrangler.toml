@@ -1,14 +1,10 @@
-name = "resturentmenu"
+name = "patola"
 compatibility_date = "2024-01-01"
 
 pages_build_output_dir = "dist"
-
-[assets]
-directory = "./dist"
-single_page_app = true
 
 [build]
 command = "npm run build"
 
 [env.production]
-name = "resturentmenu"
+name = "patola"
