@@ -5,8 +5,10 @@ import type {
   TenantMenuItem, 
   TenantCategory,
   AuditLog,
-  FeatureFlags 
+  FeatureFlags,
+  SubscriptionPlan
 } from '@/types/tenant';
+import { SUBSCRIPTION_PLANS } from '@/types/tenant';
 
 const STORAGE_KEYS = {
   TENANTS: 'saas_tenants',
@@ -95,6 +97,95 @@ const initializeStorage = () => {
 
 initializeStorage();
 
+// Helper function to create default data for new tenants
+const createDefaultTenantData = async (tenantId: string, _restaurantName: string): Promise<void> => {
+  await delay(300);
+  
+  // Create default categories
+  const categories = JSON.parse(localStorage.getItem(STORAGE_KEYS.CATEGORIES) || '[]');
+  const newCategories: TenantCategory[] = [
+    {
+      id: `${tenantId}_cat_starters`,
+      tenantId,
+      name: 'Starters',
+      order: 1,
+    },
+    {
+      id: `${tenantId}_cat_main`,
+      tenantId,
+      name: 'Main Course',
+      order: 2,
+    },
+  ];
+  categories.push(...newCategories);
+  localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+
+  // Create default menu items
+  const menuItems = JSON.parse(localStorage.getItem(STORAGE_KEYS.MENU_ITEMS) || '[]');
+  const newMenuItems: TenantMenuItem[] = [
+    {
+      id: `${tenantId}_item_1`,
+      tenantId,
+      name: 'Spring Rolls',
+      description: 'Crispy vegetable spring rolls served with sweet chili sauce',
+      price: 150,
+      category: 'Starters',
+      type: 'veg',
+      popular: true,
+      available: true,
+      hasImage: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: `${tenantId}_item_2`,
+      tenantId,
+      name: 'Chicken Wings',
+      description: 'Spicy grilled chicken wings with BBQ sauce',
+      price: 250,
+      category: 'Starters',
+      type: 'non-veg',
+      popular: false,
+      available: true,
+      hasImage: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: `${tenantId}_item_3`,
+      tenantId,
+      name: 'Paneer Butter Masala',
+      description: 'Cottage cheese cooked in rich tomato and butter gravy',
+      price: 280,
+      category: 'Main Course',
+      type: 'veg',
+      popular: true,
+      available: true,
+      hasImage: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: `${tenantId}_item_4`,
+      tenantId,
+      name: 'Chicken Biryani',
+      description: 'Aromatic basmati rice cooked with tender chicken and spices',
+      price: 320,
+      category: 'Main Course',
+      type: 'non-veg',
+      popular: true,
+      available: true,
+      hasImage: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
+  menuItems.push(...newMenuItems);
+  localStorage.setItem(STORAGE_KEYS.MENU_ITEMS, JSON.stringify(menuItems));
+
+  await logAction('tenant.data.initialize', 'Tenant', tenantId);
+};
+
 // Tenant API
 export const tenantAPI = {
   getAll: async (): Promise<Tenant[]> => {
@@ -112,7 +203,31 @@ export const tenantAPI = {
   getBySlug: async (slug: string): Promise<Tenant | null> => {
     await delay(300);
     const tenants = JSON.parse(localStorage.getItem(STORAGE_KEYS.TENANTS) || '[]');
-    return tenants.find((t: Tenant) => t.slug === slug) || null;
+    return tenants.find((t: Tenant) => t.slug === slug && t.status !== 'deleted') || null;
+  },
+
+  getBySubdomain: async (subdomain: string): Promise<Tenant | null> => {
+    await delay(300);
+    const tenants = JSON.parse(localStorage.getItem(STORAGE_KEYS.TENANTS) || '[]');
+    return tenants.find((t: Tenant) => t.subdomain === subdomain && t.status !== 'deleted') || null;
+  },
+
+  getStats: async (tenantId: string): Promise<{
+    menuItems: number;
+    categories: number;
+    users: number;
+  }> => {
+    await delay(300);
+    
+    const menuItems = JSON.parse(localStorage.getItem(STORAGE_KEYS.MENU_ITEMS) || '[]');
+    const categories = JSON.parse(localStorage.getItem(STORAGE_KEYS.CATEGORIES) || '[]');
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+
+    return {
+      menuItems: menuItems.filter((item: TenantMenuItem) => item.tenantId === tenantId).length,
+      categories: categories.filter((cat: TenantCategory) => cat.tenantId === tenantId).length,
+      users: users.filter((user: User) => user.tenantId === tenantId).length,
+    };
   },
 
   create: async (data: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>): Promise<Tenant> => {
@@ -124,9 +239,16 @@ export const tenantAPI = {
       throw new Error('Slug already exists');
     }
 
+    // Check if subdomain already exists
+    if (data.subdomain && tenants.some((t: Tenant) => t.subdomain === data.subdomain)) {
+      throw new Error('Subdomain already exists');
+    }
+
     const newTenant: Tenant = {
       ...data,
       id: `tenant_${crypto.randomUUID()}`,
+      status: data.status || 'active',
+      plan: data.plan || 'starter',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -137,6 +259,70 @@ export const tenantAPI = {
     await logAction('tenant.create', 'Tenant', newTenant.id);
     
     return newTenant;
+  },
+
+  createWithAdmin: async (tenantData: {
+    name: string;
+    slug: string;
+    subdomain?: string;
+    email: string;
+    phone: string;
+    address?: string;
+    plan: SubscriptionPlan;
+    adminUsername: string;
+    adminPassword: string;
+    adminEmail: string;
+  }): Promise<{ tenant: Tenant; admin: User }> => {
+    await delay(500);
+    
+    // Create tenant
+    const tenant = await tenantAPI.create({
+      name: tenantData.name,
+      slug: tenantData.slug,
+      subdomain: tenantData.subdomain,
+      email: tenantData.email,
+      phone: tenantData.phone,
+      address: tenantData.address,
+      status: 'active',
+      plan: tenantData.plan,
+    });
+
+    // Create admin user for this tenant
+    const admin = await userAPI.create({
+      tenantId: tenant.id,
+      email: tenantData.adminEmail,
+      password: tenantData.adminPassword, // In production, hash this
+      name: tenantData.adminUsername,
+      role: 'tenant_admin',
+      permissions: ['menu.*', 'users.view', 'users.manage', 'analytics.view', 'settings.manage'],
+      active: true,
+    });
+
+    // Update tenant with owner info
+    const updatedTenant = await tenantAPI.update(tenant.id, {
+      ownerId: admin.id,
+      ownerName: admin.name,
+    });
+
+    // Create default subscription
+    const planConfig = SUBSCRIPTION_PLANS[tenantData.plan];
+    await subscriptionAPI.create({
+      tenantId: tenant.id,
+      plan: tenantData.plan,
+      status: 'active',
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
+      renewalDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      features: planConfig.features,
+      limits: planConfig.limits,
+    });
+
+    // Create default sample data for the new tenant
+    await createDefaultTenantData(tenant.id, tenantData.name);
+
+    await logAction('tenant.create.with.admin', 'Tenant', tenant.id, { adminId: admin.id });
+
+    return { tenant: updatedTenant, admin };
   },
 
   update: async (id: string, updates: Partial<Tenant>): Promise<Tenant> => {
@@ -159,22 +345,33 @@ export const tenantAPI = {
     await delay(300);
     let tenants = JSON.parse(localStorage.getItem(STORAGE_KEYS.TENANTS) || '[]');
     
+    // Always delete all tenant-related data (for both soft and hard delete)
+    // Delete menu items
+    const menuItems = JSON.parse(localStorage.getItem(STORAGE_KEYS.MENU_ITEMS) || '[]');
+    const filteredItems = menuItems.filter((item: TenantMenuItem) => item.tenantId !== id);
+    localStorage.setItem(STORAGE_KEYS.MENU_ITEMS, JSON.stringify(filteredItems));
+    
+    // Delete categories
+    const categories = JSON.parse(localStorage.getItem(STORAGE_KEYS.CATEGORIES) || '[]');
+    const filteredCategories = categories.filter((cat: TenantCategory) => cat.tenantId !== id);
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(filteredCategories));
+    
+    // Delete users
+    const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
+    const filteredUsers = users.filter((user: User) => user.tenantId !== id);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(filteredUsers));
+    
+    // Delete subscriptions
+    const subscriptions = JSON.parse(localStorage.getItem(STORAGE_KEYS.SUBSCRIPTIONS) || '[]');
+    const filteredSubscriptions = subscriptions.filter((sub: Subscription) => sub.tenantId !== id);
+    localStorage.setItem(STORAGE_KEYS.SUBSCRIPTIONS, JSON.stringify(filteredSubscriptions));
+    
     if (hard) {
-      // Hard delete - remove all tenant data
+      // Hard delete - completely remove tenant record
       tenants = tenants.filter((t: Tenant) => t.id !== id);
-      
-      // Delete all tenant-related data
-      const menuItems = JSON.parse(localStorage.getItem(STORAGE_KEYS.MENU_ITEMS) || '[]');
-      const filteredItems = menuItems.filter((item: TenantMenuItem) => item.tenantId !== id);
-      localStorage.setItem(STORAGE_KEYS.MENU_ITEMS, JSON.stringify(filteredItems));
-      
-      const categories = JSON.parse(localStorage.getItem(STORAGE_KEYS.CATEGORIES) || '[]');
-      const filteredCategories = categories.filter((cat: TenantCategory) => cat.tenantId !== id);
-      localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(filteredCategories));
-      
       await logAction('tenant.delete.hard', 'Tenant', id);
     } else {
-      // Soft delete
+      // Soft delete - mark as deleted but keep tenant record
       const index = tenants.findIndex((t: Tenant) => t.id === id);
       if (index !== -1) {
         tenants[index].status = 'deleted';

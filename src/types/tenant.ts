@@ -11,14 +11,18 @@ export type TenantStatus = 'active' | 'suspended' | 'inactive' | 'deleted';
 export interface Tenant {
   _id?: string;
   id: string;
-  slug: string; // For subdomain: patola.menumate.in
+  slug: string; // URL slug: pizza-palace
+  subdomain?: string; // Full subdomain: pizza-palace.menumate.in
   name: string;
   email: string;
   phone: string;
-  address: string;
+  address?: string;
   logo?: string;
   status: TenantStatus;
-  subscriptionId: string;
+  subscriptionId?: string;
+  plan: SubscriptionPlan;
+  ownerId?: string; // Reference to admin user
+  ownerName?: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date; // Soft delete

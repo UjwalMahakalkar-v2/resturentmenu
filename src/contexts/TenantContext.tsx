@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Tenant, User } from '@/types/tenant';
+import { tenantAPI } from '@/services/tenantApi';
 
 interface TenantContextType {
   tenant: Tenant | null;
@@ -97,28 +98,24 @@ export const TenantProvider = ({ children }: TenantProviderProps) => {
   };
 
   const fetchTenantBySlug = async (slug: string): Promise<Tenant | null> => {
-    // TODO: Replace with actual API call
-    // For now, return mock data
-    const mockTenants: Record<string, Tenant> = {
-      patola: {
-        id: 'tenant_patola',
-        slug: 'patola',
-        name: 'Patola Restaurant',
-        email: 'info@patola.com',
-        phone: '8421155938',
-        address: 'Wardha Rd, Nagpur, Khapri, Maharashtra 441108',
-        status: 'active',
-        subscriptionId: 'sub_1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    };
-    return mockTenants[slug] || null;
+    try {
+      const tenant = await tenantAPI.getBySlug(slug);
+      return tenant;
+    } catch (error) {
+      console.error('Failed to fetch tenant by slug:', error);
+      return null;
+    }
   };
 
-  const fetchTenantByDomain = async (_domain: string): Promise<Tenant | null> => {
-    // TODO: Replace with actual API call
-    return null;
+  const fetchTenantByDomain = async (domain: string): Promise<Tenant | null> => {
+    try {
+      // Check if domain is a subdomain (e.g., pizza-palace.menumate.in)
+      const tenant = await tenantAPI.getBySubdomain(domain);
+      return tenant;
+    } catch (error) {
+      console.error('Failed to fetch tenant by domain:', error);
+      return null;
+    }
   };
 
   const logout = () => {
