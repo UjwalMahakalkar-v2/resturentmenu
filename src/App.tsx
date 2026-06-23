@@ -10,7 +10,7 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard';
 function App() {
   return (
     <TenantProvider>
-      <Router basename="/Resturent_menu">
+      <Router>
         <Toaster
           position="top-right"
           toastOptions={{
