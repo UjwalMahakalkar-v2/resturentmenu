@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { Category, MenuItem, Restaurant, Admin } from '@/types';
 import { mockCategoryAPI, mockMenuAPI, mockAuthAPI } from './mockApi';
 
-const USE_MOCK_API = import.meta.env.VITE_USE_MOCK_API !== 'false';
+const USE_MOCK_API = true; // Force mock API until backend is configured
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
