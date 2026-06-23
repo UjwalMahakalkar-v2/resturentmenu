@@ -5,8 +5,7 @@ import path from 'path'
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
   plugins: [react()],
-  // Set base path for GitHub Pages - change 'Resturent_menu' to your repo name
-  base: command === 'build' ? '/Resturent_menu/' : '/',
+  base: '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
