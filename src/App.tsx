@@ -39,9 +39,9 @@ function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/super-admin/login" element={<SuperAdminLogin />} />
           <Route path="/super-admin" element={<SuperAdminDashboard />} />
-          <Route path="/:tenantSlug" element={<Menu />} />
           <Route path="/:tenantSlug/admin/login" element={<AdminLogin />} />
           <Route path="/:tenantSlug/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/:tenantSlug" element={<Menu />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
