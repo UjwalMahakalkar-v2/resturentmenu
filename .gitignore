@@ -30,7 +30,6 @@ dist-ssr
 
 # Wrangler
 .wrangler
-wrangler.toml
 
 # Database credentials
 DB_Credentials.txt
