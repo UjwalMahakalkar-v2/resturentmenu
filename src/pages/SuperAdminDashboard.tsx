@@ -67,15 +67,15 @@ export default function SuperAdminDashboard() {
         plan: t.plan || t.subscriptionPlan || 'starter',
       }));
       
-      const activeTenants = tenantsData.filter(t => t.status !== 'deleted');
+      const activeTenants = tenantsData.filter((t: any) => t.status !== 'deleted');
       setTenants(activeTenants);
       setFilteredTenants(activeTenants);
 
       setStats({
         total: activeTenants.length,
-        active: activeTenants.filter(t => t.status === 'active').length,
-        suspended: activeTenants.filter(t => t.status === 'suspended').length,
-        deleted: tenantsData.filter(t => t.status === 'deleted').length,
+        active: activeTenants.filter((t: any) => t.status === 'active').length,
+        suspended: activeTenants.filter((t: any) => t.status === 'suspended').length,
+        deleted: tenantsData.filter((t: any) => t.status === 'deleted').length,
       });
     } catch (error) {
       console.error('Failed to fetch tenants:', error);
