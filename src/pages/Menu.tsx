@@ -37,6 +37,7 @@ export default function Menu() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
   const [selectedItem, setSelectedItem] = useState<TenantMenuItem | null>(null);
+  const [vegOnly, setVegOnly] = useState(false);
   const [restaurant, setRestaurant] = useState<Restaurant>({
     name: '',
     tagline: '',
@@ -93,6 +94,11 @@ export default function Menu() {
   // Filter menu items
   const filteredItems = useMemo(() => {
     return menuItems.filter((item) => {
+      // Veg filter
+      if (vegOnly && item.type !== 'veg') {
+        return false;
+      }
+
       // Category filter - show all items if activeCategory is empty or 'all'
       if (activeCategory && activeCategory !== 'all' && item.category !== activeCategory) {
         return false;
@@ -110,7 +116,7 @@ export default function Menu() {
 
       return true;
     });
-  }, [menuItems, activeCategory, searchQuery, categories]);
+  }, [menuItems, activeCategory, searchQuery, categories, vegOnly]);
 
 
 
@@ -167,8 +173,36 @@ export default function Menu() {
             onCategoryChange={setActiveCategory}
           />
 
+          {/* Veg Filter Toggle */}
+          <div className="container-custom mt-6 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-700 font-medium">
+                All Items ({filteredItems.length})
+              </span>
+            </div>
+            
+            <label className="flex items-center gap-3 cursor-pointer bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+              <span className={`text-sm font-medium transition-colors ${vegOnly ? 'text-gray-400' : 'text-gray-700'}`}>
+                All
+              </span>
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={vegOnly}
+                  onChange={(e) => setVegOnly(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+              </div>
+              <span className={`text-sm font-medium transition-colors flex items-center gap-1 ${vegOnly ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className="inline-block w-3 h-3 border-2 border-green-600 rounded-sm bg-white"></span>
+                Veg Only
+              </span>
+            </label>
+          </div>
+
           {/* Menu Items Grid */}
-          <div className="container-custom mt-8">
+          <div className="container-custom mt-6">
             {filteredItems.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-xl text-gray-600">
