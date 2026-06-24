@@ -37,6 +37,16 @@ export interface Restaurant {
     facebook?: string;
     instagram?: string;
     twitter?: string;
+    whatsapp?: string;
+    whatsappMessage?: string;
+    enableWhatsapp?: boolean;
+    enableInstagram?: boolean;
+  };
+  socialAnalytics?: {
+    whatsappClicks: number;
+    instagramClicks: number;
+    facebookClicks: number;
+    twitterClicks: number;
   };
 }
 

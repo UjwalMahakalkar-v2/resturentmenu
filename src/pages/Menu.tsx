@@ -11,6 +11,7 @@ import CategoryTabs from '@/components/CategoryTabs';
 import CategorySelection from '@/components/CategorySelection';
 import MenuCard from '@/components/MenuCard';
 import MenuItemDetail from '@/components/MenuItemDetail';
+import FloatingSocialButtons from '@/components/FloatingSocialButtons';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant } from '@/types';
@@ -207,6 +208,14 @@ export default function Menu() {
         onClose={() => setSelectedItem(null)}
         categories={categories}
       />
+
+      {/* Floating Social Media Buttons */}
+      {tenant && (
+        <FloatingSocialButtons 
+          restaurant={restaurant} 
+          tenantId={tenant.id} 
+        />
+      )}
     </div>
   );
 }
