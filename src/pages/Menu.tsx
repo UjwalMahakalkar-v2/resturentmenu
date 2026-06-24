@@ -82,6 +82,7 @@ export default function Menu() {
   };
 
   const scrollToMenu = () => {
+    setActiveCategory('all'); // Set to 'all' to show all items
     setShowCategorySelection(false);
     setTimeout(() => {
       menuSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -91,8 +92,8 @@ export default function Menu() {
   // Filter menu items
   const filteredItems = useMemo(() => {
     return menuItems.filter((item) => {
-      // Category filter
-      if (activeCategory !== 'all' && item.category !== activeCategory) {
+      // Category filter - show all items if activeCategory is empty or 'all'
+      if (activeCategory && activeCategory !== 'all' && item.category !== activeCategory) {
         return false;
       }
 
