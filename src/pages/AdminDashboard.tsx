@@ -4,7 +4,7 @@ import { LogOut, Plus, Edit, Trash2, Star, Package, Settings } from 'lucide-reac
 import { useMenuItems, useCategories } from '@/hooks/useMenu';
 import MenuItemForm from '@/components/MenuItemForm';
 import RestaurantSettings from '@/components/RestaurantSettings';
-import type { MenuItem } from '@/types';
+import type { TenantMenuItem } from '@/types/tenant';
 import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
@@ -13,7 +13,7 @@ export default function AdminDashboard() {
   const { categories, loading: categoriesLoading, deleteCategory } = useCategories();
   const [activeTab, setActiveTab] = useState<'menu' | 'categories' | 'settings'>('menu');
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [editingItem, setEditingItem] = useState<TenantMenuItem | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -24,6 +24,7 @@ export default function AdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('current_tenant_id');
     toast.success('Logged out successfully');
     navigate('/admin/login');
   };
@@ -33,12 +34,12 @@ export default function AdminDashboard() {
     setIsFormOpen(true);
   };
 
-  const handleEditItem = (item: MenuItem) => {
+  const handleEditItem = (item: TenantMenuItem) => {
     setEditingItem(item);
     setIsFormOpen(true);
   };
 
-  const handleSaveItem = async (itemData: Omit<MenuItem, '_id' | 'id'>) => {
+  const handleSaveItem = async (itemData: Omit<TenantMenuItem, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>) => {
     try {
       if (editingItem) {
         await updateItem(editingItem.id, itemData);

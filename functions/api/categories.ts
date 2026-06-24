@@ -1,9 +1,11 @@
 import { getCollection } from '../db';
+import { getTenantIdFromRequest } from '../utils/jwt';
 
 export async function onRequestGet(context: any) {
   try {
+    const tenantId = getTenantIdFromRequest(context.request);
     const collection = await getCollection('categories');
-    const categories = await collection.find({}).sort({ order: 1 }).toArray();
+    const categories = await collection.find({ tenantId }).sort({ order: 1 }).toArray();
     
     return new Response(JSON.stringify(categories), {
       headers: {
@@ -13,8 +15,10 @@ export async function onRequestGet(context: any) {
     });
   } catch (error) {
     console.error('Error fetching categories:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch categories' }), {
-      status: 500,
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch categories';
+    const status = errorMessage.includes('Unauthorized') ? 401 : 500;
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status,
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -22,11 +26,13 @@ export async function onRequestGet(context: any) {
 
 export async function onRequestPost(context: any) {
   try {
+    const tenantId = getTenantIdFromRequest(context.request);
     const body = await context.request.json();
     const collection = await getCollection('categories');
     
     const newCategory = {
       ...body,
+      tenantId,
       id: crypto.randomUUID(),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -43,8 +49,10 @@ export async function onRequestPost(context: any) {
     });
   } catch (error) {
     console.error('Error creating category:', error);
-    return new Response(JSON.stringify({ error: 'Failed to create category' }), {
-      status: 500,
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create category';
+    const status = errorMessage.includes('Unauthorized') ? 401 : 500;
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status,
       headers: { 'Content-Type': 'application/json' },
     });
   }

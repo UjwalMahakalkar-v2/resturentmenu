@@ -120,6 +120,8 @@ export const TenantProvider = ({ children }: TenantProviderProps) => {
 
   const logout = () => {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('current_tenant_id');
     localStorage.removeItem('user');
     localStorage.removeItem('tenant');
     setUser(null);

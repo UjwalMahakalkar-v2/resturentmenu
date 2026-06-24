@@ -1,6 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useMenu } from '@/hooks/useMenu';
 import { restaurantService } from '@/services/restaurantService';
+import { tenantAPI } from '@/services/tenantApi';
+import type { Tenant } from '@/types/tenant';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import SearchBar from '@/components/SearchBar';
@@ -9,24 +12,59 @@ import CategorySelection from '@/components/CategorySelection';
 import MenuCard from '@/components/MenuCard';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import type { MenuItem, Restaurant } from '@/types';
+import type { TenantMenuItem } from '@/types/tenant';
+import type { Restaurant } from '@/types';
 
 export default function Menu() {
-  const { menuItems, categories, loading } = useMenu();
+  const { tenantSlug } = useParams();
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const { menuItems, categories, loading } = useMenu(tenant?.id);
+
+  useEffect(() => {
+    const loadTenant = async () => {
+      if (tenantSlug) {
+        try {
+          const t = await tenantAPI.getBySlug(tenantSlug);
+          setTenant(t);
+        } catch (err) {
+          console.error(err);
+        }
+      }
+    };
+    loadTenant();
+  }, [tenantSlug]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [restaurant, setRestaurant] = useState<Restaurant>(restaurantService.get());
+  const [selectedItem, setSelectedItem] = useState<TenantMenuItem | null>(null);
+  const [restaurant, setRestaurant] = useState<Restaurant>({
+    name: '',
+    tagline: '',
+    logo: '',
+    heroImage: '',
+    phone: '',
+    email: '',
+    location: '',
+    about: '',
+  });
   const [showCategorySelection, setShowCategorySelection] = useState(true);
   const menuSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleRestaurantUpdate = () => {
-      setRestaurant(restaurantService.get());
+    const loadRestaurant = async () => {
+      const r = await restaurantService.get(tenant?.id);
+      setRestaurant(r);
+    };
+    loadRestaurant();
+  }, [tenant?.id]);
+
+  useEffect(() => {
+    const handleRestaurantUpdate = async () => {
+      const r = await restaurantService.get(tenant?.id);
+      setRestaurant(r);
     };
     window.addEventListener('restaurant-updated', handleRestaurantUpdate);
     return () => window.removeEventListener('restaurant-updated', handleRestaurantUpdate);
-  }, []);
+  }, [tenant?.id]);
 
   const handleCategorySelect = (categoryId: string) => {
     setActiveCategory(categoryId);

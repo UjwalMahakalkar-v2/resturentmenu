@@ -1,8 +1,6 @@
 import axios from 'axios';
 import type { Category, MenuItem, Restaurant, Admin } from '@/types';
-import { mockCategoryAPI, mockMenuAPI, mockAuthAPI } from './mockApi';
 
-const USE_MOCK_API = true; // Force mock API until backend is configured
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
@@ -24,7 +22,6 @@ api.interceptors.request.use((config) => {
 // Categories API
 export const categoryAPI = {
   getAll: async (): Promise<Category[]> => {
-    if (USE_MOCK_API) return mockCategoryAPI.getAll();
     const response = await api.get('/categories');
     return response.data;
   },
@@ -35,19 +32,16 @@ export const categoryAPI = {
   },
   
   create: async (category: Omit<Category, '_id' | 'id'>): Promise<Category> => {
-    if (USE_MOCK_API) return mockCategoryAPI.create(category);
     const response = await api.post('/categories', category);
     return response.data;
   },
   
   update: async (id: string, category: Partial<Category>): Promise<Category> => {
-    if (USE_MOCK_API) return mockCategoryAPI.update(id, category);
     const response = await api.put(`/categories/${id}`, category);
     return response.data;
   },
   
   delete: async (id: string): Promise<void> => {
-    if (USE_MOCK_API) return mockCategoryAPI.delete(id);
     await api.delete(`/categories/${id}`);
   },
 };
@@ -55,7 +49,6 @@ export const categoryAPI = {
 // Menu Items API
 export const menuAPI = {
   getAll: async (): Promise<MenuItem[]> => {
-    if (USE_MOCK_API) return mockMenuAPI.getAll();
     const response = await api.get('/menu');
     return response.data;
   },
@@ -71,19 +64,16 @@ export const menuAPI = {
   },
   
   create: async (item: Omit<MenuItem, '_id' | 'id'>): Promise<MenuItem> => {
-    if (USE_MOCK_API) return mockMenuAPI.create(item);
     const response = await api.post('/menu', item);
     return response.data;
   },
   
   update: async (id: string, item: Partial<MenuItem>): Promise<MenuItem> => {
-    if (USE_MOCK_API) return mockMenuAPI.update(id, item);
     const response = await api.put(`/menu/${id}`, item);
     return response.data;
   },
   
   delete: async (id: string): Promise<void> => {
-    if (USE_MOCK_API) return mockMenuAPI.delete(id);
     await api.delete(`/menu/${id}`);
   },
 };
@@ -103,12 +93,8 @@ export const restaurantAPI = {
 
 // Auth API
 export const authAPI = {
-  login: async (username: string, password: string): Promise<{ token: string; admin?: Admin }> => {
-    if (USE_MOCK_API) {
-      const { token } = await mockAuthAPI.login(username, password);
-      return { token };
-    }
-    const response = await api.post('/auth/login', { username, password });
+  login: async (email: string, password: string, tenantId?: string): Promise<{ token: string; user?: any }> => {
+    const response = await api.post('/auth/user-login', { email, password, tenantId });
     return response.data;
   },
   

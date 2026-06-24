@@ -1,20 +1,41 @@
 import { useState, useEffect } from 'react';
-import { menuAPI, categoryAPI } from '@/services/api';
-import type { MenuItem, Category } from '@/types';
+import { tenantMenuAPI, tenantCategoryAPI, setTenantContext } from '@/services/tenantApi';
+import type { TenantMenuItem, TenantCategory } from '@/types/tenant';
 import toast from 'react-hot-toast';
 
-export const useMenu = () => {
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+const getCurrentTenantId = (): string | null => {
+  const tenantId = localStorage.getItem('current_tenant_id');
+  if (tenantId) return tenantId;
+
+  const token = localStorage.getItem('admin_token');
+  if (token) {
+    try {
+      const decoded = JSON.parse(atob(token));
+      return decoded.tenantId || null;
+    } catch { /* not JSON token */ }
+  }
+
+  return null;
+};
+
+export const useMenu = (tenantId?: string) => {
+  const [menuItems, setMenuItems] = useState<TenantMenuItem[]>([]);
+  const [categories, setCategories] = useState<TenantCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const activeTenantId = tenantId || getCurrentTenantId();
 
   const fetchMenu = async () => {
+    if (!activeTenantId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
+      setTenantContext(activeTenantId, null);
       const [items, cats] = await Promise.all([
-        menuAPI.getAll(),
-        categoryAPI.getAll(),
+        tenantMenuAPI.getAll(activeTenantId),
+        tenantCategoryAPI.getAll(activeTenantId),
       ]);
       setMenuItems(items);
       setCategories(cats);
@@ -31,14 +52,13 @@ export const useMenu = () => {
   useEffect(() => {
     fetchMenu();
 
-    // Listen for menu updates from admin panel
     const handleMenuUpdate = () => {
       fetchMenu();
     };
 
     window.addEventListener('menu-updated', handleMenuUpdate);
     return () => window.removeEventListener('menu-updated', handleMenuUpdate);
-  }, []);
+  }, [activeTenantId]);
 
   return {
     menuItems,
@@ -49,14 +69,20 @@ export const useMenu = () => {
   };
 };
 
-export const useCategories = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
+export const useCategories = (tenantId?: string) => {
+  const [categories, setCategories] = useState<TenantCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const activeTenantId = tenantId || getCurrentTenantId();
 
   const fetchCategories = async () => {
+    if (!activeTenantId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const data = await categoryAPI.getAll();
+      setTenantContext(activeTenantId, null);
+      const data = await tenantCategoryAPI.getAll(activeTenantId);
       setCategories(data);
     } catch (err) {
       console.error(err);
@@ -66,47 +92,30 @@ export const useCategories = () => {
     }
   };
 
-  const addCategory = async (category: Omit<Category, '_id' | 'id'>) => {
-    try {
-      const newCategory = await categoryAPI.create(category);
-      setCategories([...categories, newCategory]);
-      toast.success('Category added successfully');
-      return newCategory;
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to add category');
-      throw err;
-    }
+  const addCategory = async (category: Omit<TenantCategory, 'id' | 'tenantId'>) => {
+    if (!activeTenantId) throw new Error('No tenant context');
+    const newCategory = await tenantCategoryAPI.create(activeTenantId, category);
+    setCategories([...categories, newCategory]);
+    toast.success('Category added');
+    return newCategory;
   };
 
-  const updateCategory = async (id: string, updates: Partial<Category>) => {
-    try {
-      const updated = await categoryAPI.update(id, updates);
-      setCategories(categories.map(cat => cat.id === id ? updated : cat));
-      toast.success('Category updated successfully');
-      return updated;
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to update category');
-      throw err;
-    }
+  const updateCategory = async (id: string, updates: Partial<TenantCategory>) => {
+    const updated = await tenantCategoryAPI.update(id, updates);
+    setCategories(categories.map(cat => cat.id === id ? updated : cat));
+    toast.success('Category updated');
+    return updated;
   };
 
   const deleteCategory = async (id: string) => {
-    try {
-      await categoryAPI.delete(id);
-      setCategories(categories.filter(cat => cat.id !== id));
-      toast.success('Category deleted successfully');
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to delete category');
-      throw err;
-    }
+    await tenantCategoryAPI.delete(id);
+    setCategories(categories.filter(cat => cat.id !== id));
+    toast.success('Category deleted');
   };
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+  }, [activeTenantId]);
 
   return {
     categories,
@@ -118,14 +127,20 @@ export const useCategories = () => {
   };
 };
 
-export const useMenuItems = () => {
-  const [items, setItems] = useState<MenuItem[]>([]);
+export const useMenuItems = (tenantId?: string) => {
+  const [items, setItems] = useState<TenantMenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const activeTenantId = tenantId || getCurrentTenantId();
 
   const fetchItems = async () => {
+    if (!activeTenantId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
-      const data = await menuAPI.getAll();
+      setTenantContext(activeTenantId, null);
+      const data = await tenantMenuAPI.getAll(activeTenantId);
       setItems(data);
     } catch (err) {
       console.error(err);
@@ -135,53 +150,33 @@ export const useMenuItems = () => {
     }
   };
 
-  const addItem = async (item: Omit<MenuItem, '_id' | 'id'>) => {
-    try {
-      const newItem = await menuAPI.create(item);
-      setItems([...items, newItem]);
-      toast.success('Menu item added successfully');
-      // Trigger menu update event for customer page
-      window.dispatchEvent(new Event('menu-updated'));
-      return newItem;
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to add menu item');
-      throw err;
-    }
+  const addItem = async (item: Omit<TenantMenuItem, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>) => {
+    if (!activeTenantId) throw new Error('No tenant context');
+    const newItem = await tenantMenuAPI.create(activeTenantId, item);
+    setItems([...items, newItem]);
+    toast.success('Menu item added');
+    window.dispatchEvent(new Event('menu-updated'));
+    return newItem;
   };
 
-  const updateItem = async (id: string, updates: Partial<MenuItem>) => {
-    try {
-      const updated = await menuAPI.update(id, updates);
-      setItems(items.map(item => item.id === id ? updated : item));
-      toast.success('Menu item updated successfully');
-      // Trigger menu update event for customer page
-      window.dispatchEvent(new Event('menu-updated'));
-      return updated;
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to update menu item');
-      throw err;
-    }
+  const updateItem = async (id: string, updates: Partial<TenantMenuItem>) => {
+    const updated = await tenantMenuAPI.update(id, updates);
+    setItems(items.map(item => item.id === id ? updated : item));
+    toast.success('Menu item updated');
+    window.dispatchEvent(new Event('menu-updated'));
+    return updated;
   };
 
   const deleteItem = async (id: string) => {
-    try {
-      await menuAPI.delete(id);
-      setItems(items.filter(item => item.id !== id));
-      toast.success('Menu item deleted successfully');
-      // Trigger menu update event for customer page
-      window.dispatchEvent(new Event('menu-updated'));
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to delete menu item');
-      throw err;
-    }
+    await tenantMenuAPI.delete(id);
+    setItems(items.filter(item => item.id !== id));
+    toast.success('Menu item deleted');
+    window.dispatchEvent(new Event('menu-updated'));
   };
 
   useEffect(() => {
     fetchItems();
-  }, []);
+  }, [activeTenantId]);
 
   return {
     items,

@@ -429,10 +429,15 @@ export const userAPI = {
     return newUser;
   },
 
-  login: async (email: string, password: string): Promise<{ user: User; token: string }> => {
+  login: async (email: string, password: string, tenantId?: string): Promise<{ user: User; token: string }> => {
     await delay(500);
     const users = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS) || '[]');
-    const user = users.find((u: User) => u.email === email && u.password === password);
+    
+    let user = users.find((u: User) => u.email === email && u.password === password);
+    
+    if (tenantId) {
+      user = users.find((u: User) => u.email === email && u.password === password && u.tenantId === tenantId);
+    }
     
     if (!user) {
       throw new Error('Invalid credentials');
@@ -448,11 +453,60 @@ export const userAPI = {
     users[index] = user;
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
 
-    const token = `token_${crypto.randomUUID()}`;
+    const tokenData = { userId: user.id, tenantId: user.tenantId, email: user.email };
+    const token = btoa(JSON.stringify(tokenData));
     
     await logAction('user.login', 'User', user.id);
     
     return { user, token };
+  },
+};
+
+// Tenant Category API
+export const tenantCategoryAPI = {
+  getAll: async (tenantId: string): Promise<TenantCategory[]> => {
+    await delay(300);
+    ensureTenantAccess(tenantId);
+    const categories = JSON.parse(localStorage.getItem(STORAGE_KEYS.CATEGORIES) || '[]');
+    return categories.filter((cat: TenantCategory) => cat.tenantId === tenantId);
+  },
+
+  create: async (tenantId: string, data: Omit<TenantCategory, 'id' | 'tenantId'>): Promise<TenantCategory> => {
+    await delay(300);
+    ensureTenantAccess(tenantId);
+    const categories = JSON.parse(localStorage.getItem(STORAGE_KEYS.CATEGORIES) || '[]');
+    const newCategory: TenantCategory = {
+      ...data,
+      id: `cat_${crypto.randomUUID()}`,
+      tenantId,
+    };
+    categories.push(newCategory);
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    await logAction('category.create', 'Category', newCategory.id);
+    return newCategory;
+  },
+
+  update: async (id: string, updates: Partial<TenantCategory>): Promise<TenantCategory> => {
+    await delay(300);
+    const categories = JSON.parse(localStorage.getItem(STORAGE_KEYS.CATEGORIES) || '[]');
+    const index = categories.findIndex((c: TenantCategory) => c.id === id);
+    if (index === -1) throw new Error('Category not found');
+    ensureTenantAccess(categories[index].tenantId);
+    categories[index] = { ...categories[index], ...updates };
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+    await logAction('category.update', 'Category', id);
+    return categories[index];
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await delay(300);
+    const categories = JSON.parse(localStorage.getItem(STORAGE_KEYS.CATEGORIES) || '[]');
+    const cat = categories.find((c: TenantCategory) => c.id === id);
+    if (!cat) throw new Error('Category not found');
+    ensureTenantAccess(cat.tenantId);
+    const filtered = categories.filter((c: TenantCategory) => c.id !== id);
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(filtered));
+    await logAction('category.delete', 'Category', id);
   },
 };
 

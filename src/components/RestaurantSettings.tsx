@@ -5,10 +5,27 @@ import toast from 'react-hot-toast';
 import { Save } from 'lucide-react';
 
 export default function RestaurantSettings() {
-  const [formData, setFormData] = useState<Restaurant>(restaurantService.get());
+  const [formData, setFormData] = useState<Restaurant>({
+    name: '',
+    tagline: '',
+    logo: '',
+    heroImage: '',
+    phone: '',
+    email: '',
+    location: '',
+    about: '',
+  });
   const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState('');
   const [heroPreview, setHeroPreview] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      const r = await restaurantService.get();
+      setFormData(r);
+    };
+    load();
+  }, []);
 
   useEffect(() => {
     setLogoPreview(formData.logo);

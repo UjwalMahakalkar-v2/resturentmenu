@@ -1,27 +1,51 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
 import { authAPI } from '@/services/api';
+import { setTenantContext, tenantAPI } from '@/services/tenantApi';
 import toast from 'react-hot-toast';
 
 export default function AdminLogin() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { tenantSlug } = useParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
-      toast.error('Please enter both username and password');
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
       return;
     }
 
     setLoading(true);
     try {
-      const { token } = await authAPI.login(username, password);
+      let tenantId: string | null = null;
+
+      if (tenantSlug) {
+        const tenant = await tenantAPI.getBySlug(tenantSlug);
+        if (tenant) {
+          tenantId = tenant.id;
+        }
+      }
+
+      const { token } = await authAPI.login(email, password, tenantId || undefined);
       localStorage.setItem('admin_token', token);
+
+      try {
+        const decoded = JSON.parse(atob(token));
+        if (decoded.tenantId) {
+          tenantId = decoded.tenantId;
+        }
+      } catch { /* legacy token */ }
+
+      if (tenantId) {
+        localStorage.setItem('current_tenant_id', tenantId);
+        setTenantContext(tenantId, null);
+      }
+
       toast.success('Login successful!');
       navigate('/admin/dashboard');
     } catch (error) {
@@ -45,19 +69,19 @@ export default function AdminLogin() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-              Username
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="input-field pl-10"
-                placeholder="Enter your username"
-                autoComplete="username"
+                placeholder="Enter your email"
+                autoComplete="email"
               />
             </div>
           </div>
