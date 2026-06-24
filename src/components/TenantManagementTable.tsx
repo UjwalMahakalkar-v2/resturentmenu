@@ -13,7 +13,7 @@ import {
   MoreVertical
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
-import { tenantAPI } from '@/services/tenantApi';
+import api from '@/services/api';
 import toast from 'react-hot-toast';
 
 interface TenantManagementTableProps {
@@ -44,7 +44,7 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
     setLoading(tenant.id);
     setShowActions(null);
     try {
-      await tenantAPI.suspend(tenant.id);
+      await api.patch(`/tenants/${tenant.id}`, { status: 'suspended' });
       toast.success(`${tenant.name} has been suspended`);
       await onRefresh();
     } catch (error: any) {
@@ -58,7 +58,7 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
     setLoading(tenant.id);
     setShowActions(null);
     try {
-      await tenantAPI.activate(tenant.id);
+      await api.patch(`/tenants/${tenant.id}`, { status: 'active' });
       toast.success(`${tenant.name} has been activated`);
       await onRefresh();
     } catch (error: any) {
@@ -80,7 +80,7 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
     setLoading(tenant.id);
     setShowActions(null);
     try {
-      await tenantAPI.delete(tenant.id, false); // Soft delete
+      await api.delete(`/tenants/${tenant.id}`);
       toast.success(`${tenant.name} has been deleted`);
       await onRefresh();
     } catch (error: any) {

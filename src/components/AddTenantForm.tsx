@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Building2, Globe, User, Mail, Phone, Lock, MapPin } from 'lucide-react';
 import type { SubscriptionPlan } from '@/types/tenant';
-import { tenantAPI } from '@/services/tenantApi';
+import api from '@/services/api';
 import toast from 'react-hot-toast';
 
 interface AddTenantFormProps {
@@ -63,20 +63,21 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
 
     setLoading(true);
     try {
-      const result = await tenantAPI.createWithAdmin({
+      const response = await api.post('/tenants', {
         name: formData.name,
         slug: formData.slug,
         subdomain: useSubdomain ? formData.subdomain : undefined,
         email: formData.email,
         phone: formData.phone,
         address: formData.address,
-        plan: formData.plan,
-        adminUsername: formData.adminUsername,
+        subscriptionPlan: formData.plan,
+        adminName: formData.adminUsername,
         adminPassword: formData.adminPassword,
         adminEmail: formData.adminEmail,
       });
+      const result = response.data;
 
-      toast.success(`Tenant "${result.tenant.name}" created successfully!`);
+      toast.success(`Tenant "${result.name}" created successfully!`);
       onSuccess();
       onClose();
     } catch (error: any) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
-import { tenantAPI } from '@/services/tenantApi';
+import api from '@/services/api';
 import type { Tenant } from '@/types/tenant';
 import TenantManagementTable from '@/components/TenantManagementTable';
 import AddTenantForm from '@/components/AddTenantForm';
@@ -60,7 +60,12 @@ export default function SuperAdminDashboard() {
   const fetchTenants = async () => {
     try {
       setLoading(true);
-      const tenantsData = await tenantAPI.getAll();
+      const response = await api.get('/tenants');
+      // Normalize: backend stores subscriptionPlan, frontend type uses plan
+      const tenantsData = response.data.map((t: any) => ({
+        ...t,
+        plan: t.plan || t.subscriptionPlan || 'starter',
+      }));
       
       const activeTenants = tenantsData.filter(t => t.status !== 'deleted');
       setTenants(activeTenants);

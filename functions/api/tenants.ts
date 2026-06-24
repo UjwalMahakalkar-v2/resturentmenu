@@ -105,7 +105,7 @@ export async function onRequestPost(context: any) {
     const email = body.email.toLowerCase().trim();
     const phone = body.phone ? body.phone.trim() : '';
     const address = typeof body.address === 'string' ? body.address.trim().slice(0, 500) : '';
-    const subscriptionPlan = ['starter', 'professional', 'enterprise'].includes(body.subscriptionPlan)
+    const subscriptionPlan = ['starter', 'business', 'premium'].includes(body.subscriptionPlan)
       ? body.subscriptionPlan
       : 'starter';
 

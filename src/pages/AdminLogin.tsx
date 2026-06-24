@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Lock, User } from 'lucide-react';
-import { authAPI } from '@/services/api';
-import { tenantAPI } from '@/services/tenantApi';
+import { authAPI, publicAPI } from '@/services/api';
 import toast from 'react-hot-toast';
 
 export default function AdminLogin() {
@@ -17,7 +16,7 @@ export default function AdminLogin() {
   useEffect(() => {
     // Load tenant info if tenantSlug is present
     if (tenantSlug) {
-      tenantAPI.getBySlug(tenantSlug).then(tenant => {
+      publicAPI.getTenantBySlug(tenantSlug).then(tenant => {
         if (tenant) {
           setTenantId(tenant.id);
           setTenantName(tenant.name);

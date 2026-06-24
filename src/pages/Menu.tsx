@@ -2,8 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMenu } from '@/hooks/useMenu';
 import { restaurantService } from '@/services/restaurantService';
-import { tenantAPI } from '@/services/tenantApi';
-import type { Tenant } from '@/types/tenant';
+import { publicAPI } from '@/services/api';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import SearchBar from '@/components/SearchBar';
@@ -18,14 +17,14 @@ import type { Restaurant } from '@/types';
 
 export default function Menu() {
   const { tenantSlug } = useParams();
-  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [tenant, setTenant] = useState<{ id: string; name: string } | null>(null);
   const { menuItems, categories, loading } = useMenu(tenant?.id);
 
   useEffect(() => {
     const loadTenant = async () => {
       if (tenantSlug) {
         try {
-          const t = await tenantAPI.getBySlug(tenantSlug);
+          const t = await publicAPI.getTenantBySlug(tenantSlug);
           setTenant(t);
         } catch (err) {
           console.error(err);

@@ -3,17 +3,20 @@ import { generateJWT } from '../../utils/jwt';
 
 export async function onRequestPost(context: any) {
   try {
-    const { email, password, tenantId } = await context.request.json();
-    
+    const body = await context.request.json();
+    const email = typeof body.email === 'string' ? body.email.toLowerCase().trim() : '';
+    const password = body.password;
+    const tenantId = body.tenantId;
+
     if (!email || !password) {
       return new Response(JSON.stringify({ error: 'Email and password required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    
+
     const collection = await getCollection('users');
-    
+
     // Find user by email and password
     let query: any = { email, password };
     if (tenantId) {
