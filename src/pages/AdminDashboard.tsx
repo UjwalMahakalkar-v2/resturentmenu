@@ -7,6 +7,7 @@ import {
 import { useMenuItems, useCategories } from '@/hooks/useMenu';
 import MenuItemForm from '@/components/MenuItemForm';
 import RestaurantSettings from '@/components/RestaurantSettings';
+import ThemeSettings from '@/components/ThemeSettings';
 import AnalyticsTab from '@/components/AnalyticsTab';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
 import api from '@/services/api';
@@ -493,7 +494,12 @@ export default function AdminDashboard() {
             )}
 
             {/* ── SETTINGS TAB ── */}
-            {activeTab === 'settings' && <RestaurantSettings />}
+            {activeTab === 'settings' && (
+              <div className="space-y-8">
+                <RestaurantSettings />
+                <ThemeSettings />
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -1,3 +1,15 @@
+export interface RestaurantTheme {
+  name?: string;
+  primary?: string;
+  primaryHover?: string;
+  primaryLight?: string;
+  secondary?: string;
+  accent?: string;
+  background?: string;
+  text?: string;
+  buttonStyle?: 'rounded' | 'pill' | 'square';
+}
+
 export interface Category {
   _id?: string;
   id: string;
@@ -42,6 +54,7 @@ export interface Restaurant {
     enableWhatsapp?: boolean;
     enableInstagram?: boolean;
   };
+  theme?: RestaurantTheme;
   socialAnalytics?: {
     whatsappClicks: number;
     instagramClicks: number;

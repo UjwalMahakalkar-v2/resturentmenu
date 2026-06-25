@@ -7,6 +7,7 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Static admin/utility palette — never changes
         primary: {
           50: '#faf8f5',
           100: '#f5f1ea',
@@ -21,10 +22,21 @@ export default {
         },
         cream: '#faf8f5',
         dark: '#1a1a1a',
+        // Tenant-themeable colors — driven by CSS variables
+        'theme-primary': 'var(--color-primary)',
+        'theme-primary-hover': 'var(--color-primary-hover)',
+        'theme-primary-light': 'var(--color-primary-light)',
+        'theme-secondary': 'var(--color-secondary)',
+        'theme-accent': 'var(--color-accent)',
+        'theme-bg': 'var(--color-bg)',
+        'theme-text': 'var(--color-text)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         serif: ['Playfair Display', 'Georgia', 'serif'],
+      },
+      minHeight: {
+        'touch': '44px',
       },
     },
   },

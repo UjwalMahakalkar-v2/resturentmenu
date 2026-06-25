@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { TenantProvider } from './contexts/TenantContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Menu from './pages/Menu';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
@@ -9,6 +10,7 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
 function App() {
   return (
+    <ThemeProvider>
     <TenantProvider>
       <Router>
         <Toaster
@@ -46,6 +48,7 @@ function App() {
         </Routes>
       </Router>
     </TenantProvider>
+    </ThemeProvider>
   );
 }
 

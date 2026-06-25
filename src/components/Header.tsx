@@ -17,10 +17,14 @@ export default function Header({ restaurant }: HeaderProps) {
                 src={restaurant.logo}
                 alt={restaurant.name}
                 className="h-10 w-10 sm:h-12 sm:w-12 object-contain"
+                loading="lazy"
               />
             )}
             <div>
-              <h1 className="text-lg sm:text-2xl font-bold text-primary-700">
+              <h1
+                className="text-lg sm:text-2xl font-bold"
+                style={{ color: 'var(--color-primary)' }}
+              >
                 {restaurant?.name || 'Restaurant Name'}
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
@@ -29,12 +33,15 @@ export default function Header({ restaurant }: HeaderProps) {
             </div>
           </div>
 
-          {/* Contact Info */}
+          {/* Contact Info — desktop only */}
           <div className="hidden md:flex items-center gap-6 text-sm">
             {restaurant?.phone && (
               <a
                 href={`tel:${restaurant.phone}`}
-                className="flex items-center gap-2 text-gray-700 hover:text-primary-600 transition-colors"
+                className="flex items-center gap-2 text-gray-700 transition-colors hover:opacity-80"
+                style={{ color: undefined }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = '')}
               >
                 <Phone className="w-4 h-4" />
                 <span>{restaurant.phone}</span>
@@ -43,7 +50,9 @@ export default function Header({ restaurant }: HeaderProps) {
             {restaurant?.email && (
               <a
                 href={`mailto:${restaurant.email}`}
-                className="flex items-center gap-2 text-gray-700 hover:text-primary-600 transition-colors"
+                className="flex items-center gap-2 text-gray-700 transition-colors hover:opacity-80"
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-primary)')}
+                onMouseLeave={e => (e.currentTarget.style.color = '')}
               >
                 <Mail className="w-4 h-4" />
                 <span>{restaurant.email}</span>
@@ -56,6 +65,18 @@ export default function Header({ restaurant }: HeaderProps) {
               </div>
             )}
           </div>
+
+          {/* Mobile: phone quick-dial */}
+          {restaurant?.phone && (
+            <a
+              href={`tel:${restaurant.phone}`}
+              className="md:hidden p-2 rounded-full text-white transition-opacity hover:opacity-90 active:opacity-75"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+              aria-label="Call restaurant"
+            >
+              <Phone className="w-5 h-5" />
+            </a>
+          )}
         </div>
       </div>
     </header>

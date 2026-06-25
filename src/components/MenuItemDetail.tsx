@@ -113,7 +113,7 @@ export default function MenuItemDetail({ item, isOpen, onClose, categories }: Me
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500 mb-1">Price</p>
-                <p className="text-4xl font-bold text-primary-700">₹{item.price}</p>
+                <p className="text-4xl font-bold" style={{ color: 'var(--color-primary)' }}>₹{item.price}</p>
               </div>
               {item.available && (
                 <button className="btn-primary text-lg px-8 py-3">

@@ -3,22 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Patola Restaurant - Authentic Indian & Chinese cuisine in Nagpur. Browse our delicious menu featuring soups, sizzlers, beverages and more." />
-    <meta name="keywords" content="patola, restaurant, nagpur, indian food, chinese food, sizzlers, soups, beverages" />
-    
-    <!-- Open Graph / Facebook -->
+
+    <!-- Viewport: critical for mobile — prevents zoom on input focus (iOS) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- SEO -->
+    <meta name="description" content="Digital restaurant menu — fast, beautiful, mobile-first." />
+    <meta name="keywords" content="restaurant, menu, digital menu, food, order" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#9a7548" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="MenuMate" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+    <!-- Mobile: prevent content from going under notch on iOS -->
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Patola Restaurant - Digital Menu" />
-    <meta property="og:description" content="Authentic Indian & Chinese cuisine in Nagpur. Browse our menu and order online." />
+    <meta property="og:title" content="Digital Restaurant Menu" />
+    <meta property="og:description" content="Browse our menu — fast, beautiful, mobile-first." />
     <meta property="og:image" content="/og-image.jpg" />
-    
+
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:title" content="Patola Restaurant - Digital Menu" />
-    <meta property="twitter:description" content="Authentic Indian & Chinese cuisine in Nagpur. Browse our menu and order online." />
-    
-    <title>Patola Restaurant - Digital Menu</title>
+    <meta property="twitter:title" content="Digital Restaurant Menu" />
+    <meta property="twitter:description" content="Browse our menu — fast, beautiful, mobile-first." />
+
+    <title>MenuMate — Digital Menu</title>
   </head>
   <body>
     <div id="root"></div>

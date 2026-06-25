@@ -4,13 +4,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── CSS CUSTOM PROPERTIES (Tenant Theme Variables) ─────────────────────────
+   Default values match the original brown/cream palette.
+   ThemeContext overrides these at runtime per-tenant.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --color-primary: #9a7548;
+  --color-primary-hover: #7d5e3a;
+  --color-primary-light: #f5f1ea;
+  --color-secondary: #b08d5f;
+  --color-accent: #c5ab87;
+  --color-bg: #faf8f5;
+  --color-text: #1a1a1a;
+  --btn-radius: 0.5rem;
+}
+
 @layer base {
   body {
     @apply bg-cream text-dark font-sans antialiased;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    /* Prevent horizontal overflow on mobile */
+    overflow-x: hidden;
+    max-width: 100vw;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
+  }
+
+  /* Touch-friendly: make tap highlight transparent */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Smooth scrolling app-wide */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent inputs from zooming on iOS */
+  input, select, textarea {
+    font-size: 16px;
   }
 }
 
@@ -18,41 +53,60 @@
   .container-custom {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
-  
+
+  /* ── Themed primary button — uses CSS vars for color ── */
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-6 rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg;
+    @apply text-white font-medium py-2 px-6 transition-colors duration-200 shadow-md hover:shadow-lg inline-flex items-center justify-center;
+    background-color: var(--color-primary);
+    border-radius: var(--btn-radius, 0.5rem);
+    min-height: 44px;
   }
-  
+  .btn-primary:hover {
+    background-color: var(--color-primary-hover);
+  }
+
   .btn-secondary {
     @apply bg-white hover:bg-gray-50 text-dark font-medium py-2 px-6 rounded-lg border border-gray-300 transition-colors duration-200;
+    min-height: 44px;
   }
-  
+
   .btn-danger {
     @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+    min-height: 44px;
   }
-  
+
   .input-field {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all;
+    @apply w-full px-4 py-2 border border-gray-300 rounded-lg outline-none transition-all;
+    min-height: 44px;
   }
-  
+  .input-field:focus {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--color-primary);
+  }
+
   .card {
     @apply bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300;
   }
-  
+
   .badge-veg {
-    @apply inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-green-600;
+    @apply inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-green-600 flex-shrink-0;
   }
-  
+
   .badge-non-veg {
-    @apply inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-red-600;
+    @apply inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-red-600 flex-shrink-0;
   }
-  
+
   .badge-popular {
     @apply bg-amber-500 text-white text-xs font-semibold px-2 py-1 rounded-full;
   }
-  
+
   .skeleton {
     @apply animate-pulse bg-gray-200 rounded;
+  }
+
+  /* ── Mobile bottom safe area padding ── */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 
@@ -60,50 +114,53 @@
   .text-balance {
     text-wrap: balance;
   }
-  
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Prevent text selection on interactive elements */
+  .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
-/* Custom animations */
+/* ── Animations ──────────────────────────────────────────────────────────── */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* Loading skeleton */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slideUp 0.35s ease-out;
+}
+
+/* Loading skeleton shimmer */
 .loading-skeleton {
-  background: linear-gradient(
-    90deg,
-    #f0f0f0 25%,
-    #e0e0e0 50%,
-    #f0f0f0 75%
-  );
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: loading 1.5s ease-in-out infinite;
 }
-
 @keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Mobile: bottom navigation safe spacing ─────────────────────────────── */
+@media (max-width: 767px) {
+  .mobile-bottom-offset {
+    padding-bottom: 72px;
   }
 }
