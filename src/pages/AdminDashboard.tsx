@@ -9,6 +9,7 @@ import MenuItemForm from '@/components/MenuItemForm';
 import RestaurantSettings from '@/components/RestaurantSettings';
 import ThemeSettings from '@/components/ThemeSettings';
 import AnalyticsTab from '@/components/AnalyticsTab';
+import SocialLinksSettings from '@/components/admin/SocialLinksSettings';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
 import api from '@/services/api';
 import type { TenantMenuItem, TenantCategory } from '@/types/tenant';
@@ -497,6 +498,7 @@ export default function AdminDashboard() {
             {activeTab === 'settings' && (
               <div className="space-y-8">
                 <RestaurantSettings />
+                <SocialLinksSettings />
                 <ThemeSettings />
               </div>
             )}

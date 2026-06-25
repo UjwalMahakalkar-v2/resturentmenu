@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '@/services/api';
-import { MessageCircle, Package, Star, XCircle, Leaf } from 'lucide-react';
+import { MessageCircle, Package, Star, XCircle, Leaf, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Analytics {
@@ -11,13 +11,22 @@ interface Analytics {
 export default function AnalyticsTab() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const fetchAnalytics = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
+    else setRefreshing(true);
     api.get('/analytics')
       .then(r => setAnalytics(r.data))
-      .catch(() => toast.error('Failed to load analytics'))
-      .finally(() => setLoading(false));
+      .catch(() => { if (!silent) toast.error('Failed to load analytics'); })
+      .finally(() => { setLoading(false); setRefreshing(false); });
   }, []);
+
+  useEffect(() => {
+    fetchAnalytics(false);
+    const interval = setInterval(() => fetchAnalytics(true), 30000);
+    return () => clearInterval(interval);
+  }, [fetchAnalytics]);
 
   if (loading) return <div className="py-12 text-center text-gray-500">Loading analytics...</div>;
   if (!analytics) return null;
@@ -62,8 +71,18 @@ export default function AnalyticsTab() {
 
       {/* Social Clicks */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">Social Media Clicks</h3>
-        <p className="text-sm text-gray-500 mb-4">Total clicks: <span className="font-semibold text-gray-800">{totalSocialClicks}</span></p>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-lg font-semibold text-gray-900">Social Media Clicks</h3>
+          <button
+            onClick={() => fetchAnalytics(true)}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+        <p className="text-sm text-gray-500 mb-4">Total clicks: <span className="font-semibold text-gray-800">{totalSocialClicks}</span> · auto-updates every 30s</p>
         <div className="space-y-4">
           {socialPlatforms.map(({ label, count, icon: Icon, color, bg, bar }) => {
             const pct = totalSocialClicks > 0 ? Math.round((count / totalSocialClicks) * 100) : 0;
