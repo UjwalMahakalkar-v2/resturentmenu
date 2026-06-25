@@ -14,10 +14,12 @@
     <!-- PWA -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#9a7548" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="MenuMate" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon.svg" />
+    <!-- Automatically upgrade any remaining HTTP sub-resources to HTTPS -->
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
 
     <!-- Mobile: prevent content from going under notch on iOS -->
     <meta name="format-detection" content="telephone=no" />

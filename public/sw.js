@@ -3,7 +3,7 @@
  * Strategy: Cache-first for static assets, network-first for pages.
  * API calls are never cached.
  */
-const CACHE_NAME = 'menumate-v1';
+const CACHE_NAME = 'menumate-v2';
 const OFFLINE_URL = '/offline.html';
 
 // On install: cache the offline fallback page
