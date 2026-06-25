@@ -1,6 +1,14 @@
 import { MongoClient } from 'mongodb';
 
-const MONGODB_URI = 'mongodb+srv://ayushmahakalkar_db_user:ByYnmRJvL25mQGaA@cluster0.5b7rkwg.mongodb.net/restaurant_menu?retryWrites=true&w=majority';
+// Direct connection string — bypasses SRV DNS lookup which fails in Cloudflare Workers.
+// Hosts are the 3 Atlas replica set members discovered from the SRV record.
+// The driver will auto-discover the replicaSet name via the hello command.
+const MONGODB_URI =
+  'mongodb://ayushmahakalkar_db_user:ByYnmRJvL25mQGaA@' +
+  'ac-s79adqq-shard-00-00.5b7rkwg.mongodb.net:27017,' +
+  'ac-s79adqq-shard-00-01.5b7rkwg.mongodb.net:27017,' +
+  'ac-s79adqq-shard-00-02.5b7rkwg.mongodb.net:27017' +
+  '/restaurant_menu?tls=true&authSource=admin&retryWrites=true&w=majority';
 const DB_NAME = 'restaurant_menu';
 
 // Cloudflare Workers: keep one client per isolate, but reconnect if the
