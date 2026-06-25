@@ -1,28 +1,26 @@
-import { getCollection } from '../../db';
+import { getDB, queryAll } from '../../db';
+
+const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+
+function rowToCat(r: any) {
+  return { id: r.id, tenantId: r.tenant_id, name: r.name, description: r.description || '', icon: r.icon || '', sortOrder: r.sort_order };
+}
+
+export async function onRequestOptions() {
+  return new Response(null, { status: 204, headers: { ...CORS, 'Access-Control-Allow-Methods': 'GET, OPTIONS' } });
+}
 
 export async function onRequestGet(context: any) {
   try {
     const url = new URL(context.request.url);
     const tenantId = url.searchParams.get('tenantId');
+    if (!tenantId) return new Response(JSON.stringify({ error: 'tenantId is required' }), { status: 400, headers: CORS });
 
-    if (!tenantId) {
-      return new Response(JSON.stringify({ error: 'tenantId is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const collection = await getCollection('categories');
-    const categories = await collection.find({ tenantId }).sort({ order: 1 }).toArray();
-
-    return new Response(JSON.stringify(categories), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    const db = getDB(context.env);
+    const rows = await queryAll(db, 'SELECT * FROM categories WHERE tenant_id = ? ORDER BY sort_order ASC', tenantId);
+    return new Response(JSON.stringify(rows.map(rowToCat)), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Server error';
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: CORS });
   }
 }

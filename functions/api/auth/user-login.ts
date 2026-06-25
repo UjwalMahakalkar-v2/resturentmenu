@@ -1,15 +1,15 @@
-import { getCollection } from '../../db';
+import { getDB, queryFirst } from '../../db';
 import { generateJWT } from '../../utils/jwt';
 
+const CORS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+  return new Response(null, { status: 204, headers: CORS });
 }
 
 export async function onRequestPost(context: any) {
@@ -20,44 +20,43 @@ export async function onRequestPost(context: any) {
     const tenantId = body.tenantId;
 
     if (!email || !password) {
-      return new Response(JSON.stringify({ error: 'Email and password required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify({ error: 'Email and password required' }), { status: 400, headers: CORS });
     }
 
-    const collection = await getCollection('users');
+    const db = getDB(context.env);
 
-    // Find user by email and password
-    let query: any = { email, password };
+    let user: any;
     if (tenantId) {
-      query.tenantId = tenantId;
+      user = await queryFirst(db,
+        'SELECT * FROM users WHERE email = ? AND password = ? AND tenant_id = ? AND active = 1',
+        email, password, tenantId
+      );
+    } else {
+      user = await queryFirst(db,
+        'SELECT * FROM users WHERE email = ? AND password = ? AND active = 1',
+        email, password
+      );
     }
-    
-    const user = await collection.findOne(query);
-    
+
     if (!user) {
-      return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401, headers: CORS });
     }
-    
+
     if (!user.active) {
-      return new Response(JSON.stringify({ error: 'Account is inactive' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify({ error: 'Account is inactive' }), { status: 403, headers: CORS });
     }
-    
+
     // Update last login
-    await collection.updateOne(
-      { _id: user._id },
-      { $set: { lastLoginAt: new Date() } }
-    );
-    
-    const token = generateJWT(user);
-    
+    await db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
+      .bind(new Date().toISOString(), user.id).run();
+
+    const token = generateJWT({
+      id: user.id,
+      tenantId: user.tenant_id,
+      email: user.email,
+      role: user.role,
+    });
+
     return new Response(JSON.stringify({
       token,
       user: {
@@ -65,20 +64,12 @@ export async function onRequestPost(context: any) {
         email: user.email,
         name: user.name,
         role: user.role,
-        tenantId: user.tenantId,
+        tenantId: user.tenant_id,
       },
-    }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    }), { headers: CORS });
   } catch (error) {
-    console.error('Error during login:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Login failed';
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    console.error('Login error:', error);
+    const msg = error instanceof Error ? error.message : 'Login failed';
+    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: CORS });
   }
 }
