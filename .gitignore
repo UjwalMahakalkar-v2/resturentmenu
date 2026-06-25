@@ -33,3 +33,4 @@ dist-ssr
 
 # Database credentials
 DB_Credentials.txt
+.claude/
