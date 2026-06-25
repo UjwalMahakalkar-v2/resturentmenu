@@ -5,15 +5,17 @@ import api from '@/services/api';
 import type { Tenant } from '@/types/tenant';
 import TenantManagementTable from '@/components/TenantManagementTable';
 import AddTenantForm from '@/components/AddTenantForm';
-import { 
-  Building2, 
+import EditTenantForm from '@/components/EditTenantForm';
+import {
+  Building2,
   Plus,
   LogOut,
   Search,
   Shield,
   TrendingUp,
   Ban,
-  CheckCircle
+  CheckCircle,
+  Filter,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -24,12 +26,15 @@ export default function SuperAdminDashboard() {
   const [filteredTenants, setFilteredTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [planFilter, setPlanFilter] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null);
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
     suspended: 0,
-    deleted: 0
+    premium: 0,
   });
 
   useEffect(() => {
@@ -42,31 +47,39 @@ export default function SuperAdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredTenants(tenants);
-    } else {
+    let filtered = tenants;
+
+    if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      const filtered = tenants.filter(tenant =>
-        tenant.name.toLowerCase().includes(query) ||
-        tenant.slug.toLowerCase().includes(query) ||
-        tenant.email.toLowerCase().includes(query) ||
-        tenant.phone.includes(query) ||
-        (tenant.subdomain && tenant.subdomain.toLowerCase().includes(query))
+      filtered = filtered.filter(t =>
+        t.name.toLowerCase().includes(query) ||
+        t.slug.toLowerCase().includes(query) ||
+        t.email.toLowerCase().includes(query) ||
+        t.phone.includes(query) ||
+        (t.subdomain && t.subdomain.toLowerCase().includes(query))
       );
-      setFilteredTenants(filtered);
     }
-  }, [searchQuery, tenants]);
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(t => t.status === statusFilter);
+    }
+
+    if (planFilter !== 'all') {
+      filtered = filtered.filter(t => t.plan === planFilter);
+    }
+
+    setFilteredTenants(filtered);
+  }, [searchQuery, statusFilter, planFilter, tenants]);
 
   const fetchTenants = async () => {
     try {
       setLoading(true);
       const response = await api.get('/tenants');
-      // Normalize: backend stores subscriptionPlan, frontend type uses plan
       const tenantsData = response.data.map((t: any) => ({
         ...t,
         plan: t.plan || t.subscriptionPlan || 'starter',
       }));
-      
+
       const activeTenants = tenantsData.filter((t: any) => t.status !== 'deleted');
       setTenants(activeTenants);
       setFilteredTenants(activeTenants);
@@ -75,7 +88,7 @@ export default function SuperAdminDashboard() {
         total: activeTenants.length,
         active: activeTenants.filter((t: any) => t.status === 'active').length,
         suspended: activeTenants.filter((t: any) => t.status === 'suspended').length,
-        deleted: tenantsData.filter((t: any) => t.status === 'deleted').length,
+        premium: activeTenants.filter((t: any) => t.plan === 'premium').length,
       });
     } catch (error) {
       console.error('Failed to fetch tenants:', error);
@@ -90,8 +103,8 @@ export default function SuperAdminDashboard() {
     navigate('/super-admin/login');
   };
 
-  const handleEditTenant = (_tenant: Tenant) => {
-    toast('Edit functionality coming soon', { icon: 'ℹ️' });
+  const handleEditTenant = (tenant: Tenant) => {
+    setEditingTenant(tenant);
   };
 
   if (loading) {
@@ -131,6 +144,7 @@ export default function SuperAdminDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
@@ -165,18 +179,25 @@ export default function SuperAdminDashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Growth</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">+{stats.total}</p>
+                <p className="text-sm text-gray-600">Premium Plan</p>
+                <p className="text-3xl font-bold text-amber-600 mt-1">{stats.premium}</p>
               </div>
-              <TrendingUp className="w-12 h-12 text-purple-500" />
+              <TrendingUp className="w-12 h-12 text-amber-500" />
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-lg shadow">
           <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Tenant Management</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">
+                Tenant Management
+                {filteredTenants.length !== tenants.length && (
+                  <span className="ml-2 text-sm font-normal text-gray-500">
+                    ({filteredTenants.length} of {tenants.length})
+                  </span>
+                )}
+              </h2>
               <button
                 onClick={() => setShowAddForm(true)}
                 className="btn-primary flex items-center gap-2"
@@ -185,16 +206,42 @@ export default function SuperAdminDashboard() {
                 Add New Tenant
               </button>
             </div>
-            <div className="mt-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+
+            {/* Search + Filters */}
+            <div className="flex flex-wrap gap-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
-                  placeholder="Search tenants by name, slug, email, phone, or subdomain..."
+                  placeholder="Search by name, slug, email, phone..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input-field pl-10 w-full"
+                  className="input-field pl-9 w-full"
                 />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-400" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="input-field py-2 pr-8 text-sm"
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+                <select
+                  value={planFilter}
+                  onChange={(e) => setPlanFilter(e.target.value)}
+                  className="input-field py-2 pr-8 text-sm"
+                >
+                  <option value="all">All Plans</option>
+                  <option value="starter">Starter</option>
+                  <option value="business">Business</option>
+                  <option value="premium">Premium</option>
+                </select>
               </div>
             </div>
           </div>
@@ -210,6 +257,14 @@ export default function SuperAdminDashboard() {
       {showAddForm && (
         <AddTenantForm
           onClose={() => setShowAddForm(false)}
+          onSuccess={fetchTenants}
+        />
+      )}
+
+      {editingTenant && (
+        <EditTenantForm
+          tenant={editingTenant}
+          onClose={() => setEditingTenant(null)}
           onSuccess={fetchTenants}
         />
       )}
