@@ -8,7 +8,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "deploy": "wrangler pages deploy dist",
-    "deploy:gh": "npm run build && gh-pages -d dist"
+    "deploy:gh": "npm run build && gh-pages -d dist",
+    "server:build": "tsc --project tsconfig.server.json",
+    "server:start": "npx tsx server/index.ts",
+    "server:dev": "tsx server/index.ts"
   },
   "keywords": [
     "restaurant",
@@ -18,12 +21,16 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.5.0",
     "axios": "^1.18.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
     "lucide-react": "^1.21.0",
     "mongodb": "^6.0.0",
     "postcss": "^8.5.15",
