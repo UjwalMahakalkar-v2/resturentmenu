@@ -8,14 +8,14 @@ export async function onRequestOptions() {
 }
 
 function rowToItem(r: any) {
-  return { id: r.id, tenantId: r.tenant_id, category: r.category_id, name: r.name, description: r.description || '', price: r.price, type: r.type, image: r.image || '', hasImage: !!(r.image && r.image.length > 0), available: r.available === 1, popular: r.popular === 1, createdAt: r.created_at, updatedAt: r.updated_at };
+  return { id: r.id, tenantId: r.tenant_id, category: r.category_id, name: r.name, description: r.description || '', price: r.price, type: r.type, image: r.image || '', hasImage: !!(r.image && r.image.length > 0), available: r.available === 1, popular: r.popular === 1, sortOrder: r.sort_order ?? 0, createdAt: r.created_at, updatedAt: r.updated_at };
 }
 
 export async function onRequestGet(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);
     const db = getDB(context.env);
-    const rows = await queryAll(db, 'SELECT * FROM menu_items WHERE tenant_id = ? ORDER BY created_at DESC', tenantId);
+    const rows = await queryAll(db, 'SELECT * FROM menu_items WHERE tenant_id = ? ORDER BY sort_order ASC, created_at DESC', tenantId);
     return new Response(JSON.stringify(rows.map(rowToItem)), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to fetch menu items';

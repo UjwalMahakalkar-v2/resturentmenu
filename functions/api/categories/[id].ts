@@ -4,7 +4,7 @@ import { getTenantIdFromRequest } from '../../utils/jwt';
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
 function rowToCat(r: any) {
-  return { id: r.id, tenantId: r.tenant_id, name: r.name, description: r.description || '', icon: r.icon || '', sortOrder: r.sort_order, createdAt: r.created_at, updatedAt: r.updated_at };
+  return { id: r.id, tenantId: r.tenant_id, name: r.name, description: r.description || '', icon: r.icon || '', order: r.sort_order, createdAt: r.created_at, updatedAt: r.updated_at };
 }
 
 export async function onRequestOptions() {
@@ -26,7 +26,7 @@ export async function onRequestPut(context: any) {
     const name = body.name !== undefined ? body.name : existing.name;
     const description = body.description !== undefined ? body.description : existing.description;
     const icon = body.icon !== undefined ? body.icon : existing.icon;
-    const sortOrder = body.sortOrder !== undefined ? body.sortOrder : (body.order !== undefined ? body.order : existing.sort_order);
+    const sortOrder = body.order !== undefined ? body.order : (body.sortOrder !== undefined ? body.sortOrder : existing.sort_order);
 
     await execute(db,
       'UPDATE categories SET name = ?, description = ?, icon = ?, sort_order = ?, updated_at = ? WHERE id = ?',

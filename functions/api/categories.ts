@@ -8,7 +8,7 @@ const CORS = {
 };
 
 function rowToCat(r: any) {
-  return { id: r.id, tenantId: r.tenant_id, name: r.name, description: r.description || '', icon: r.icon || '', sortOrder: r.sort_order, createdAt: r.created_at, updatedAt: r.updated_at };
+  return { id: r.id, tenantId: r.tenant_id, name: r.name, description: r.description || '', icon: r.icon || '', order: r.sort_order, createdAt: r.created_at, updatedAt: r.updated_at };
 }
 
 export async function onRequestOptions() {

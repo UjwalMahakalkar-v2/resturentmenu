@@ -9,9 +9,10 @@ interface MenuItemFormProps {
   onSave: (item: Omit<MenuItem, '_id' | 'id'>) => Promise<void>;
   categories: Category[];
   editItem?: MenuItem | null;
+  defaultCategoryId?: string;
 }
 
-export default function MenuItemForm({ isOpen, onClose, onSave, categories, editItem }: MenuItemFormProps) {
+export default function MenuItemForm({ isOpen, onClose, onSave, categories, editItem, defaultCategoryId }: MenuItemFormProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -41,16 +42,16 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
       });
       setImagePreview(editItem.image || '');
     } else {
-      resetForm();
+      resetForm(defaultCategoryId);
     }
-  }, [editItem, isOpen]);
+  }, [editItem, isOpen, defaultCategoryId]);
 
-  const resetForm = () => {
+  const resetForm = (catId?: string) => {
     setFormData({
       name: '',
       description: '',
       price: '',
-      category: categories[0]?.id || '',
+      category: catId || categories[0]?.id || '',
       image: '',
       hasImage: true,
       type: 'veg',

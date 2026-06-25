@@ -4,7 +4,7 @@ import { getTenantIdFromRequest } from '../../utils/jwt';
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
 function rowToItem(r: any) {
-  return { id: r.id, tenantId: r.tenant_id, category: r.category_id, name: r.name, description: r.description || '', price: r.price, type: r.type, image: r.image || '', hasImage: !!(r.image && r.image.length > 0), available: r.available === 1, popular: r.popular === 1, createdAt: r.created_at, updatedAt: r.updated_at };
+  return { id: r.id, tenantId: r.tenant_id, category: r.category_id, name: r.name, description: r.description || '', price: r.price, type: r.type, image: r.image || '', hasImage: !!(r.image && r.image.length > 0), available: r.available === 1, popular: r.popular === 1, sortOrder: r.sort_order ?? 0, createdAt: r.created_at, updatedAt: r.updated_at };
 }
 
 export async function onRequestOptions() {
@@ -43,13 +43,14 @@ export async function onRequestPut(context: any) {
     const image = body.image !== undefined ? body.image : existing.image;
     const available = body.available !== undefined ? (body.available ? 1 : 0) : existing.available;
     const popular = body.popular !== undefined ? (body.popular ? 1 : 0) : existing.popular;
+    const sortOrder = body.sortOrder !== undefined ? Number(body.sortOrder) : (existing.sort_order ?? 0);
 
     await execute(db,
-      'UPDATE menu_items SET category_id = ?, name = ?, description = ?, price = ?, type = ?, image = ?, available = ?, popular = ?, updated_at = ? WHERE id = ?',
-      categoryId, name, description || '', price, type || 'veg', image || '', available, popular, now, id
+      'UPDATE menu_items SET category_id = ?, name = ?, description = ?, price = ?, type = ?, image = ?, available = ?, popular = ?, sort_order = ?, updated_at = ? WHERE id = ?',
+      categoryId, name, description || '', price, type || 'veg', image || '', available, popular, sortOrder, now, id
     );
 
-    return new Response(JSON.stringify(rowToItem({ ...existing, category_id: categoryId, name, description: description || '', price, type: type || 'veg', image: image || '', available, popular, updated_at: now })), { headers: CORS });
+    return new Response(JSON.stringify(rowToItem({ ...existing, category_id: categoryId, name, description: description || '', price, type: type || 'veg', image: image || '', available, popular, sort_order: sortOrder, updated_at: now })), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to update menu item';
     return new Response(JSON.stringify({ error: msg }), { status: msg.includes('Unauthorized') ? 401 : 500, headers: CORS });

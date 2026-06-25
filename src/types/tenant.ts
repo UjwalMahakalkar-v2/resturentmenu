@@ -131,6 +131,7 @@ export interface TenantMenuItem extends TenantResource {
   type: 'veg' | 'non-veg';
   popular: boolean;
   available: boolean;
+  sortOrder?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

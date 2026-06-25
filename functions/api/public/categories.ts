@@ -3,7 +3,7 @@ import { getDB, queryAll } from '../../db';
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
 function rowToCat(r: any) {
-  return { id: r.id, tenantId: r.tenant_id, name: r.name, description: r.description || '', icon: r.icon || '', sortOrder: r.sort_order };
+  return { id: r.id, tenantId: r.tenant_id, name: r.name, description: r.description || '', icon: r.icon || '', order: r.sort_order };
 }
 
 export async function onRequestOptions() {
