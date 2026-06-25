@@ -1,14 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Save, MessageCircle, TrendingUp, RefreshCw } from 'lucide-react';
+import { Save, MessageCircle, BarChart2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { restaurantService } from '@/services/restaurantService';
-import api from '@/services/api';
 import type { Restaurant } from '@/types';
-
-interface SocialClicks {
-  whatsapp: number;
-  instagram: number;
-}
 
 export default function SocialLinksSettings() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -17,11 +11,10 @@ export default function SocialLinksSettings() {
   const [instagram, setInstagram] = useState('');
   const [enableWhatsapp, setEnableWhatsapp] = useState(true);
   const [enableInstagram, setEnableInstagram] = useState(true);
+  const [enableClickTracking, setEnableClickTracking] = useState(true);
+  const [clickRetentionDays, setClickRetentionDays] = useState(30);
   const [saving, setSaving] = useState(false);
-  const [clicks, setClicks] = useState<SocialClicks>({ whatsapp: 0, instagram: 0 });
-  const [clicksLoading, setClicksLoading] = useState(true);
 
-  // Load restaurant settings
   useEffect(() => {
     restaurantService.get().then((r) => {
       setRestaurant(r);
@@ -30,27 +23,9 @@ export default function SocialLinksSettings() {
       setInstagram(r.socialMedia?.instagram || '');
       setEnableWhatsapp(r.socialMedia?.enableWhatsapp !== false);
       setEnableInstagram(r.socialMedia?.enableInstagram !== false);
+      setEnableClickTracking(r.enableClickTracking !== false);
+      setClickRetentionDays(r.clickRetentionDays ?? 30);
     });
-  }, []);
-
-  // Fetch real-time click counts
-  const fetchClicks = () => {
-    setClicksLoading(true);
-    api.get('/analytics')
-      .then((r) => {
-        setClicks({
-          whatsapp: r.data.socialClicks?.whatsapp ?? 0,
-          instagram: r.data.socialClicks?.instagram ?? 0,
-        });
-      })
-      .catch(() => {})
-      .finally(() => setClicksLoading(false));
-  };
-
-  useEffect(() => {
-    fetchClicks();
-    const interval = setInterval(fetchClicks, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   const handleSave = async () => {
@@ -67,11 +42,13 @@ export default function SocialLinksSettings() {
           enableWhatsapp,
           enableInstagram,
         },
+        enableClickTracking,
+        clickRetentionDays,
       });
       window.dispatchEvent(new Event('restaurant-updated'));
-      toast.success('Social links saved!');
+      toast.success('Social settings saved!');
     } catch {
-      toast.error('Failed to save social links');
+      toast.error('Failed to save social settings');
     } finally {
       setSaving(false);
     }
@@ -82,7 +59,7 @@ export default function SocialLinksSettings() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Social Media Links</h2>
-          <p className="text-gray-600 mt-1">Configure WhatsApp and Instagram buttons for your menu page</p>
+          <p className="text-gray-600 mt-1">Configure WhatsApp and Instagram buttons on your menu page</p>
         </div>
         <button
           onClick={handleSave}
@@ -92,43 +69,6 @@ export default function SocialLinksSettings() {
           <Save className="w-4 h-4" />
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
-      </div>
-
-      {/* Real-time click counters */}
-      <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-green-600 font-medium">WhatsApp Clicks</p>
-              <p className="text-3xl font-bold text-green-700">
-                {clicksLoading ? '—' : clicks.whatsapp}
-              </p>
-              <p className="text-xs text-green-500 mt-1">All-time customer taps</p>
-            </div>
-            <MessageCircle className="w-10 h-10 text-green-400" />
-          </div>
-        </div>
-
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-purple-600 font-medium">Instagram Clicks</p>
-              <p className="text-3xl font-bold text-purple-700">
-                {clicksLoading ? '—' : clicks.instagram}
-              </p>
-              <p className="text-xs text-purple-500 mt-1">All-time customer taps</p>
-            </div>
-            <TrendingUp className="w-10 h-10 text-purple-400" />
-          </div>
-        </div>
-
-        <div className="md:col-span-2 flex items-center gap-2 text-xs text-gray-400">
-          <RefreshCw className="w-3 h-3" />
-          <span>Auto-refreshes every 30 seconds</span>
-          <button onClick={fetchClicks} className="ml-auto text-blue-500 hover:underline text-xs">
-            Refresh now
-          </button>
-        </div>
       </div>
 
       {/* WhatsApp Section */}
@@ -143,12 +83,7 @@ export default function SocialLinksSettings() {
               {enableWhatsapp ? 'Enabled' : 'Disabled'}
             </span>
             <div className="relative">
-              <input
-                type="checkbox"
-                checked={enableWhatsapp}
-                onChange={(e) => setEnableWhatsapp(e.target.checked)}
-                className="sr-only peer"
-              />
+              <input type="checkbox" checked={enableWhatsapp} onChange={(e) => setEnableWhatsapp(e.target.checked)} className="sr-only peer" />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
             </div>
           </label>
@@ -156,9 +91,7 @@ export default function SocialLinksSettings() {
 
         <div className={`space-y-4 ${!enableWhatsapp ? 'opacity-50 pointer-events-none' : ''}`}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              WhatsApp Number (with country code)
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number (with country code)</label>
             <input
               type="text"
               value={whatsapp}
@@ -170,9 +103,7 @@ export default function SocialLinksSettings() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Pre-filled Message (Optional)
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Pre-filled Message (Optional)</label>
             <textarea
               value={whatsappMessage}
               onChange={(e) => setWhatsappMessage(e.target.value)}
@@ -209,12 +140,7 @@ export default function SocialLinksSettings() {
               {enableInstagram ? 'Enabled' : 'Disabled'}
             </span>
             <div className="relative">
-              <input
-                type="checkbox"
-                checked={enableInstagram}
-                onChange={(e) => setEnableInstagram(e.target.checked)}
-                className="sr-only peer"
-              />
+              <input type="checkbox" checked={enableInstagram} onChange={(e) => setEnableInstagram(e.target.checked)} className="sr-only peer" />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-pink-500"></div>
             </div>
           </label>
@@ -222,9 +148,7 @@ export default function SocialLinksSettings() {
 
         <div className={`space-y-4 ${!enableInstagram ? 'opacity-50 pointer-events-none' : ''}`}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Instagram Username or URL
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Instagram Username or URL</label>
             <input
               type="text"
               value={instagram}
@@ -239,18 +163,54 @@ export default function SocialLinksSettings() {
             <div className="bg-gray-50 p-3 rounded border border-gray-200">
               <p className="text-xs font-medium text-gray-600 mb-1">Preview link:</p>
               <p className="text-xs text-blue-600 break-all">
-                {instagram.startsWith('http')
-                  ? instagram
-                  : `https://instagram.com/${instagram.replace('@', '')}`}
+                {instagram.startsWith('http') ? instagram : `https://instagram.com/${instagram.replace('@', '')}`}
               </p>
             </div>
           )}
         </div>
       </div>
 
-      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      {/* Click Tracking Section */}
+      <div className="p-4 border border-gray-200 rounded-lg">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <BarChart2 className="w-5 h-5 text-blue-500" />
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Click Tracking</h3>
+              <p className="text-xs text-gray-500">Count how many customers tap your social buttons</p>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-sm font-medium text-gray-700">
+              {enableClickTracking ? 'Recording' : 'Paused'}
+            </span>
+            <div className="relative">
+              <input type="checkbox" checked={enableClickTracking} onChange={(e) => setEnableClickTracking(e.target.checked)} className="sr-only peer" />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+            </div>
+          </label>
+        </div>
+
+        <div className={`${!enableClickTracking ? 'opacity-50 pointer-events-none' : ''}`}>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Retention Period (days)</label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min={1}
+              max={365}
+              value={clickRetentionDays}
+              onChange={(e) => setClickRetentionDays(Math.max(1, Math.min(365, Number(e.target.value))))}
+              className="input-field w-28"
+            />
+            <span className="text-sm text-gray-500">days of click history to display in Analytics</span>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">Set how long click data is shown in the Analytics tab (1–365 days)</p>
+        </div>
+      </div>
+
+      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
         <p className="text-sm text-blue-800">
-          <strong>Tip:</strong> These buttons appear as floating icons on your public menu page. Customers tap them to chat on WhatsApp or visit your Instagram. Every tap is counted above.
+          <strong>Tip:</strong> Social buttons appear as floating icons on your public menu page. View full click stats in the <strong>Analytics</strong> tab.
         </p>
       </div>
     </div>

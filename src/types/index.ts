@@ -54,6 +54,8 @@ export interface Restaurant {
     enableWhatsapp?: boolean;
     enableInstagram?: boolean;
   };
+  enableClickTracking?: boolean;
+  clickRetentionDays?: number;
   theme?: RestaurantTheme;
   socialAnalytics?: {
     whatsappClicks: number;

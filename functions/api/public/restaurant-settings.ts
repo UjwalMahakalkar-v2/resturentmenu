@@ -19,10 +19,12 @@ function rowToSettings(r: any) {
       instagram: r.social_instagram || '',
       twitter: r.social_twitter || '',
       whatsapp: r.social_whatsapp || '',
+      whatsappMessage: r.whatsapp_message || '',
+      enableWhatsapp: r.enable_whatsapp === 1,
+      enableInstagram: r.enable_instagram === 1,
     },
-    whatsappMessage: r.whatsapp_message || '',
-    enableWhatsapp: r.enable_whatsapp === 1,
-    enableInstagram: r.enable_instagram === 1,
+    enableClickTracking: r.enable_click_tracking !== 0,
+    clickRetentionDays: r.click_retention_days ?? 30,
     theme: r.theme ? JSON.parse(r.theme) : null,
   };
 }

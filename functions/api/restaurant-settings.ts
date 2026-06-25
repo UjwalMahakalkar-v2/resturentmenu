@@ -20,15 +20,18 @@ function rowToSettings(r: any) {
     email: r.email || '',
     location: r.location || '',
     about: r.about || '',
+    // All social config lives inside socialMedia so the frontend reads one place
     socialMedia: {
       facebook: r.social_facebook || '',
       instagram: r.social_instagram || '',
       twitter: r.social_twitter || '',
       whatsapp: r.social_whatsapp || '',
+      whatsappMessage: r.whatsapp_message || '',
+      enableWhatsapp: r.enable_whatsapp === 1,
+      enableInstagram: r.enable_instagram === 1,
     },
-    whatsappMessage: r.whatsapp_message || '',
-    enableWhatsapp: r.enable_whatsapp === 1,
-    enableInstagram: r.enable_instagram === 1,
+    enableClickTracking: r.enable_click_tracking !== 0, // default true
+    clickRetentionDays: r.click_retention_days ?? 30,
     theme: r.theme ? JSON.parse(r.theme) : null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
@@ -60,6 +63,7 @@ export async function onRequestPut(context: any) {
 
     const existing = await queryFirst(db, 'SELECT id FROM restaurant_settings WHERE tenant_id = ?', tenantId);
 
+    // socialMedia block — extract all sub-fields
     const social = body.socialMedia || {};
     const themeStr = body.theme !== undefined ? JSON.stringify(body.theme) : null;
 
@@ -67,20 +71,32 @@ export async function onRequestPut(context: any) {
       const setClauses: string[] = ['updated_at = ?'];
       const values: any[] = [now];
 
-      const fieldMap: Record<string, string> = {
+      const topFieldMap: Record<string, string> = {
         name: 'name', tagline: 'tagline', logo: 'logo', heroImage: 'hero_image',
         phone: 'phone', email: 'email', location: 'location', about: 'about',
-        whatsappMessage: 'whatsapp_message',
       };
-      for (const [jsKey, dbCol] of Object.entries(fieldMap)) {
+      for (const [jsKey, dbCol] of Object.entries(topFieldMap)) {
         if (body[jsKey] !== undefined) { setClauses.push(`${dbCol} = ?`); values.push(body[jsKey]); }
       }
+
       if (body.socialMedia !== undefined) {
-        setClauses.push('social_facebook = ?, social_instagram = ?, social_twitter = ?, social_whatsapp = ?');
-        values.push(social.facebook || '', social.instagram || '', social.twitter || '', social.whatsapp || '');
+        // Save all social sub-fields when socialMedia key is present
+        setClauses.push(
+          'social_facebook = ?, social_instagram = ?, social_twitter = ?, social_whatsapp = ?, whatsapp_message = ?, enable_whatsapp = ?, enable_instagram = ?'
+        );
+        values.push(
+          social.facebook || '',
+          social.instagram || '',
+          social.twitter || '',
+          social.whatsapp || '',
+          social.whatsappMessage || '',
+          social.enableWhatsapp !== false ? 1 : 0,
+          social.enableInstagram !== false ? 1 : 0,
+        );
       }
-      if (body.enableWhatsapp !== undefined) { setClauses.push('enable_whatsapp = ?'); values.push(body.enableWhatsapp ? 1 : 0); }
-      if (body.enableInstagram !== undefined) { setClauses.push('enable_instagram = ?'); values.push(body.enableInstagram ? 1 : 0); }
+
+      if (body.enableClickTracking !== undefined) { setClauses.push('enable_click_tracking = ?'); values.push(body.enableClickTracking ? 1 : 0); }
+      if (body.clickRetentionDays !== undefined) { setClauses.push('click_retention_days = ?'); values.push(Number(body.clickRetentionDays) || 30); }
       if (body.theme !== undefined) { setClauses.push('theme = ?'); values.push(themeStr); }
 
       values.push(tenantId);
@@ -88,12 +104,16 @@ export async function onRequestPut(context: any) {
     } else {
       const id = `rs_${crypto.randomUUID()}`;
       await execute(db,
-        'INSERT INTO restaurant_settings (id, tenant_id, name, tagline, logo, hero_image, phone, email, location, about, social_facebook, social_instagram, social_twitter, social_whatsapp, whatsapp_message, enable_whatsapp, enable_instagram, theme, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        'INSERT INTO restaurant_settings (id, tenant_id, name, tagline, logo, hero_image, phone, email, location, about, social_facebook, social_instagram, social_twitter, social_whatsapp, whatsapp_message, enable_whatsapp, enable_instagram, enable_click_tracking, click_retention_days, theme, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         id, tenantId,
         body.name || '', body.tagline || '', body.logo || '', body.heroImage || '',
         body.phone || '', body.email || '', body.location || '', body.about || '',
         social.facebook || '', social.instagram || '', social.twitter || '', social.whatsapp || '',
-        body.whatsappMessage || '', body.enableWhatsapp !== false ? 1 : 0, body.enableInstagram !== false ? 1 : 0,
+        social.whatsappMessage || '',
+        social.enableWhatsapp !== false ? 1 : 0,
+        social.enableInstagram !== false ? 1 : 0,
+        body.enableClickTracking !== false ? 1 : 0,
+        Number(body.clickRetentionDays) || 30,
         themeStr, now, now
       );
     }
