@@ -1,6 +1,17 @@
 import { getCollection } from '../db';
 import { getTenantIdFromRequest } from '../utils/jwt';
 
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function onRequestGet(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);

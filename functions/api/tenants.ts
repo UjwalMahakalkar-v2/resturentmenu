@@ -1,5 +1,16 @@
 import { getCollection } from '../db';
 
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 // Validation helpers
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -171,21 +182,23 @@ export async function onRequestPost(context: any) {
       await usersCollection.insertOne(newUser);
     }
 
-    // Create default categories
+    // Create default categories — capture IDs first so menu items can reference them
+    const appetizersId = `cat_${crypto.randomUUID()}`;
+    const mainCourseId = `cat_${crypto.randomUUID()}`;
     const categoriesCollection = await getCollection('categories');
     const defaultCategories = [
-      { id: `cat_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Appetizers', description: 'Starters and appetizers', icon: '🥗', order: 1, createdAt: new Date(), updatedAt: new Date() },
-      { id: `cat_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Main Course', description: 'Main dishes', icon: '🍛', order: 2, createdAt: new Date(), updatedAt: new Date() },
+      { id: appetizersId, tenantId: newTenant.id, name: 'Appetizers', description: 'Starters and appetizers', icon: '🥗', order: 1, createdAt: new Date(), updatedAt: new Date() },
+      { id: mainCourseId, tenantId: newTenant.id, name: 'Main Course', description: 'Main dishes', icon: '🍛', order: 2, createdAt: new Date(), updatedAt: new Date() },
     ];
     await categoriesCollection.insertMany(defaultCategories);
 
-    // Create default menu items
+    // Create default menu items — reference category by ID
     const menuCollection = await getCollection('menu_items');
     const defaultItems = [
-      { id: `item_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Spring Rolls', description: 'Crispy vegetable spring rolls', price: 120, category: 'Appetizers', image: '', available: true, featured: false, createdAt: new Date(), updatedAt: new Date() },
-      { id: `item_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Chicken Wings', description: 'Spicy chicken wings', price: 180, category: 'Appetizers', image: '', available: true, featured: false, createdAt: new Date(), updatedAt: new Date() },
-      { id: `item_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Paneer Butter Masala', description: 'Rich and creamy paneer curry', price: 250, category: 'Main Course', image: '', available: true, featured: true, createdAt: new Date(), updatedAt: new Date() },
-      { id: `item_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Chicken Biryani', description: 'Aromatic basmati rice with chicken', price: 280, category: 'Main Course', image: '', available: true, featured: true, createdAt: new Date(), updatedAt: new Date() },
+      { id: `item_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Spring Rolls', description: 'Crispy vegetable spring rolls', price: 120, category: appetizersId, type: 'veg', image: '', available: true, popular: false, createdAt: new Date(), updatedAt: new Date() },
+      { id: `item_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Chicken Wings', description: 'Spicy chicken wings', price: 180, category: appetizersId, type: 'non-veg', image: '', available: true, popular: false, createdAt: new Date(), updatedAt: new Date() },
+      { id: `item_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Paneer Butter Masala', description: 'Rich and creamy paneer curry', price: 250, category: mainCourseId, type: 'veg', image: '', available: true, popular: true, createdAt: new Date(), updatedAt: new Date() },
+      { id: `item_${crypto.randomUUID()}`, tenantId: newTenant.id, name: 'Chicken Biryani', description: 'Aromatic basmati rice with chicken', price: 280, category: mainCourseId, type: 'non-veg', image: '', available: true, popular: true, createdAt: new Date(), updatedAt: new Date() },
     ];
     await menuCollection.insertMany(defaultItems);
 

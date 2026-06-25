@@ -1,10 +1,5 @@
 import type { Restaurant } from '@/types';
-
-const getStorageKey = (tenantId: string) => `restaurant_settings_${tenantId}`;
-
-const getCurrentTenantId = (): string | null => {
-  return localStorage.getItem('current_tenant_id');
-};
+import { restaurantSettingsAPI, publicAPI } from './api';
 
 const getDefaultRestaurant = (): Restaurant => ({
   name: 'Restaurant',
@@ -18,33 +13,33 @@ const getDefaultRestaurant = (): Restaurant => ({
 });
 
 export const restaurantService = {
+  /**
+   * Fetch restaurant settings.
+   * - With tenantId: uses the public endpoint (customer-facing menu page)
+   * - Without tenantId: uses the authenticated endpoint (admin panel)
+   */
   get: async (tenantId?: string): Promise<Restaurant> => {
-    const activeTenantId = tenantId || getCurrentTenantId();
-    if (!activeTenantId) {
+    try {
+      if (tenantId) {
+        const data = await publicAPI.getRestaurantSettings(tenantId);
+        // If empty object returned (no settings saved yet), merge with defaults
+        return Object.keys(data).length > 0 ? { ...getDefaultRestaurant(), ...data } : getDefaultRestaurant();
+      }
+      const data = await restaurantSettingsAPI.get();
+      return Object.keys(data).length > 0 ? { ...getDefaultRestaurant(), ...data } : getDefaultRestaurant();
+    } catch {
       return getDefaultRestaurant();
     }
-
-    const stored = localStorage.getItem(getStorageKey(activeTenantId));
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        return getDefaultRestaurant();
-      }
-    }
-    return getDefaultRestaurant();
   },
 
-  save: (restaurant: Restaurant, tenantId?: string): void => {
-    const activeTenantId = tenantId || getCurrentTenantId();
-    if (!activeTenantId) return;
-    localStorage.setItem(getStorageKey(activeTenantId), JSON.stringify(restaurant));
+  /**
+   * Save restaurant settings (admin only — uses auth token).
+   */
+  save: async (restaurant: Restaurant): Promise<Restaurant> => {
+    return restaurantSettingsAPI.save(restaurant);
   },
 
-  update: async (updates: Partial<Restaurant>, tenantId?: string): Promise<Restaurant> => {
-    const current = await restaurantService.get(tenantId);
-    const updated = { ...current, ...updates };
-    restaurantService.save(updated, tenantId);
-    return updated;
+  update: async (updates: Partial<Restaurant>): Promise<Restaurant> => {
+    return restaurantSettingsAPI.save(updates as Restaurant);
   },
 };

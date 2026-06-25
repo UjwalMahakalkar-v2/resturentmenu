@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTenant } from '@/contexts/TenantContext';
-import { userAPI, setTenantContext } from '@/services/tenantApi';
+import { authAPI } from '@/services/api';
+import type { User } from '@/types/tenant';
 import { Shield, Mail, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -14,7 +15,7 @@ export default function SuperAdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast.error('Please enter email and password');
       return;
@@ -22,25 +23,24 @@ export default function SuperAdminLogin() {
 
     setLoading(true);
     try {
-      const { user, token } = await userAPI.login(email, password);
-      
-      if (user.role !== 'super_admin') {
+      const { token, user: userData } = await authAPI.login(email, password);
+
+      if (!userData || userData.role !== 'super_admin') {
         toast.error('Access denied: Super Admin only');
         return;
       }
 
-      // Store auth data
+      // Store auth data — use auth_token so TenantContext can hydrate the user
       localStorage.setItem('auth_token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      
+      localStorage.setItem('user', JSON.stringify(userData));
+
       // Set context
-      setUser(user);
-      setTenantContext(null, user.id);
+      setUser(userData as unknown as User);
 
       toast.success('Welcome, Super Admin!');
       navigate('/super-admin');
     } catch (error: any) {
-      toast.error(error.message || 'Login failed');
+      toast.error(error.response?.data?.error || error.message || 'Login failed');
     } finally {
       setLoading(false);
     }

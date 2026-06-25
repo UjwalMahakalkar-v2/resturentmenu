@@ -1,6 +1,8 @@
 import axios from 'axios';
 import type { Category, MenuItem, Restaurant, Admin } from '@/types';
 
+export type { Restaurant };
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
@@ -10,9 +12,9 @@ const api = axios.create({
   },
 });
 
-// Add auth token to requests
+// Add auth token to requests — check admin_token (tenant admin) first, then auth_token (super admin)
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token');
+  const token = localStorage.getItem('admin_token') || localStorage.getItem('auth_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -73,15 +75,15 @@ export const menuAPI = {
   },
 };
 
-// Restaurant API (authenticated)
-export const restaurantAPI = {
+// Restaurant Settings API (authenticated — admin use)
+export const restaurantSettingsAPI = {
   get: async (): Promise<Restaurant> => {
-    const response = await api.get('/restaurant');
+    const response = await api.get('/restaurant-settings');
     return response.data;
   },
 
-  update: async (data: Partial<Restaurant>): Promise<Restaurant> => {
-    const response = await api.put('/restaurant', data);
+  save: async (data: Partial<Restaurant>): Promise<Restaurant> => {
+    const response = await api.put('/restaurant-settings', data);
     return response.data;
   },
 };
@@ -129,6 +131,15 @@ export const publicAPI = {
       return response.data;
     } catch {
       return [];
+    }
+  },
+
+  getRestaurantSettings: async (tenantId: string): Promise<Restaurant> => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/public/restaurant-settings?tenantId=${encodeURIComponent(tenantId)}`);
+      return response.data;
+    } catch {
+      return {} as Restaurant;
     }
   },
 };

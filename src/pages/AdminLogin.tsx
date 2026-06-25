@@ -47,6 +47,9 @@ export default function AdminLogin() {
         } else if (tenantId) {
           localStorage.setItem('current_tenant_id', tenantId);
         }
+        if (tenantSlug) {
+          localStorage.setItem('current_tenant_slug', tenantSlug);
+        }
       } catch { /* token decode error */ }
 
       toast.success('Login successful!');

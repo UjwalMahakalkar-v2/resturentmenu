@@ -1,16 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { 
-  Building2, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  Ban, 
-  CheckCircle, 
+import {
+  Building2,
+  Mail,
+  Phone,
+  Calendar,
+  Eye,
+  Edit,
+  Trash2,
+  Ban,
+  CheckCircle,
   ExternalLink,
-  MoreVertical
+  MoreVertical,
+  UserCheck
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
 import api from '@/services/api';
@@ -63,6 +64,26 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
       await onRefresh();
     } catch (error: any) {
       toast.error(error.message || 'Failed to activate tenant');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleImpersonate = async (tenant: Tenant) => {
+    setLoading(tenant.id);
+    setShowActions(null);
+    try {
+      const response = await api.post('/impersonate', { tenantId: tenant.id });
+      const { token, tenant: t } = response.data;
+      // Store token and tenant info for the admin dashboard
+      localStorage.setItem('admin_token', token);
+      localStorage.setItem('current_tenant_id', t.id);
+      localStorage.setItem('current_tenant_slug', t.slug);
+      toast.success(`Now logged in as ${tenant.name}`);
+      // Open admin dashboard in a new tab
+      window.open(`/${t.slug}/admin/dashboard`, '_blank');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to impersonate tenant');
     } finally {
       setLoading(null);
     }
@@ -246,6 +267,15 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
                             <Edit className="h-4 w-4 mr-2" />
                             Edit
                           </button>
+                          {tenant.status === 'active' && (
+                            <button
+                              onClick={() => handleImpersonate(tenant)}
+                              className="flex items-center w-full px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50"
+                            >
+                              <UserCheck className="h-4 w-4 mr-2" />
+                              Login As Tenant
+                            </button>
+                          )}
                           {tenant.status === 'active' ? (
                             <button
                               onClick={() => {

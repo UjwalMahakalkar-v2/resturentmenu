@@ -51,9 +51,8 @@ export default function RestaurantSettings() {
 
     setLoading(true);
     try {
-      restaurantService.save(formData);
+      await restaurantService.save(formData);
       toast.success('Restaurant settings saved successfully');
-      // Trigger a page reload to update the menu page
       window.dispatchEvent(new Event('restaurant-updated'));
     } catch (error) {
       toast.error('Failed to save settings');

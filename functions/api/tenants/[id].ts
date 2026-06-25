@@ -1,7 +1,22 @@
 import { getCollection } from '../../db';
+import { getUserFromRequest } from '../../utils/jwt';
+
+const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+
+export async function onRequestOptions() {
+  return new Response(null, {
+    status: 204,
+    headers: { ...CORS, 'Access-Control-Allow-Methods': 'PATCH, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' },
+  });
+}
 
 export async function onRequestDelete(context: any) {
   try {
+    const caller = getUserFromRequest(context.request);
+    if (caller.role !== 'super_admin') {
+      return new Response(JSON.stringify({ error: 'Forbidden — super_admin only' }), { status: 403, headers: CORS });
+    }
+
     const { id } = context.params;
 
     if (!id) {
@@ -17,7 +32,7 @@ export async function onRequestDelete(context: any) {
     if (!tenant) {
       return new Response(JSON.stringify({ error: 'Tenant not found' }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' },
+        headers: CORS,
       });
     }
 
@@ -44,6 +59,11 @@ export async function onRequestDelete(context: any) {
 
 export async function onRequestPatch(context: any) {
   try {
+    const caller = getUserFromRequest(context.request);
+    if (caller.role !== 'super_admin') {
+      return new Response(JSON.stringify({ error: 'Forbidden — super_admin only' }), { status: 403, headers: CORS });
+    }
+
     const { id } = context.params;
 
     if (!id) {
