@@ -1,54 +1,59 @@
-import { getCollection } from '../../db';
+import { getDB, queryFirst } from '../../db';
+import { generateJWT } from '../../utils/jwt';
 
-// Simple JWT-like token generation (for demo purposes)
-function generateToken(username: string): string {
-  const payload = {
-    username,
-    exp: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-  };
-  return btoa(JSON.stringify(payload));
+const CORS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function onRequestOptions() {
+  return new Response(null, { status: 204, headers: CORS });
 }
 
 export async function onRequestPost(context: any) {
   try {
-    const { username, password } = await context.request.json();
-    
-    if (!username || !password) {
-      return new Response(JSON.stringify({ error: 'Username and password required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const body = await context.request.json();
+    const email = typeof body.email === 'string' ? body.email.toLowerCase().trim() : '';
+    const password = body.password;
+
+    if (!email || !password) {
+      return new Response(JSON.stringify({ error: 'Email and password required' }), { status: 400, headers: CORS });
     }
-    
-    const collection = await getCollection('admins');
-    const admin = await collection.findOne({ username });
-    
-    if (!admin || admin.password !== password) {
-      return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+
+    const db = getDB(context.env);
+    const user = await queryFirst(db,
+      'SELECT * FROM users WHERE email = ? AND password = ? AND active = 1',
+      email, password
+    );
+
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401, headers: CORS });
     }
-    
-    const token = generateToken(username);
-    
+
+    await db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
+      .bind(new Date().toISOString(), user.id).run();
+
+    const token = generateJWT({
+      id: user.id,
+      tenantId: user.tenant_id,
+      email: user.email,
+      role: user.role,
+    });
+
     return new Response(JSON.stringify({
       token,
-      admin: {
-        username: admin.username,
-        _id: admin._id,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        tenantId: user.tenant_id,
       },
-    }), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    }), { headers: CORS });
   } catch (error) {
-    console.error('Error during login:', error);
-    return new Response(JSON.stringify({ error: 'Login failed' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const msg = error instanceof Error ? error.message : 'Login failed';
+    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: CORS });
   }
 }

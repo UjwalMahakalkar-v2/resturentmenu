@@ -1,117 +1,80 @@
-import { getCollection } from '../../db';
+import { getDB, queryFirst, execute } from '../../db';
 import { getUserFromRequest } from '../../utils/jwt';
 
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
 export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: { ...CORS, 'Access-Control-Allow-Methods': 'PATCH, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' },
-  });
+  return new Response(null, { status: 204, headers: { ...CORS, 'Access-Control-Allow-Methods': 'PATCH, DELETE, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type, Authorization' } });
 }
 
 export async function onRequestDelete(context: any) {
   try {
     const caller = getUserFromRequest(context.request);
-    if (caller.role !== 'super_admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden — super_admin only' }), { status: 403, headers: CORS });
-    }
+    if (caller.role !== 'super_admin') return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: CORS });
 
     const { id } = context.params;
+    if (!id) return new Response(JSON.stringify({ error: 'Tenant ID required' }), { status: 400, headers: CORS });
 
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'Tenant ID is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const db = getDB(context.env);
+    const tenant = await queryFirst(db, 'SELECT id FROM tenants WHERE id = ?', id);
+    if (!tenant) return new Response(JSON.stringify({ error: 'Tenant not found' }), { status: 404, headers: CORS });
 
-    const tenantsCollection = await getCollection('tenants');
-    const tenant = await tenantsCollection.findOne({ id });
-
-    if (!tenant) {
-      return new Response(JSON.stringify({ error: 'Tenant not found' }), {
-        status: 404,
-        headers: CORS,
-      });
-    }
-
-    // Hard delete — removes tenant, its users, categories, and menu items
-    const tenantId = tenant.id;
-    await Promise.all([
-      tenantsCollection.deleteOne({ id: tenantId }),
-      getCollection('users').then(col => col.deleteMany({ tenantId })),
-      getCollection('categories').then(col => col.deleteMany({ tenantId })),
-      getCollection('menu_items').then(col => col.deleteMany({ tenantId })),
+    await db.batch([
+      db.prepare('DELETE FROM menu_items WHERE tenant_id = ?').bind(id),
+      db.prepare('DELETE FROM categories WHERE tenant_id = ?').bind(id),
+      db.prepare('DELETE FROM restaurant_settings WHERE tenant_id = ?').bind(id),
+      db.prepare('DELETE FROM users WHERE tenant_id = ?').bind(id),
+      db.prepare('DELETE FROM tenants WHERE id = ?').bind(id),
     ]);
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    return new Response(JSON.stringify({ success: true }), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to delete tenant';
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: CORS });
   }
 }
 
 export async function onRequestPatch(context: any) {
   try {
     const caller = getUserFromRequest(context.request);
-    if (caller.role !== 'super_admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden — super_admin only' }), { status: 403, headers: CORS });
-    }
+    if (caller.role !== 'super_admin') return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: CORS });
 
     const { id } = context.params;
-
-    if (!id) {
-      return new Response(JSON.stringify({ error: 'Tenant ID is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    if (!id) return new Response(JSON.stringify({ error: 'Tenant ID required' }), { status: 400, headers: CORS });
 
     const body = await context.request.json();
-    const allowedFields = ['status', 'name', 'email', 'phone', 'address', 'subscriptionPlan'];
-    const updates: Record<string, any> = { updatedAt: new Date() };
+    const db = getDB(context.env);
 
-    for (const field of allowedFields) {
-      if (body[field] !== undefined) {
-        updates[field] = body[field];
+    const allowed: Record<string, string> = {
+      status: 'status', name: 'name', email: 'email',
+      phone: 'phone', address: 'address', subscriptionPlan: 'subscription_plan',
+    };
+    const setClauses: string[] = ['updated_at = ?'];
+    const values: any[] = [new Date().toISOString()];
+
+    for (const [jsKey, dbCol] of Object.entries(allowed)) {
+      if (body[jsKey] !== undefined) {
+        setClauses.push(`${dbCol} = ?`);
+        values.push(body[jsKey]);
       }
     }
 
-    if (updates.status && !['active', 'suspended', 'inactive'].includes(updates.status)) {
-      return new Response(JSON.stringify({ error: 'Invalid status value' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    if (body.status && !['active', 'suspended', 'inactive'].includes(body.status)) {
+      return new Response(JSON.stringify({ error: 'Invalid status value' }), { status: 400, headers: CORS });
     }
 
-    const collection = await getCollection('tenants');
-    const result = await collection.findOneAndUpdate(
-      { id },
-      { $set: updates },
-      { returnDocument: 'after' }
-    );
+    values.push(id);
+    await execute(db, `UPDATE tenants SET ${setClauses.join(', ')} WHERE id = ?`, ...values);
 
-    if (!result) {
-      return new Response(JSON.stringify({ error: 'Tenant not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    const updated = await queryFirst(db, 'SELECT * FROM tenants WHERE id = ?', id);
+    if (!updated) return new Response(JSON.stringify({ error: 'Tenant not found' }), { status: 404, headers: CORS });
 
-    return new Response(JSON.stringify(result), {
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
+    return new Response(JSON.stringify({
+      id: updated.id, slug: updated.slug, name: updated.name, status: updated.status,
+      subscriptionPlan: updated.subscription_plan, email: updated.email,
+    }), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to update tenant';
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ error: msg }), { status: 500, headers: CORS });
   }
 }

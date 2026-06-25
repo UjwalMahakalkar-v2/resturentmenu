@@ -1,37 +1,29 @@
-import { getCollection } from '../db';
+import { getDB, queryAll, execute } from '../db';
 import { getTenantIdFromRequest } from '../utils/jwt';
 
+const CORS = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+function rowToCat(r: any) {
+  return { id: r.id, tenantId: r.tenant_id, name: r.name, description: r.description || '', icon: r.icon || '', sortOrder: r.sort_order, createdAt: r.created_at, updatedAt: r.updated_at };
+}
+
 export async function onRequestOptions() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+  return new Response(null, { status: 204, headers: { ...CORS, 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS' } });
 }
 
 export async function onRequestGet(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);
-    const collection = await getCollection('categories');
-    const categories = await collection.find({ tenantId }).sort({ order: 1 }).toArray();
-    
-    return new Response(JSON.stringify(categories), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    const db = getDB(context.env);
+    const rows = await queryAll(db, 'SELECT * FROM categories WHERE tenant_id = ? ORDER BY sort_order ASC', tenantId);
+    return new Response(JSON.stringify(rows.map(rowToCat)), { headers: CORS });
   } catch (error) {
-    console.error('Error fetching categories:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch categories';
-    const status = errorMessage.includes('Unauthorized') ? 401 : 500;
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const msg = error instanceof Error ? error.message : 'Failed to fetch categories';
+    return new Response(JSON.stringify({ error: msg }), { status: msg.includes('Unauthorized') ? 401 : 500, headers: CORS });
   }
 }
 
@@ -39,32 +31,17 @@ export async function onRequestPost(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);
     const body = await context.request.json();
-    const collection = await getCollection('categories');
-    
-    const newCategory = {
-      ...body,
-      tenantId,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    await collection.insertOne(newCategory);
-    
-    return new Response(JSON.stringify(newCategory), {
-      status: 201,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-    });
+    const db = getDB(context.env);
+    const now = new Date().toISOString();
+    const id = `cat_${crypto.randomUUID()}`;
+    const sortOrder = typeof body.sortOrder === 'number' ? body.sortOrder : (typeof body.order === 'number' ? body.order : 0);
+    await execute(db,
+      'INSERT INTO categories (id, tenant_id, name, description, icon, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)',
+      id, tenantId, body.name || '', body.description || '', body.icon || '', sortOrder, now, now
+    );
+    return new Response(JSON.stringify(rowToCat({ id, tenant_id: tenantId, name: body.name || '', description: body.description || '', icon: body.icon || '', sort_order: sortOrder, created_at: now, updated_at: now })), { status: 201, headers: CORS });
   } catch (error) {
-    console.error('Error creating category:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to create category';
-    const status = errorMessage.includes('Unauthorized') ? 401 : 500;
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      status,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const msg = error instanceof Error ? error.message : 'Failed to create category';
+    return new Response(JSON.stringify({ error: msg }), { status: msg.includes('Unauthorized') ? 401 : 500, headers: CORS });
   }
 }
