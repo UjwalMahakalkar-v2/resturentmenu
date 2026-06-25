@@ -1,4 +1,5 @@
 import { getCollection } from '../db';
+import { getUserFromRequest } from '../utils/jwt';
 
 export async function onRequestOptions() {
   return new Response(null, {
@@ -69,20 +70,24 @@ function validateTenantBody(body: any): string | null {
 
 export async function onRequestGet(context: any) {
   try {
+    const caller = getUserFromRequest(context.request);
+    if (caller.role !== 'super_admin') {
+      return new Response(JSON.stringify({ error: 'Forbidden — super_admin only' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
     const collection = await getCollection('tenants');
     const tenants = await collection.find({}).toArray();
 
     return new Response(JSON.stringify(tenants), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
   } catch (error) {
-    console.error('Error fetching tenants:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch tenants';
+    const status = errorMessage.includes('Unauthorized') ? 401 : 500;
     return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 500,
+      status,
       headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -90,6 +95,14 @@ export async function onRequestGet(context: any) {
 
 export async function onRequestPost(context: any) {
   try {
+    const caller = getUserFromRequest(context.request);
+    if (caller.role !== 'super_admin') {
+      return new Response(JSON.stringify({ error: 'Forbidden — super_admin only' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+
     let body: any;
     try {
       body = await context.request.json();
