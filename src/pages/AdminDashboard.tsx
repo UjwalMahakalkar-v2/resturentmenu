@@ -14,6 +14,8 @@ import QRCodeGenerator from '@/components/QRCodeGenerator';
 import CategoryManager from '@/components/admin/CategoryManager';
 import MenuByCategory from '@/components/admin/MenuByCategory';
 import api from '@/services/api';
+import { restaurantSettingsAPI } from '@/services/api';
+import { applyTheme } from '@/contexts/ThemeContext';
 import type { TenantMenuItem, TenantCategory } from '@/types/tenant';
 import toast from 'react-hot-toast';
 
@@ -40,6 +42,10 @@ export default function AdminDashboard() {
     if (!token) { navigate('/admin/login'); return; }
     const slug = slugFromUrl || localStorage.getItem('current_tenant_slug') || '';
     setTenantSlug(slug);
+    // Apply tenant's saved theme immediately so admin panel reflects the correct brand colors
+    restaurantSettingsAPI.get().then(data => {
+      if (data?.theme) applyTheme(data.theme);
+    }).catch(() => {});
   }, [navigate, slugFromUrl]);
 
   const handleLogout = () => {
