@@ -9,6 +9,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminLogin from './pages/SuperAdminLogin';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 
+const DEFAULT_SLUG = import.meta.env.VITE_DEFAULT_SLUG as string | undefined;
+
 function App() {
   return (
     <ThemeProvider>
@@ -37,7 +39,15 @@ function App() {
           }}
         />
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          {/* Root: redirect to default tenant slug if configured, else show landing */}
+          <Route
+            path="/"
+            element={
+              DEFAULT_SLUG
+                ? <Navigate to={`/${DEFAULT_SLUG}`} replace />
+                : <LandingPage />
+            }
+          />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/super-admin/login" element={<SuperAdminLogin />} />
