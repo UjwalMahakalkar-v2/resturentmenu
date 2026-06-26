@@ -30,6 +30,12 @@ export default function SuperAdminLogin() {
         return;
       }
 
+      // Clear any stale tenant admin session so the interceptor uses the super admin token
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('current_tenant_id');
+      localStorage.removeItem('current_tenant_slug');
+      localStorage.removeItem('tenant');
+
       // Store auth data — use auth_token so TenantContext can hydrate the user
       localStorage.setItem('auth_token', token);
       localStorage.setItem('user', JSON.stringify(userData));

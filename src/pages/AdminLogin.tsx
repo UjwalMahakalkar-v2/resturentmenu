@@ -36,6 +36,10 @@ export default function AdminLogin() {
     setLoading(true);
     try {
       const { token } = await authAPI.login(email, password, tenantId || undefined);
+      // Clear any stale super admin session so the interceptor uses the tenant admin token
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('tenant');
       localStorage.setItem('admin_token', token);
 
       // Decode token to get tenantId if not already set
