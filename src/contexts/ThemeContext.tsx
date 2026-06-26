@@ -12,7 +12,7 @@ import { createContext, useContext, useCallback } from 'react';
 import type { RestaurantTheme } from '@/types';
 
 // ── Preset themes ─────────────────────────────────────────────────────────────
-export const PRESET_THEMES: Record<string, Required<RestaurantTheme>> = {
+export const PRESET_THEMES: Record<string, Omit<Required<RestaurantTheme>, 'template'>> = {
   'classic-brown': {
     name: 'Classic Brown',
     primary: '#9a7548',

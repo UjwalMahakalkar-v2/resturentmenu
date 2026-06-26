@@ -1,5 +1,5 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, X, Phone, Mail, MapPin, Star, Heart, ChevronDown } from 'lucide-react';
+import { useState, useMemo, useRef } from 'react';
+import { Search, X, Phone, Mail, MapPin, Star, Heart } from 'lucide-react';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
 import type { TenantMenuItem } from '@/types/tenant';
@@ -69,10 +69,6 @@ export default function ModernTemplate({ restaurant, menuItems, categories, tena
   const mapsUrl = restaurant?.location
     ? `https://maps.google.com/?q=${encodeURIComponent(restaurant.location)}`
     : null;
-
-  const scrollToMenu = () => {
-    menuRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>

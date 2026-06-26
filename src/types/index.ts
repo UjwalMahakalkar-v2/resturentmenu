@@ -18,6 +18,7 @@ export interface Category {
   id: string;
   name: string;
   order: number;
+  icon?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
