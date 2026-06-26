@@ -10,10 +10,26 @@ export async function onRequestGet(context: any) {
   try {
     const url = new URL(context.request.url);
     const slug = url.searchParams.get('slug');
-    if (!slug) return new Response(JSON.stringify({ error: 'slug is required' }), { status: 400, headers: CORS });
+    const subdomain = url.searchParams.get('subdomain');
+
+    if (!slug && !subdomain) {
+      return new Response(JSON.stringify({ error: 'slug or subdomain is required' }), { status: 400, headers: CORS });
+    }
 
     const db = getDB(context.env);
-    const tenant = await queryFirst(db, "SELECT * FROM tenants WHERE slug = ? AND status != 'deleted'", slug);
+    let tenant: any = null;
+
+    if (slug) {
+      // First try exact slug match, then try subdomain match
+      tenant = await queryFirst(db, "SELECT * FROM tenants WHERE slug = ? AND status != 'deleted'", slug);
+      if (!tenant) {
+        tenant = await queryFirst(db, "SELECT * FROM tenants WHERE subdomain = ? AND status != 'deleted'", slug);
+      }
+    } else if (subdomain) {
+      // Look up by subdomain (full domain like pizza.menumate.in)
+      tenant = await queryFirst(db, "SELECT * FROM tenants WHERE subdomain = ? AND status != 'deleted'", subdomain);
+    }
+
     if (!tenant) return new Response(JSON.stringify({ error: 'Tenant not found' }), { status: 404, headers: CORS });
 
     return new Response(JSON.stringify({

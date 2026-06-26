@@ -12,7 +12,7 @@ interface AddTenantFormProps {
 export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps) {
   const [loading, setLoading] = useState(false);
   const [useSubdomain, setUseSubdomain] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -28,24 +28,36 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updated = { ...prev, [name]: value };
 
-    // Auto-generate slug from name
-    if (name === 'name' && !formData.slug) {
-      const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      setFormData(prev => ({ ...prev, slug }));
-      
-      // Auto-generate subdomain if enabled
-      if (useSubdomain) {
-        setFormData(prev => ({ ...prev, subdomain: `${slug}.menumate.in` }));
+      // Auto-generate slug from name (only if user hasn't manually edited slug)
+      if (name === 'name') {
+        const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        if (!prev.slug || prev.slug === prev.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) {
+          updated.slug = slug;
+          if (useSubdomain) {
+            updated.subdomain = `${slug}.menumate.in`;
+          }
+        }
       }
-    }
+
+      return updated;
+    });
+  };
+
+  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const slug = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    setFormData(prev => ({
+      ...prev,
+      slug,
+      subdomain: useSubdomain ? `${slug}.menumate.in` : prev.subdomain,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validation
+
     if (!formData.name || !formData.slug || !formData.email || !formData.phone) {
       toast.error('Please fill in all required fields');
       return;
@@ -53,6 +65,11 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
 
     if (!formData.adminUsername || !formData.adminPassword || !formData.adminEmail) {
       toast.error('Please fill in admin credentials');
+      return;
+    }
+
+    if (formData.adminPassword.length < 6) {
+      toast.error('Admin password must be at least 6 characters');
       return;
     }
 
@@ -81,7 +98,7 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
       onSuccess();
       onClose();
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create tenant');
+      toast.error(error.response?.data?.error || error.message || 'Failed to create tenant');
     } finally {
       setLoading(false);
     }
@@ -90,12 +107,9 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full my-8">
-        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
           <h2 className="text-xl font-bold text-gray-900">Add New Tenant</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="h-6 w-6" />
           </button>
         </div>
@@ -131,14 +145,14 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
                   type="text"
                   name="slug"
                   value={formData.slug}
-                  onChange={handleInputChange}
-                  className="input-field"
+                  onChange={handleSlugChange}
+                  className="input-field font-mono"
                   placeholder="pizza-palace"
                   pattern="[a-z0-9-]+"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  URL: /{formData.slug || 'your-slug'}
+                  Menu URL: <code className="bg-gray-100 px-1 rounded">/{formData.slug || 'your-slug'}</code>
                 </p>
               </div>
 
@@ -160,15 +174,16 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
               </div>
 
               {/* Subdomain Option */}
-              <div className="md:col-span-2">
+              <div className="md:col-span-2 bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <div className="flex items-center mb-2">
                   <input
                     type="checkbox"
                     id="useSubdomain"
                     checked={useSubdomain}
                     onChange={(e) => {
-                      setUseSubdomain(e.target.checked);
-                      if (e.target.checked && formData.slug) {
+                      const checked = e.target.checked;
+                      setUseSubdomain(checked);
+                      if (checked && formData.slug) {
                         setFormData(prev => ({ ...prev, subdomain: `${prev.slug}.menumate.in` }));
                       } else {
                         setFormData(prev => ({ ...prev, subdomain: '' }));
@@ -180,6 +195,10 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
                     Enable Custom Subdomain
                   </label>
                 </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  Give this tenant a custom subdomain like <code className="bg-white px-1 rounded">pizza-palace.menumate.in</code>.
+                  Requires DNS setup (see docs).
+                </p>
                 {useSubdomain && (
                   <div className="relative">
                     <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -188,10 +207,12 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
                       name="subdomain"
                       value={formData.subdomain}
                       onChange={handleInputChange}
-                      className="input-field pl-10"
+                      className="input-field pl-10 font-mono"
                       placeholder="pizza-palace.menumate.in"
-                      pattern="[a-z0-9-]+\.menumate\.in"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Full domain e.g. <code className="bg-white px-1 rounded">{formData.slug || 'your-slug'}.menumate.in</code> or <code className="bg-white px-1 rounded">menu.yourrestaurant.com</code>
+                    </p>
                   </div>
                 )}
               </div>
@@ -256,7 +277,7 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Username *
+                  Admin Name *
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -266,7 +287,7 @@ export default function AddTenantForm({ onClose, onSuccess }: AddTenantFormProps
                     value={formData.adminUsername}
                     onChange={handleInputChange}
                     className="input-field pl-10"
-                    placeholder="pizzaadmin"
+                    placeholder="Pizza Admin"
                     required
                   />
                 </div>

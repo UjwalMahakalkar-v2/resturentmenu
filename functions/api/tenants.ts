@@ -10,6 +10,8 @@ const CORS = {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SLUG_RE  = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const PHONE_RE = /^[+\d\s\-().]{7,20}$/;
+// Subdomain: either a slug (no dots) or a full domain like pizza.menumate.in
+const SUBDOMAIN_RE = /^[a-z0-9]+(?:[-\.][a-z0-9]+)*$/;
 
 function validateBody(body: any): string | null {
   if (!body || typeof body !== 'object') return 'Request body is required';
@@ -18,11 +20,11 @@ function validateBody(body: any): string | null {
   if (!slug || typeof slug !== 'string' || !SLUG_RE.test(slug) || slug.length > 63) return 'slug must be lowercase alphanumeric with hyphens, max 63 chars';
   if (!email || typeof email !== 'string' || !EMAIL_RE.test(email)) return 'A valid email address is required';
   if (phone && (typeof phone !== 'string' || !PHONE_RE.test(phone))) return 'phone must be a valid phone number';
-  if (subdomain !== undefined) {
-    if (typeof subdomain !== 'string' || !SLUG_RE.test(subdomain) || subdomain.length > 63) return 'subdomain must be lowercase alphanumeric with hyphens, max 63 chars';
+  if (subdomain !== undefined && subdomain !== '') {
+    if (typeof subdomain !== 'string' || !SUBDOMAIN_RE.test(subdomain) || subdomain.length > 100) return 'subdomain must be a valid domain name';
   }
   if (adminEmail && (typeof adminEmail !== 'string' || !EMAIL_RE.test(adminEmail))) return 'adminEmail must be valid';
-  if (adminPassword !== undefined && (typeof adminPassword !== 'string' || adminPassword.length < 8 || adminPassword.length > 128)) return 'adminPassword must be 8-128 characters';
+  if (adminPassword !== undefined && (typeof adminPassword !== 'string' || adminPassword.length < 6 || adminPassword.length > 128)) return 'adminPassword must be 6-128 characters';
   return null;
 }
 
@@ -38,8 +40,7 @@ export async function onRequestGet(context: any) {
     const db = getDB(context.env);
     const tenants = await queryAll(db, 'SELECT * FROM tenants ORDER BY created_at DESC');
 
-    // Map to camelCase + nested socialAnalytics
-    const mapped = tenants.map(t => ({
+    const mapped = tenants.map((t: any) => ({
       id: t.id, slug: t.slug, subdomain: t.subdomain, name: t.name,
       email: t.email, phone: t.phone, address: t.address, status: t.status,
       subscriptionPlan: t.subscription_plan, createdAt: t.created_at, updatedAt: t.updated_at,
@@ -71,7 +72,7 @@ export async function onRequestPost(context: any) {
 
     const name      = body.name.trim();
     const slug      = body.slug.toLowerCase().trim();
-    const subdomain = (body.subdomain || slug).toLowerCase().trim();
+    const subdomain = body.subdomain ? body.subdomain.toLowerCase().trim() : slug;
     const email     = body.email.toLowerCase().trim();
     const phone     = body.phone ? body.phone.trim() : '';
     const address   = typeof body.address === 'string' ? body.address.trim().slice(0, 500) : '';
@@ -79,9 +80,15 @@ export async function onRequestPost(context: any) {
 
     const db = getDB(context.env);
 
-    // Check slug/subdomain uniqueness
-    const existing = await queryFirst(db, 'SELECT id FROM tenants WHERE slug = ? OR subdomain = ?', slug, subdomain);
-    if (existing) return new Response(JSON.stringify({ error: 'Slug or subdomain already exists' }), { status: 400, headers: CORS });
+    // Check slug uniqueness
+    const existingSlug = await queryFirst(db, 'SELECT id FROM tenants WHERE slug = ?', slug);
+    if (existingSlug) return new Response(JSON.stringify({ error: 'Slug already exists' }), { status: 400, headers: CORS });
+
+    // Check subdomain uniqueness (only if different from slug)
+    if (subdomain !== slug) {
+      const existingSub = await queryFirst(db, 'SELECT id FROM tenants WHERE subdomain = ?', subdomain);
+      if (existingSub) return new Response(JSON.stringify({ error: 'Subdomain already exists' }), { status: 400, headers: CORS });
+    }
 
     // Check admin email uniqueness
     if (body.adminEmail) {
@@ -129,6 +136,12 @@ export async function onRequestPost(context: any) {
       db.prepare('INSERT INTO menu_items (id, tenant_id, category_id, name, description, price, type, image, available, popular, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
         .bind(`item_${crypto.randomUUID()}`, tenantId, mainCourseId, 'Chicken Biryani', 'Aromatic basmati rice with chicken', 280, 'non-veg', '', 1, 1, now, now),
     ]);
+
+    // Create default restaurant_settings row so admin panel works immediately
+    await execute(db,
+      'INSERT INTO restaurant_settings (tenant_id, name, tagline, created_at, updated_at) VALUES (?,?,?,?,?)',
+      tenantId, name, 'Delicious food, served with love', now, now
+    );
 
     return new Response(JSON.stringify({
       id: tenantId, slug, subdomain, name, email, phone, address,

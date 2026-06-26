@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS menu_items (
   image           TEXT,
   available       INTEGER NOT NULL DEFAULT 1,
   popular         INTEGER NOT NULL DEFAULT 0,
+  sort_order      INTEGER DEFAULT 0,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
@@ -83,7 +84,7 @@ CREATE TABLE IF NOT EXISTS restaurant_settings (
   email           TEXT,
   location        TEXT,
   about           TEXT,
-  -- Social media links (stored as individual columns for easy querying)
+  -- Social media links
   social_facebook TEXT,
   social_instagram TEXT,
   social_twitter  TEXT,
@@ -91,6 +92,9 @@ CREATE TABLE IF NOT EXISTS restaurant_settings (
   whatsapp_message TEXT,
   enable_whatsapp INTEGER DEFAULT 1,
   enable_instagram INTEGER DEFAULT 1,
+  -- Click tracking
+  enable_click_tracking INTEGER DEFAULT 1,
+  click_retention_days INTEGER DEFAULT 30,
   -- Theme stored as JSON string
   theme           TEXT,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
@@ -105,4 +109,5 @@ CREATE INDEX IF NOT EXISTS idx_categories_tenant    ON categories(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_menu_items_tenant    ON menu_items(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_menu_items_category  ON menu_items(category_id);
 CREATE INDEX IF NOT EXISTS idx_tenants_slug         ON tenants(slug);
+CREATE INDEX IF NOT EXISTS idx_tenants_subdomain    ON tenants(subdomain);
 CREATE INDEX IF NOT EXISTS idx_rs_tenant            ON restaurant_settings(tenant_id);

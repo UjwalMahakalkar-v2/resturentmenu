@@ -116,6 +116,15 @@ export const publicAPI = {
     }
   },
 
+  getTenantBySubdomain: async (subdomain: string): Promise<{ id: string; name: string; slug: string; subdomain?: string; status: string } | null> => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/public/tenant?subdomain=${encodeURIComponent(subdomain)}`);
+      return response.data;
+    } catch {
+      return null;
+    }
+  },
+
   getMenuItems: async (tenantId: string): Promise<any[]> => {
     try {
       const response = await axios.get(`${API_BASE_URL}/public/menu?tenantId=${encodeURIComponent(tenantId)}`);

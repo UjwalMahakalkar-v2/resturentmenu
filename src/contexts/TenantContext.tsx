@@ -33,13 +33,11 @@ export const TenantProvider = ({ children }: TenantProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize tenant and user from localStorage/session
     initializeContext();
   }, []);
 
   const initializeContext = async () => {
     try {
-      // Get stored auth token
       const token = localStorage.getItem('auth_token');
       const storedUser = localStorage.getItem('user');
       const storedTenant = localStorage.getItem('tenant');
@@ -51,7 +49,6 @@ export const TenantProvider = ({ children }: TenantProviderProps) => {
       if (storedTenant) {
         setTenant(JSON.parse(storedTenant));
       } else {
-        // Resolve tenant from subdomain/domain
         const resolvedTenant = await resolveTenantFromDomain();
         if (resolvedTenant) {
           setTenant(resolvedTenant);
@@ -66,56 +63,67 @@ export const TenantProvider = ({ children }: TenantProviderProps) => {
   };
 
   const resolveTenantFromDomain = async (): Promise<Tenant | null> => {
-    // Extract subdomain from hostname
     const hostname = window.location.hostname;
-    
-    // For development: localhost
+
+    // Localhost / development — resolve from URL path
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      // Check if there's a tenant slug in path or query
       const pathParts = window.location.pathname.split('/');
-      const tenantSlug = pathParts[1]; // e.g., /patola/menu
-      
+      const tenantSlug = pathParts[1];
       if (tenantSlug && tenantSlug !== 'admin' && tenantSlug !== 'super-admin') {
-        // Fetch tenant by slug
         return await fetchTenantBySlug(tenantSlug);
       }
       return null;
     }
 
-    // For production: subdomain.menumate.in or custom domain
+    // Production: check if this is a subdomain-based access
+    // e.g. pizza-palace.menumate.in  or  menu.restaurant.com
     const parts = hostname.split('.');
-    
-    if (parts.length >= 3) {
-      // subdomain.menumate.in
-      const subdomain = parts[0];
-      if (subdomain !== 'www' && subdomain !== 'admin') {
-        return await fetchTenantBySlug(subdomain);
-      }
+
+    // *.pages.dev — main deployment, tenants accessed via /<slug> path
+    if (hostname.endsWith('.pages.dev')) {
+      return null;
     }
 
-    // Check if it's a custom domain
-    return await fetchTenantByDomain(hostname);
+    // *.menumate.in — subdomain-based tenant access
+    if (parts.length >= 3 && hostname.endsWith('.menumate.in')) {
+      const sub = parts[0];
+      if (sub !== 'www' && sub !== 'admin' && sub !== 'api') {
+        return await fetchTenantBySubdomain(hostname);
+      }
+      return null;
+    }
+
+    // Custom domain (e.g. menu.restaurant.com) — look up by full hostname
+    if (parts.length >= 2) {
+      return await fetchTenantBySubdomain(hostname);
+    }
+
+    return null;
   };
 
   const fetchTenantBySlug = async (slug: string): Promise<Tenant | null> => {
     try {
       const data = await publicAPI.getTenantBySlug(slug);
       return data as unknown as Tenant;
-    } catch (error) {
-      console.error('Failed to fetch tenant by slug:', error);
+    } catch {
       return null;
     }
   };
 
-  const fetchTenantByDomain = async (_domain: string): Promise<Tenant | null> => {
-    // Subdomain-based routing not supported on pages.dev — return null
-    return null;
+  const fetchTenantBySubdomain = async (subdomain: string): Promise<Tenant | null> => {
+    try {
+      const data = await publicAPI.getTenantBySubdomain(subdomain);
+      return data as unknown as Tenant;
+    } catch {
+      return null;
+    }
   };
 
   const logout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('admin_token');
     localStorage.removeItem('current_tenant_id');
+    localStorage.removeItem('current_tenant_slug');
     localStorage.removeItem('user');
     localStorage.removeItem('tenant');
     setUser(null);
