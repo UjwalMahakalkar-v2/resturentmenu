@@ -26,6 +26,7 @@ function rowToSettings(r: any) {
     enableClickTracking: r.enable_click_tracking !== 0,
     clickRetentionDays: r.click_retention_days ?? 30,
     theme: r.theme ? JSON.parse(r.theme) : null,
+    template: r.template || 'classic',
   };
 }
 

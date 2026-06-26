@@ -21,6 +21,7 @@ const SWATCH_COLORS: Record<string, string> = {
 export default function ThemeSettings() {
   const [theme, setTheme] = useState<RestaurantTheme>(DEFAULT_THEME);
   const [activePreset, setActivePreset] = useState<string>('classic-brown');
+  const [selectedTemplate, setSelectedTemplate] = useState<MenuTemplate>('classic');
   const [saving, setSaving] = useState(false);
 
   // Load saved theme on mount
@@ -34,6 +35,9 @@ export default function ThemeSettings() {
           applyTheme(t);
           const match = PRESET_LIST.find(p => p.primary === t.primary);
           setActivePreset(match?.key ?? 'custom');
+        }
+        if (data?.template) {
+          setSelectedTemplate(data.template as MenuTemplate);
         }
       } catch {
         // No saved theme yet — use default
@@ -71,7 +75,7 @@ export default function ThemeSettings() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await restaurantSettingsAPI.save({ theme } as any);
+      await restaurantSettingsAPI.save({ theme, template: selectedTemplate } as any);
       toast.success('Theme saved successfully');
     } catch {
       toast.error('Failed to save theme');
@@ -230,27 +234,27 @@ export default function ThemeSettings() {
             {
               id: 'classic' as MenuTemplate,
               name: 'Classic',
-              desc: 'Full hero, category grid, card menu',
+              desc: 'Full hero, category grid, card-based menu layout',
               preview: 'bg-gradient-to-b from-amber-100 to-amber-50',
             },
             {
-              id: 'modern' as MenuTemplate,
-              name: 'Modern',
-              desc: 'Compact hero, inline search, side-by-side cards',
-              preview: 'bg-gradient-to-b from-blue-100 to-blue-50',
+              id: 'modern-bistro' as MenuTemplate,
+              name: 'Modern Bistro',
+              desc: 'Clean, minimal, elegant — cafes, bakeries, fine dining',
+              preview: 'bg-gradient-to-b from-orange-50 to-amber-50',
             },
             {
-              id: 'elegant' as MenuTemplate,
-              name: 'Elegant',
-              desc: 'Full-screen hero, magazine sections, serif fonts',
-              preview: 'bg-gradient-to-b from-gray-100 to-gray-50',
+              id: 'premium-dark' as MenuTemplate,
+              name: 'Premium Dark',
+              desc: 'Luxury dark mode — lounges, rooftop bars, premium dining',
+              preview: 'bg-gradient-to-b from-gray-800 to-gray-900',
             },
           ]).map(tmpl => {
-            const isActive = (theme.template || 'classic') === tmpl.id;
+            const isActive = selectedTemplate === tmpl.id;
             return (
               <button
                 key={tmpl.id}
-                onClick={() => setTheme({ ...theme, template: tmpl.id })}
+                onClick={() => setSelectedTemplate(tmpl.id)}
                 className={`relative text-left p-4 rounded-xl border-2 transition-all ${
                   isActive
                     ? 'border-gray-900 shadow-md'
@@ -258,7 +262,7 @@ export default function ThemeSettings() {
                 }`}
               >
                 <div className={`w-full h-20 rounded-lg mb-3 ${tmpl.preview} flex items-center justify-center`}>
-                  <span className="text-2xl font-serif font-bold text-gray-600 opacity-40">{tmpl.name[0]}</span>
+                  <span className={`text-2xl font-serif font-bold opacity-40 ${tmpl.id === 'premium-dark' ? 'text-gray-300' : 'text-gray-600'}`}>{tmpl.name[0]}</span>
                 </div>
                 <h4 className="text-sm font-semibold text-gray-800">{tmpl.name}</h4>
                 <p className="text-xs text-gray-500 mt-0.5 leading-tight">{tmpl.desc}</p>

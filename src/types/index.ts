@@ -1,4 +1,4 @@
-export type MenuTemplate = 'classic' | 'modern' | 'elegant';
+export type MenuTemplate = 'classic' | 'modern-bistro' | 'premium-dark';
 
 export interface RestaurantTheme {
   name?: string;
@@ -10,7 +10,6 @@ export interface RestaurantTheme {
   background?: string;
   text?: string;
   buttonStyle?: 'rounded' | 'pill' | 'square';
-  template?: MenuTemplate;
 }
 
 export interface Category {
@@ -61,6 +60,7 @@ export interface Restaurant {
   enableClickTracking?: boolean;
   clickRetentionDays?: number;
   theme?: RestaurantTheme;
+  template?: MenuTemplate;
   socialAnalytics?: {
     whatsappClicks: number;
     instagramClicks: number;

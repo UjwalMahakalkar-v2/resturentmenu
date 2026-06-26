@@ -12,8 +12,8 @@ import CategorySelection from '@/components/CategorySelection';
 import MenuCard from '@/components/MenuCard';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
-import ModernTemplate from '@/components/templates/ModernTemplate';
-import ElegantTemplate from '@/components/templates/ElegantTemplate';
+import ModernBistroTemplate from '@/components/templates/ModernBistroTemplate';
+import PremiumDarkTemplate from '@/components/templates/PremiumDarkTemplate';
 import { Loader2, ArrowLeft, Search, X } from 'lucide-react';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, MenuTemplate } from '@/types';
@@ -57,10 +57,8 @@ export default function Menu() {
     const load = async () => {
       const r = await restaurantService.get(tenant.id);
       setRestaurant(r);
-      if (r.theme) {
-        applyTheme(r.theme);
-        if (r.theme.template) setTemplate(r.theme.template);
-      }
+      if (r.theme) applyTheme(r.theme);
+      if (r.template) setTemplate(r.template);
     };
     load();
   }, [tenant?.id]);
@@ -70,10 +68,8 @@ export default function Menu() {
     const handleUpdate = async () => {
       const r = await restaurantService.get(tenant.id);
       setRestaurant(r);
-      if (r.theme) {
-        applyTheme(r.theme);
-        if (r.theme.template) setTemplate(r.theme.template);
-      }
+      if (r.theme) applyTheme(r.theme);
+      if (r.template) setTemplate(r.template);
     };
     window.addEventListener('restaurant-updated', handleUpdate);
     return () => window.removeEventListener('restaurant-updated', handleUpdate);
@@ -130,10 +126,10 @@ export default function Menu() {
     );
   }
 
-  // ── Template 2: Modern ──
-  if (template === 'modern') {
+  // ── Template 2: Modern Bistro ──
+  if (template === 'modern-bistro') {
     return (
-      <ModernTemplate
+      <ModernBistroTemplate
         restaurant={restaurant}
         menuItems={menuItems}
         categories={categories}
@@ -142,10 +138,10 @@ export default function Menu() {
     );
   }
 
-  // ── Template 3: Elegant ──
-  if (template === 'elegant') {
+  // ── Template 3: Premium Dark ──
+  if (template === 'premium-dark') {
     return (
-      <ElegantTemplate
+      <PremiumDarkTemplate
         restaurant={restaurant}
         menuItems={menuItems}
         categories={categories}

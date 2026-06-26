@@ -33,6 +33,7 @@ function rowToSettings(r: any) {
     enableClickTracking: r.enable_click_tracking !== 0, // default true
     clickRetentionDays: r.click_retention_days ?? 30,
     theme: r.theme ? JSON.parse(r.theme) : null,
+    template: r.template || 'classic',
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -98,13 +99,14 @@ export async function onRequestPut(context: any) {
       if (body.enableClickTracking !== undefined) { setClauses.push('enable_click_tracking = ?'); values.push(body.enableClickTracking ? 1 : 0); }
       if (body.clickRetentionDays !== undefined) { setClauses.push('click_retention_days = ?'); values.push(Number(body.clickRetentionDays) || 30); }
       if (body.theme !== undefined) { setClauses.push('theme = ?'); values.push(themeStr); }
+      if (body.template !== undefined) { setClauses.push('template = ?'); values.push(body.template); }
 
       values.push(tenantId);
       await execute(db, `UPDATE restaurant_settings SET ${setClauses.join(', ')} WHERE tenant_id = ?`, ...values);
     } else {
       const id = `rs_${crypto.randomUUID()}`;
       await execute(db,
-        'INSERT INTO restaurant_settings (id, tenant_id, name, tagline, logo, hero_image, phone, email, location, about, social_facebook, social_instagram, social_twitter, social_whatsapp, whatsapp_message, enable_whatsapp, enable_instagram, enable_click_tracking, click_retention_days, theme, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        'INSERT INTO restaurant_settings (id, tenant_id, name, tagline, logo, hero_image, phone, email, location, about, social_facebook, social_instagram, social_twitter, social_whatsapp, whatsapp_message, enable_whatsapp, enable_instagram, enable_click_tracking, click_retention_days, theme, template, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         id, tenantId,
         body.name || '', body.tagline || '', body.logo || '', body.heroImage || '',
         body.phone || '', body.email || '', body.location || '', body.about || '',
@@ -114,7 +116,7 @@ export async function onRequestPut(context: any) {
         social.enableInstagram !== false ? 1 : 0,
         body.enableClickTracking !== false ? 1 : 0,
         Number(body.clickRetentionDays) || 30,
-        themeStr, now, now
+        themeStr, body.template || 'classic', now, now
       );
     }
 

@@ -97,6 +97,8 @@ CREATE TABLE IF NOT EXISTS restaurant_settings (
   click_retention_days INTEGER DEFAULT 30,
   -- Theme stored as JSON string
   theme           TEXT,
+  -- Template: 'classic' | 'modern-bistro' | 'premium-dark'
+  template        TEXT DEFAULT 'classic',
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
