@@ -1,3 +1,5 @@
+export type MenuTemplate = 'classic' | 'modern' | 'elegant';
+
 export interface RestaurantTheme {
   name?: string;
   primary?: string;
@@ -8,6 +10,7 @@ export interface RestaurantTheme {
   background?: string;
   text?: string;
   buttonStyle?: 'rounded' | 'pill' | 'square';
+  template?: MenuTemplate;
 }
 
 export interface Category {

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Palette, RotateCcw, Save, Check } from 'lucide-react';
+import { Palette, RotateCcw, Save, Check, Layout } from 'lucide-react';
 import { applyTheme, resetTheme, PRESET_THEMES, DEFAULT_THEME } from '@/contexts/ThemeContext';
 import { restaurantSettingsAPI } from '@/services/api';
-import type { RestaurantTheme } from '@/types';
+import type { RestaurantTheme, MenuTemplate } from '@/types';
 import toast from 'react-hot-toast';
 
 const PRESET_LIST = Object.entries(PRESET_THEMES).map(([key, theme]) => ({ key, ...theme }));
@@ -216,6 +216,60 @@ export default function ThemeSettings() {
           style={{ backgroundColor: theme.background ?? '#faf8f5', color: theme.text ?? '#1a1a1a', border: '1px solid #e5e7eb' }}
         >
           Sample menu item name — this is how your page background and text will look.
+        </div>
+      </div>
+
+      {/* ── Menu Template ── */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-3">
+          <Layout className="w-4 h-4 text-gray-600" />
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Menu Template</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {([
+            {
+              id: 'classic' as MenuTemplate,
+              name: 'Classic',
+              desc: 'Full hero, category grid, card menu',
+              preview: 'bg-gradient-to-b from-amber-100 to-amber-50',
+            },
+            {
+              id: 'modern' as MenuTemplate,
+              name: 'Modern',
+              desc: 'Compact hero, inline search, side-by-side cards',
+              preview: 'bg-gradient-to-b from-blue-100 to-blue-50',
+            },
+            {
+              id: 'elegant' as MenuTemplate,
+              name: 'Elegant',
+              desc: 'Full-screen hero, magazine sections, serif fonts',
+              preview: 'bg-gradient-to-b from-gray-100 to-gray-50',
+            },
+          ]).map(tmpl => {
+            const isActive = (theme.template || 'classic') === tmpl.id;
+            return (
+              <button
+                key={tmpl.id}
+                onClick={() => setTheme({ ...theme, template: tmpl.id })}
+                className={`relative text-left p-4 rounded-xl border-2 transition-all ${
+                  isActive
+                    ? 'border-gray-900 shadow-md'
+                    : 'border-gray-200 hover:border-gray-400'
+                }`}
+              >
+                <div className={`w-full h-20 rounded-lg mb-3 ${tmpl.preview} flex items-center justify-center`}>
+                  <span className="text-2xl font-serif font-bold text-gray-600 opacity-40">{tmpl.name[0]}</span>
+                </div>
+                <h4 className="text-sm font-semibold text-gray-800">{tmpl.name}</h4>
+                <p className="text-xs text-gray-500 mt-0.5 leading-tight">{tmpl.desc}</p>
+                {isActive && (
+                  <div className="absolute top-2 right-2 w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -12,9 +12,11 @@ import CategorySelection from '@/components/CategorySelection';
 import MenuCard from '@/components/MenuCard';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
+import ModernTemplate from '@/components/templates/ModernTemplate';
+import ElegantTemplate from '@/components/templates/ElegantTemplate';
 import { Loader2, ArrowLeft, Search, X } from 'lucide-react';
 import type { TenantMenuItem } from '@/types/tenant';
-import type { Restaurant } from '@/types';
+import type { Restaurant, MenuTemplate } from '@/types';
 
 export default function Menu() {
   const { tenantSlug } = useParams();
@@ -27,6 +29,7 @@ export default function Menu() {
   const [vegOnly, setVegOnly] = useState(false);
   const [showCategorySelection, setShowCategorySelection] = useState(true);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [template, setTemplate] = useState<MenuTemplate>('classic');
   const [restaurant, setRestaurant] = useState<Restaurant>({
     name: '',
     tagline: '',
@@ -54,7 +57,10 @@ export default function Menu() {
     const load = async () => {
       const r = await restaurantService.get(tenant.id);
       setRestaurant(r);
-      if (r.theme) applyTheme(r.theme);
+      if (r.theme) {
+        applyTheme(r.theme);
+        if (r.theme.template) setTemplate(r.theme.template);
+      }
     };
     load();
   }, [tenant?.id]);
@@ -64,7 +70,10 @@ export default function Menu() {
     const handleUpdate = async () => {
       const r = await restaurantService.get(tenant.id);
       setRestaurant(r);
-      if (r.theme) applyTheme(r.theme);
+      if (r.theme) {
+        applyTheme(r.theme);
+        if (r.theme.template) setTemplate(r.theme.template);
+      }
     };
     window.addEventListener('restaurant-updated', handleUpdate);
     return () => window.removeEventListener('restaurant-updated', handleUpdate);
@@ -121,6 +130,31 @@ export default function Menu() {
     );
   }
 
+  // ── Template 2: Modern ──
+  if (template === 'modern') {
+    return (
+      <ModernTemplate
+        restaurant={restaurant}
+        menuItems={menuItems}
+        categories={categories}
+        tenant={tenant}
+      />
+    );
+  }
+
+  // ── Template 3: Elegant ──
+  if (template === 'elegant') {
+    return (
+      <ElegantTemplate
+        restaurant={restaurant}
+        menuItems={menuItems}
+        categories={categories}
+        tenant={tenant}
+      />
+    );
+  }
+
+  // ── Template 1: Classic (default) ──
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
       <Header restaurant={restaurant} />
