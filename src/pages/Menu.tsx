@@ -48,10 +48,11 @@ export default function Menu() {
       .catch(console.error);
   }, [tenantSlug]);
 
-  // Load restaurant settings + apply theme
+  // Load restaurant settings + apply theme (only when we have a real tenantId)
   useEffect(() => {
+    if (!tenant?.id) return;
     const load = async () => {
-      const r = await restaurantService.get(tenant?.id);
+      const r = await restaurantService.get(tenant.id);
       setRestaurant(r);
       if (r.theme) applyTheme(r.theme);
     };
@@ -59,8 +60,9 @@ export default function Menu() {
   }, [tenant?.id]);
 
   useEffect(() => {
+    if (!tenant?.id) return;
     const handleUpdate = async () => {
-      const r = await restaurantService.get(tenant?.id);
+      const r = await restaurantService.get(tenant.id);
       setRestaurant(r);
       if (r.theme) applyTheme(r.theme);
     };

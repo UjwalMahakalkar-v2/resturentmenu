@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { TenantProvider } from './contexts/TenantContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Menu from './pages/Menu';
+import LandingPage from './pages/LandingPage';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminLogin from './pages/SuperAdminLogin';
@@ -36,7 +37,7 @@ function App() {
           }}
         />
         <Routes>
-          <Route path="/" element={<Menu />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/super-admin/login" element={<SuperAdminLogin />} />
