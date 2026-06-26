@@ -6,9 +6,14 @@ interface HeaderProps {
 }
 
 export default function Header({ restaurant }: HeaderProps) {
+  const mapsUrl = restaurant?.location
+    ? `https://maps.google.com/?q=${encodeURIComponent(restaurant.location)}`
+    : null;
+
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container-custom">
+        {/* Main row: logo + name | contact (desktop) | phone button (mobile) */}
         <div className="flex items-center justify-between py-3 sm:py-4">
           {/* Logo and Name */}
           <div className="flex items-center gap-2 sm:gap-4">
@@ -39,7 +44,6 @@ export default function Header({ restaurant }: HeaderProps) {
               <a
                 href={`tel:${restaurant.phone}`}
                 className="flex items-center gap-2 text-gray-700 transition-colors hover:opacity-80"
-                style={{ color: undefined }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-primary)')}
                 onMouseLeave={e => (e.currentTarget.style.color = '')}
               >
@@ -59,10 +63,24 @@ export default function Header({ restaurant }: HeaderProps) {
               </a>
             )}
             {restaurant?.location && (
-              <div className="flex items-center gap-2 text-gray-700">
-                <MapPin className="w-4 h-4" />
-                <span className="max-w-xs truncate">{restaurant.location}</span>
-              </div>
+              mapsUrl ? (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-700 transition-colors hover:opacity-80"
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-primary)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '')}
+                >
+                  <MapPin className="w-4 h-4" />
+                  <span className="max-w-xs truncate">{restaurant.location}</span>
+                </a>
+              ) : (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <MapPin className="w-4 h-4" />
+                  <span className="max-w-xs truncate">{restaurant.location}</span>
+                </div>
+              )
             )}
           </div>
 
@@ -78,6 +96,41 @@ export default function Header({ restaurant }: HeaderProps) {
             </a>
           )}
         </div>
+
+        {/* Mobile contact strip — email + location, hidden on md+ */}
+        {(restaurant?.email || restaurant?.location) && (
+          <div className="md:hidden flex items-center gap-4 pb-2 text-xs text-gray-600 overflow-x-auto">
+            {restaurant.email && (
+              <a
+                href={`mailto:${restaurant.email}`}
+                className="flex items-center gap-1.5 shrink-0 hover:opacity-80 active:opacity-70"
+                style={{ color: 'var(--color-primary)' }}
+              >
+                <Mail className="w-3.5 h-3.5" />
+                <span>{restaurant.email}</span>
+              </a>
+            )}
+            {restaurant.location && (
+              mapsUrl ? (
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 shrink-0 hover:opacity-80 active:opacity-70"
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span className="truncate max-w-[200px]">{restaurant.location}</span>
+                </a>
+              ) : (
+                <span className="flex items-center gap-1.5 shrink-0">
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span className="truncate max-w-[200px]">{restaurant.location}</span>
+                </span>
+              )
+            )}
+          </div>
+        )}
       </div>
     </header>
   );
