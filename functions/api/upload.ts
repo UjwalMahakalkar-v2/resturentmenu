@@ -13,9 +13,11 @@ const ALLOWED_TYPES: Record<string, string> = {
   'image/jpg':  'jpg',
   'image/png':  'png',
   'image/webp': 'webp',
+  'image/avif': 'avif',
 };
 
-const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+// Client always optimizes+converts to WebP before sending, so 20 MB is the raw input cap
+const MAX_SIZE = 20 * 1024 * 1024; // 20 MB
 
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: CORS });
@@ -44,12 +46,12 @@ export async function onRequestPost(context: any) {
     // Validate type
     const ext = ALLOWED_TYPES[file.type];
     if (!ext) {
-      return new Response(JSON.stringify({ error: 'Invalid file type. Only JPG, PNG, WEBP allowed.' }), { status: 400, headers: CORS });
+      return new Response(JSON.stringify({ error: 'Invalid file type. Only JPG, PNG, WEBP, AVIF allowed.' }), { status: 400, headers: CORS });
     }
 
-    // Validate size
+    // Validate size (client-side optimizer already reduces this significantly)
     if (file.size > MAX_SIZE) {
-      return new Response(JSON.stringify({ error: `File too large. Maximum size is 5 MB.` }), { status: 400, headers: CORS });
+      return new Response(JSON.stringify({ error: `File too large. Maximum size is 20 MB.` }), { status: 400, headers: CORS });
     }
 
     // Build R2 key: slug/folder/unique-name  (logo + banner use fixed names for easy replacement)
