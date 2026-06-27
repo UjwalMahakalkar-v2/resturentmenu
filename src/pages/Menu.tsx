@@ -14,6 +14,9 @@ import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
 import ModernBistroTemplate from '@/components/templates/ModernBistroTemplate';
 import PremiumDarkTemplate from '@/components/templates/PremiumDarkTemplate';
+import StreetFoodTemplate from '@/components/templates/StreetFoodTemplate';
+import OrganicCafeTemplate from '@/components/templates/OrganicCafeTemplate';
+import LuxuryDiningTemplate from '@/components/templates/LuxuryDiningTemplate';
 import { Loader2, ArrowLeft, Search, X } from 'lucide-react';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, MenuTemplate } from '@/types';
@@ -142,6 +145,42 @@ export default function Menu() {
   if (template === 'premium-dark') {
     return (
       <PremiumDarkTemplate
+        restaurant={restaurant}
+        menuItems={menuItems}
+        categories={categories}
+        tenant={tenant}
+      />
+    );
+  }
+
+  // ── Template 4: Street Food ──
+  if (template === 'street-food') {
+    return (
+      <StreetFoodTemplate
+        restaurant={restaurant}
+        menuItems={menuItems}
+        categories={categories}
+        tenant={tenant}
+      />
+    );
+  }
+
+  // ── Template 5: Organic Cafe ──
+  if (template === 'organic-cafe') {
+    return (
+      <OrganicCafeTemplate
+        restaurant={restaurant}
+        menuItems={menuItems}
+        categories={categories}
+        tenant={tenant}
+      />
+    );
+  }
+
+  // ── Template 6: Luxury Dining ──
+  if (template === 'luxury-dining') {
+    return (
+      <LuxuryDiningTemplate
         restaurant={restaurant}
         menuItems={menuItems}
         categories={categories}

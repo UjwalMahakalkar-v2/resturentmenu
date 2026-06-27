@@ -229,25 +229,49 @@ export default function ThemeSettings() {
           <Layout className="w-4 h-4 text-gray-600" />
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Menu Template</h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {([
             {
               id: 'classic' as MenuTemplate,
               name: 'Classic',
-              desc: 'Full hero, category grid, card-based menu layout',
+              desc: 'Full hero, category grid, card-based layout',
               preview: 'bg-gradient-to-b from-amber-100 to-amber-50',
+              textColor: 'text-gray-600',
             },
             {
               id: 'modern-bistro' as MenuTemplate,
               name: 'Modern Bistro',
-              desc: 'Clean, minimal, elegant — cafes, bakeries, fine dining',
+              desc: 'Clean, minimal, elegant — cafes & bakeries',
               preview: 'bg-gradient-to-b from-orange-50 to-amber-50',
+              textColor: 'text-gray-600',
             },
             {
               id: 'premium-dark' as MenuTemplate,
               name: 'Premium Dark',
-              desc: 'Luxury dark mode — lounges, rooftop bars, premium dining',
+              desc: 'Luxury dark mode — lounges & rooftop bars',
               preview: 'bg-gradient-to-b from-gray-800 to-gray-900',
+              textColor: 'text-gray-300',
+            },
+            {
+              id: 'street-food' as MenuTemplate,
+              name: 'Street Food',
+              desc: 'Bold & vibrant — food courts, dhabas & trucks',
+              preview: 'bg-gradient-to-b from-gray-900 to-[#111318]',
+              textColor: 'text-orange-400',
+            },
+            {
+              id: 'organic-cafe' as MenuTemplate,
+              name: 'Organic Cafe',
+              desc: 'Earthy & natural — health cafes & vegan spots',
+              preview: 'bg-gradient-to-b from-stone-100 to-amber-50',
+              textColor: 'text-green-700',
+            },
+            {
+              id: 'luxury-dining' as MenuTemplate,
+              name: 'Luxury Dining',
+              desc: 'Ultra-premium — fine dining & 5-star hotels',
+              preview: 'bg-gradient-to-b from-stone-50 to-amber-50',
+              textColor: 'text-amber-700',
             },
           ]).map(tmpl => {
             const isActive = selectedTemplate === tmpl.id;
@@ -261,8 +285,8 @@ export default function ThemeSettings() {
                     : 'border-gray-200 hover:border-gray-400'
                 }`}
               >
-                <div className={`w-full h-20 rounded-lg mb-3 ${tmpl.preview} flex items-center justify-center`}>
-                  <span className={`text-2xl font-serif font-bold opacity-40 ${tmpl.id === 'premium-dark' ? 'text-gray-300' : 'text-gray-600'}`}>{tmpl.name[0]}</span>
+                <div className={`w-full h-16 rounded-lg mb-2 ${tmpl.preview} flex items-center justify-center`}>
+                  <span className={`text-2xl font-serif font-bold opacity-50 ${tmpl.textColor}`}>{tmpl.name[0]}</span>
                 </div>
                 <h4 className="text-sm font-semibold text-gray-800">{tmpl.name}</h4>
                 <p className="text-xs text-gray-500 mt-0.5 leading-tight">{tmpl.desc}</p>

@@ -1,4 +1,4 @@
-export type MenuTemplate = 'classic' | 'modern-bistro' | 'premium-dark';
+export type MenuTemplate = 'classic' | 'modern-bistro' | 'premium-dark' | 'street-food' | 'organic-cafe' | 'luxury-dining';
 
 export interface RestaurantTheme {
   name?: string;
