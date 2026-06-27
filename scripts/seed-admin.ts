@@ -1,69 +1,73 @@
 /**
- * Seed script — run once to create the super admin user in MongoDB.
+ * Seed script — create or verify the super admin user in D1.
  *
- * Usage:
- *   npx tsx scripts/seed-admin.ts
+ * Usage (remote):  npx tsx scripts/seed-admin.ts
+ * Usage (local):   npx tsx scripts/seed-admin.ts --local
  *
- * This is safe to run multiple times — it checks before inserting.
+ * Safe to run multiple times — uses ON CONFLICT DO NOTHING.
  */
-import { MongoClient } from 'mongodb';
+import { execSync } from 'child_process';
+import { randomUUID } from 'crypto';
 
-const MONGODB_URI = 'mongodb+srv://ayushmahakalkar_db_user:ByYnmRJvL25mQGaA@cluster0.5b7rkwg.mongodb.net/restaurant_menu?retryWrites=true&w=majority';
-const DB_NAME = 'restaurant_menu';
+const DB = 'restaurant_menu';
+const isLocal = process.argv.includes('--local');
+const flag = isLocal ? '--local' : '--remote';
 
-async function seed() {
-  const client = new MongoClient(MONGODB_URI, {
-    serverSelectionTimeoutMS: 15000,
-    connectTimeoutMS: 15000,
-  });
-
+function query(sql: string): unknown[] {
+  const escaped = sql.replace(/'/g, `'\\''`);
+  const result = execSync(
+    `npx wrangler d1 execute ${DB} ${flag} --command='${escaped}' --json`,
+    { encoding: 'utf8' }
+  );
   try {
-    console.log('Connecting to MongoDB…');
-    await client.connect();
-    console.log('Connected.');
-
-    const db = client.db(DB_NAME);
-    const users = db.collection('users');
-    const tenants = db.collection('tenants');
-
-    // -- Super Admin user ---------------------------------------------------
-    const existing = await users.findOne({ email: 'admin@menumate.com' });
-    if (existing) {
-      console.log(`Super admin already exists (id: ${existing.id})`);
-    } else {
-      const superAdmin = {
-        id: `user_${crypto.randomUUID()}`,
-        tenantId: null,
-        email: 'admin@menumate.com',
-        password: 'admin123',           // plaintext for now; hash with bcrypt in production
-        name: 'Super Admin',
-        role: 'super_admin',
-        active: true,
-        permissions: ['*'],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      await users.insertOne(superAdmin);
-      console.log(`Super admin created (id: ${superAdmin.id})`);
-    }
-
-    // -- List existing tenants (for reference) --------------------------------
-    const allTenants = await tenants.find({}).project({ id: 1, name: 1, slug: 1, status: 1 }).toArray();
-    console.log(`\nTenants in DB (${allTenants.length}):`);
-    allTenants.forEach(t => console.log(`  - ${t.name} (slug: ${t.slug}, status: ${t.status})`));
-
-    // -- List all users --------------------------------------------------------
-    const allUsers = await users.find({}).project({ id: 1, email: 1, role: 1, tenantId: 1, active: 1 }).toArray();
-    console.log(`\nUsers in DB (${allUsers.length}):`);
-    allUsers.forEach(u => console.log(`  - ${u.email} | role: ${u.role} | tenantId: ${u.tenantId ?? 'none'} | active: ${u.active}`));
-
-    console.log('\nDone.');
-  } catch (err) {
-    console.error('Error:', err);
-    process.exit(1);
-  } finally {
-    await client.close();
+    const parsed = JSON.parse(result);
+    return parsed?.[0]?.results ?? [];
+  } catch {
+    return [];
   }
 }
 
-seed();
+function run(sql: string) {
+  const escaped = sql.replace(/'/g, `'\\''`);
+  execSync(`npx wrangler d1 execute ${DB} ${flag} --command='${escaped}'`, {
+    stdio: 'inherit',
+  });
+}
+
+async function seed() {
+  console.log(`\n🔄 Seeding admin user in D1 (${isLocal ? 'local' : 'remote'})…\n`);
+
+  // -- Upsert super admin ----------------------------------------------------
+  const adminId = `user_${randomUUID()}`;
+  run(
+    `INSERT INTO users (id, tenant_id, email, password, name, role, active, permissions)
+     VALUES ('${adminId}', NULL, 'admin@menumate.com', 'admin123', 'Super Admin', 'super_admin', 1, '["*"]')
+     ON CONFLICT(email) DO NOTHING;`
+  );
+  console.log('✅ Super admin upserted (admin@menumate.com / admin123)\n');
+
+  // -- List all tenants -------------------------------------------------------
+  const tenants = query(`SELECT id, name, slug, status FROM tenants ORDER BY created_at;`) as Array<{
+    id: string; name: string; slug: string; status: string;
+  }>;
+  console.log(`Tenants in DB (${tenants.length}):`);
+  for (const t of tenants) {
+    console.log(`  - ${t.name} (slug: ${t.slug}, status: ${t.status})`);
+  }
+
+  // -- List all users ---------------------------------------------------------
+  const users = query(`SELECT id, email, role, tenant_id, active FROM users ORDER BY created_at;`) as Array<{
+    id: string; email: string; role: string; tenant_id: string | null; active: number;
+  }>;
+  console.log(`\nUsers in DB (${users.length}):`);
+  for (const u of users) {
+    console.log(`  - ${u.email} | role: ${u.role} | tenantId: ${u.tenant_id ?? 'none'} | active: ${u.active}`);
+  }
+
+  console.log('\n✅ Done.');
+}
+
+seed().catch(err => {
+  console.error('❌ Error:', err);
+  process.exit(1);
+});
