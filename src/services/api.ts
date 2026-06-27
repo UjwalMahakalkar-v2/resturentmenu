@@ -153,4 +153,71 @@ export const publicAPI = {
   },
 };
 
+// Staff API (authenticated)
+export const staffAPI = {
+  getAll: async () => {
+    const response = await api.get('/staff');
+    return response.data;
+  },
+  getById: async (id: string) => {
+    const response = await api.get(`/staff/${id}`);
+    return response.data;
+  },
+  create: async (data: Record<string, any>) => {
+    const response = await api.post('/staff', data);
+    return response.data;
+  },
+  update: async (id: string, data: Record<string, any>) => {
+    const response = await api.put(`/staff/${id}`, data);
+    return response.data;
+  },
+  deactivate: async (id: string) => {
+    const response = await api.delete(`/staff/${id}`);
+    return response.data;
+  },
+};
+
+// Attendance API (authenticated)
+export const attendanceAPI = {
+  getByDate: async (date: string) => {
+    const response = await api.get(`/attendance?date=${encodeURIComponent(date)}`);
+    return response.data;
+  },
+  getByRange: async (from: string, to: string, staffId?: string) => {
+    const q = staffId
+      ? `staffId=${encodeURIComponent(staffId)}&from=${from}&to=${to}`
+      : `from=${from}&to=${to}`;
+    const response = await api.get(`/attendance?${q}`);
+    return response.data;
+  },
+  mark: async (data: { staffId: string; date: string; status: string; checkIn?: string; checkOut?: string; notes?: string }) => {
+    const response = await api.post('/attendance', data);
+    return response.data;
+  },
+};
+
+// Payroll API (authenticated)
+export const payrollAPI = {
+  getByMonth: async (month: string) => {
+    const response = await api.get(`/payroll?month=${encodeURIComponent(month)}`);
+    return response.data;
+  },
+  getByStaff: async (staffId: string) => {
+    const response = await api.get(`/payroll?staffId=${encodeURIComponent(staffId)}`);
+    return response.data;
+  },
+  getAll: async () => {
+    const response = await api.get('/payroll');
+    return response.data;
+  },
+  generate: async (data: Record<string, any>) => {
+    const response = await api.post('/payroll', data);
+    return response.data;
+  },
+  markPaid: async (staffId: string, month: string, paidDate: string, notes?: string) => {
+    const response = await api.put('/payroll', { staffId, month, status: 'paid', paidDate, notes: notes || '' });
+    return response.data;
+  },
+};
+
 export default api;

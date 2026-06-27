@@ -113,3 +113,68 @@ CREATE INDEX IF NOT EXISTS idx_menu_items_category  ON menu_items(category_id);
 CREATE INDEX IF NOT EXISTS idx_tenants_slug         ON tenants(slug);
 CREATE INDEX IF NOT EXISTS idx_tenants_subdomain    ON tenants(subdomain);
 CREATE INDEX IF NOT EXISTS idx_rs_tenant            ON restaurant_settings(tenant_id);
+
+-- ── Staff ─────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS staff (
+  id                TEXT PRIMARY KEY,
+  tenant_id         TEXT NOT NULL,
+  name              TEXT NOT NULL,
+  photo             TEXT,
+  phone             TEXT,
+  email             TEXT,
+  role              TEXT NOT NULL DEFAULT 'helper',
+  joining_date      TEXT NOT NULL,
+  salary_type       TEXT NOT NULL DEFAULT 'monthly',
+  salary_amount     REAL NOT NULL DEFAULT 0,
+  emergency_contact TEXT,
+  active            INTEGER NOT NULL DEFAULT 1,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+-- ── Attendance ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS attendance (
+  id         TEXT PRIMARY KEY,
+  tenant_id  TEXT NOT NULL,
+  staff_id   TEXT NOT NULL,
+  date       TEXT NOT NULL,
+  status     TEXT NOT NULL DEFAULT 'present',
+  check_in   TEXT,
+  check_out  TEXT,
+  notes      TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(tenant_id, staff_id, date),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  FOREIGN KEY (staff_id)  REFERENCES staff(id)   ON DELETE CASCADE
+);
+
+-- ── Payroll ───────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS payroll (
+  id                TEXT PRIMARY KEY,
+  tenant_id         TEXT NOT NULL,
+  staff_id          TEXT NOT NULL,
+  month             TEXT NOT NULL,
+  base_salary       REAL NOT NULL DEFAULT 0,
+  overtime_amount   REAL NOT NULL DEFAULT 0,
+  advance_deduction REAL NOT NULL DEFAULT 0,
+  absent_deduction  REAL NOT NULL DEFAULT 0,
+  final_amount      REAL NOT NULL DEFAULT 0,
+  status            TEXT NOT NULL DEFAULT 'pending',
+  paid_date         TEXT,
+  notes             TEXT,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(tenant_id, staff_id, month),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+  FOREIGN KEY (staff_id)  REFERENCES staff(id)   ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_tenant        ON staff(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_tenant   ON attendance(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_staff    ON attendance(staff_id);
+CREATE INDEX IF NOT EXISTS idx_attendance_date     ON attendance(date);
+CREATE INDEX IF NOT EXISTS idx_payroll_tenant      ON payroll(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_staff       ON payroll(staff_id);
+CREATE INDEX IF NOT EXISTS idx_payroll_month       ON payroll(month);
