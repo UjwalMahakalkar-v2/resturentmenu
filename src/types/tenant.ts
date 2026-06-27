@@ -23,6 +23,7 @@ export interface Tenant {
   plan: SubscriptionPlan;
   ownerId?: string; // Reference to admin user
   ownerName?: string;
+  posEnabled?: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date; // Soft delete

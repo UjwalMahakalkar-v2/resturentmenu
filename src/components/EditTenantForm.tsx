@@ -19,6 +19,7 @@ export default function EditTenantForm({ tenant, onClose, onSuccess }: EditTenan
     address: tenant.address || '',
     status: tenant.status as TenantStatus,
     plan: (tenant.plan || 'starter') as SubscriptionPlan,
+    posEnabled: tenant.posEnabled ?? false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -41,6 +42,7 @@ export default function EditTenantForm({ tenant, onClose, onSuccess }: EditTenan
         address: formData.address.trim(),
         status: formData.status,
         subscriptionPlan: formData.plan,
+        posEnabled: formData.posEnabled ? 1 : 0,
       });
       toast.success(`"${formData.name}" updated successfully`);
       onSuccess();
@@ -149,6 +151,21 @@ export default function EditTenantForm({ tenant, onClose, onSuccess }: EditTenan
                 placeholder="123 Main Street, City, State - 400001"
               />
             </div>
+          </div>
+
+          {/* POS Toggle */}
+          <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-xl">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Point of Sale (POS)</p>
+              <p className="text-xs text-gray-500">Enable POS terminal for this tenant</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, posEnabled: !prev.posEnabled }))}
+              className={`relative w-12 h-6 rounded-full transition-colors ${formData.posEnabled ? 'bg-amber-500' : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.posEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
+            </button>
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   LogOut, Plus, Settings, BarChart2, QrCode,
-  Upload, Download, GripVertical, Package, Briefcase,
+  Upload, Download, GripVertical, Package, Briefcase, ShoppingCart,
 } from 'lucide-react';
 import { useMenuItems, useCategories } from '@/hooks/useMenu';
 import MenuItemForm from '@/components/MenuItemForm';
@@ -14,13 +14,14 @@ import QRCodeGenerator from '@/components/QRCodeGenerator';
 import CategoryManager from '@/components/admin/CategoryManager';
 import MenuByCategory from '@/components/admin/MenuByCategory';
 import ManagementDashboard from '@/components/management/ManagementDashboard';
+import POSDashboard from '@/components/pos/POSDashboard';
 import api from '@/services/api';
 import { restaurantSettingsAPI } from '@/services/api';
 import { applyTheme } from '@/contexts/ThemeContext';
 import type { TenantMenuItem, TenantCategory } from '@/types/tenant';
 import toast from 'react-hot-toast';
 
-type Tab = 'menu' | 'categories' | 'analytics' | 'qrcode' | 'settings' | 'management';
+type Tab = 'menu' | 'categories' | 'analytics' | 'qrcode' | 'settings' | 'management' | 'pos';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -181,6 +182,7 @@ export default function AdminDashboard() {
     { id: 'qrcode', label: 'QR Code', icon: <QrCode className="w-4 h-4" /> },
     { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
     { id: 'management', label: 'Management', icon: <Briefcase className="w-4 h-4" /> },
+    { id: 'pos', label: 'POS', icon: <ShoppingCart className="w-4 h-4" /> },
   ];
 
   return (
@@ -335,6 +337,9 @@ export default function AdminDashboard() {
 
             {/* ── MANAGEMENT TAB ── */}
             {activeTab === 'management' && <ManagementDashboard />}
+
+            {/* ── POS TAB ── */}
+            {activeTab === 'pos' && <POSDashboard />}
           </div>
         </div>
       </div>

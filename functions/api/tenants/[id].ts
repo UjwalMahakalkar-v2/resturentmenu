@@ -48,6 +48,7 @@ export async function onRequestPatch(context: any) {
     const allowed: Record<string, string> = {
       status: 'status', name: 'name', email: 'email',
       phone: 'phone', address: 'address', subscriptionPlan: 'subscription_plan',
+      posEnabled: 'pos_enabled',
     };
     const setClauses: string[] = ['updated_at = ?'];
     const values: any[] = [new Date().toISOString()];
@@ -72,6 +73,7 @@ export async function onRequestPatch(context: any) {
     return new Response(JSON.stringify({
       id: updated.id, slug: updated.slug, name: updated.name, status: updated.status,
       subscriptionPlan: updated.subscription_plan, email: updated.email,
+      posEnabled: updated.pos_enabled === 1,
     }), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to update tenant';

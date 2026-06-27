@@ -140,3 +140,82 @@ export interface MenuFilters {
   type: 'all' | 'veg' | 'non-veg';
   showOnlyPopular: boolean;
 }
+
+// ── POS Types ─────────────────────────────────────────────────
+
+export type POSOrderType = 'dine-in' | 'takeaway' | 'delivery';
+export type POSOrderStatus = 'open' | 'kot' | 'paid' | 'closed' | 'cancelled';
+export type POSPaymentMethod = 'cash' | 'card' | 'upi';
+export type POSTableStatus = 'available' | 'occupied' | 'reserved';
+
+export interface POSSettings {
+  posEnabled: boolean;
+  id: string;
+  tenantId: string;
+  gstEnabled: boolean;
+  gstRate: number;
+  cgstRate: number;
+  sgstRate: number;
+  currency: string;
+  currencySymbol: string;
+  billPrefix: string;
+  nextBillNumber: number;
+  enableKot: boolean;
+}
+
+export interface POSSection {
+  id: string;
+  tenantId: string;
+  name: string;
+  description: string;
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface POSTable {
+  id: string;
+  tenantId: string;
+  sectionId: string;
+  sectionName: string;
+  name: string;
+  capacity: number;
+  status: POSTableStatus;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface POSOrderItem {
+  id?: string;
+  menuItemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  notes?: string;
+  subtotal: number;
+}
+
+export interface POSOrder {
+  id: string;
+  tenantId: string;
+  orderNumber: string;
+  orderType: POSOrderType;
+  sectionId: string | null;
+  tableId: string | null;
+  tableName: string | null;
+  customerName: string;
+  customerPhone: string;
+  status: POSOrderStatus;
+  subtotal: number;
+  discountAmount: number;
+  gstAmount: number;
+  totalAmount: number;
+  paymentMethod: POSPaymentMethod | null;
+  paymentStatus: 'pending' | 'paid';
+  notes: string;
+  items: POSOrderItem[];
+  createdAt: string;
+  updatedAt: string;
+}

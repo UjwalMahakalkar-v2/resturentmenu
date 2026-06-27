@@ -11,7 +11,8 @@ import {
   CheckCircle,
   ExternalLink,
   MoreVertical,
-  UserCheck
+  UserCheck,
+  ShoppingCart,
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
 import api from '@/services/api';
@@ -106,6 +107,21 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
       await onRefresh();
     } catch (error: any) {
       toast.error(error.message || 'Failed to delete tenant');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const handleTogglePOS = async (tenant: Tenant) => {
+    const newVal = !tenant.posEnabled;
+    setLoading(tenant.id);
+    setShowActions(null);
+    try {
+      await api.patch(`/tenants/${tenant.id}`, { posEnabled: newVal ? 1 : 0 });
+      toast.success(`POS ${newVal ? 'enabled' : 'disabled'} for ${tenant.name}`);
+      await onRefresh();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to toggle POS');
     } finally {
       setLoading(null);
     }
@@ -276,6 +292,13 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
                               Login As Tenant
                             </button>
                           )}
+                          <button
+                            onClick={() => handleTogglePOS(tenant)}
+                            className={`flex items-center w-full px-4 py-2 text-sm hover:bg-amber-50 ${tenant.posEnabled ? 'text-amber-700' : 'text-gray-600'}`}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            {tenant.posEnabled ? 'Disable POS' : 'Enable POS'}
+                          </button>
                           {tenant.status === 'active' ? (
                             <button
                               onClick={() => {

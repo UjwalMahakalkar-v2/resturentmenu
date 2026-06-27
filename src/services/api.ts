@@ -220,4 +220,66 @@ export const payrollAPI = {
   },
 };
 
+// POS API (authenticated)
+export const posAPI = {
+  getSettings: async () => {
+    const response = await api.get('/pos/settings');
+    return response.data;
+  },
+  updateSettings: async (data: Record<string, any>) => {
+    const response = await api.put('/pos/settings', data);
+    return response.data;
+  },
+  getSections: async () => {
+    const response = await api.get('/pos/sections');
+    return response.data;
+  },
+  createSection: async (data: Record<string, any>) => {
+    const response = await api.post('/pos/sections', data);
+    return response.data;
+  },
+  updateSection: async (id: string, data: Record<string, any>) => {
+    const response = await api.put(`/pos/sections/${id}`, data);
+    return response.data;
+  },
+  deleteSection: async (id: string) => {
+    await api.delete(`/pos/sections/${id}`);
+  },
+  getTables: async (sectionId?: string) => {
+    const q = sectionId ? `?sectionId=${encodeURIComponent(sectionId)}` : '';
+    const response = await api.get(`/pos/tables${q}`);
+    return response.data;
+  },
+  createTable: async (data: Record<string, any>) => {
+    const response = await api.post('/pos/tables', data);
+    return response.data;
+  },
+  updateTable: async (id: string, data: Record<string, any>) => {
+    const response = await api.put(`/pos/tables/${id}`, data);
+    return response.data;
+  },
+  deleteTable: async (id: string) => {
+    await api.delete(`/pos/tables/${id}`);
+  },
+  getOrders: async (params?: { status?: string; date?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.date) q.set('date', params.date);
+    if (params?.limit) q.set('limit', String(params.limit));
+    const response = await api.get(`/pos/orders${q.toString() ? '?' + q.toString() : ''}`);
+    return response.data;
+  },
+  createOrder: async (data: Record<string, any>) => {
+    const response = await api.post('/pos/orders', data);
+    return response.data;
+  },
+  updateOrder: async (id: string, data: Record<string, any>) => {
+    const response = await api.put(`/pos/orders/${id}`, data);
+    return response.data;
+  },
+  deleteOrder: async (id: string) => {
+    await api.delete(`/pos/orders/${id}`);
+  },
+};
+
 export default api;

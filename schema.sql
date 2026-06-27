@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS tenants (
   address         TEXT,
   status          TEXT NOT NULL DEFAULT 'active',
   subscription_plan TEXT NOT NULL DEFAULT 'starter',
+  pos_enabled     INTEGER NOT NULL DEFAULT 0,
   whatsapp_clicks INTEGER NOT NULL DEFAULT 0,
   instagram_clicks INTEGER NOT NULL DEFAULT 0,
   facebook_clicks INTEGER NOT NULL DEFAULT 0,
@@ -178,3 +179,100 @@ CREATE INDEX IF NOT EXISTS idx_attendance_date     ON attendance(date);
 CREATE INDEX IF NOT EXISTS idx_payroll_tenant      ON payroll(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_payroll_staff       ON payroll(staff_id);
 CREATE INDEX IF NOT EXISTS idx_payroll_month       ON payroll(month);
+
+-- ── POS Settings ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_settings (
+  id                TEXT PRIMARY KEY,
+  tenant_id         TEXT NOT NULL UNIQUE,
+  gst_enabled       INTEGER NOT NULL DEFAULT 0,
+  gst_rate          REAL NOT NULL DEFAULT 18.0,
+  cgst_rate         REAL NOT NULL DEFAULT 9.0,
+  sgst_rate         REAL NOT NULL DEFAULT 9.0,
+  currency          TEXT NOT NULL DEFAULT 'INR',
+  currency_symbol   TEXT NOT NULL DEFAULT '₹',
+  bill_prefix       TEXT NOT NULL DEFAULT 'INV',
+  next_bill_number  INTEGER NOT NULL DEFAULT 1,
+  enable_kot        INTEGER NOT NULL DEFAULT 1,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+-- ── POS Sections ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_sections (
+  id          TEXT PRIMARY KEY,
+  tenant_id   TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  description TEXT,
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  active      INTEGER NOT NULL DEFAULT 1,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+-- ── POS Tables ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_tables (
+  id          TEXT PRIMARY KEY,
+  tenant_id   TEXT NOT NULL,
+  section_id  TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  capacity    INTEGER NOT NULL DEFAULT 4,
+  status      TEXT NOT NULL DEFAULT 'available',
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id)  REFERENCES tenants(id)      ON DELETE CASCADE,
+  FOREIGN KEY (section_id) REFERENCES pos_sections(id) ON DELETE CASCADE
+);
+
+-- ── POS Orders ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_orders (
+  id              TEXT PRIMARY KEY,
+  tenant_id       TEXT NOT NULL,
+  order_number    TEXT NOT NULL,
+  order_type      TEXT NOT NULL DEFAULT 'dine-in',
+  section_id      TEXT,
+  table_id        TEXT,
+  table_name      TEXT,
+  customer_name   TEXT,
+  customer_phone  TEXT,
+  status          TEXT NOT NULL DEFAULT 'open',
+  subtotal        REAL NOT NULL DEFAULT 0,
+  discount_amount REAL NOT NULL DEFAULT 0,
+  gst_amount      REAL NOT NULL DEFAULT 0,
+  total_amount    REAL NOT NULL DEFAULT 0,
+  payment_method  TEXT,
+  payment_status  TEXT NOT NULL DEFAULT 'pending',
+  notes           TEXT,
+  created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+-- ── POS Order Items ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS pos_order_items (
+  id           TEXT PRIMARY KEY,
+  order_id     TEXT NOT NULL,
+  tenant_id    TEXT NOT NULL,
+  menu_item_id TEXT NOT NULL,
+  name         TEXT NOT NULL,
+  price        REAL NOT NULL,
+  quantity     INTEGER NOT NULL DEFAULT 1,
+  notes        TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (order_id)  REFERENCES pos_orders(id)  ON DELETE CASCADE,
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id)     ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_pos_settings_tenant    ON pos_settings(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_pos_sections_tenant    ON pos_sections(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_pos_tables_tenant      ON pos_tables(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_pos_tables_section     ON pos_tables(section_id);
+CREATE INDEX IF NOT EXISTS idx_pos_orders_tenant      ON pos_orders(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_pos_orders_status      ON pos_orders(status);
+CREATE INDEX IF NOT EXISTS idx_pos_order_items_order  ON pos_order_items(order_id);
+
+-- ── Migration note ────────────────────────────────────────────
+-- For existing databases run:
+--   ALTER TABLE tenants ADD COLUMN pos_enabled INTEGER NOT NULL DEFAULT 0;
