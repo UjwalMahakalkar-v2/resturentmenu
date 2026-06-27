@@ -1,4 +1,4 @@
-import { getDB, queryFirst } from '../../db';
+import { getDB, queryFirst, execute } from '../../db';
 
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
 
@@ -34,6 +34,14 @@ export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: { ...CORS, 'Access-Control-Allow-Methods': 'GET, OPTIONS' } });
 }
 
+async function ensureTemplateColumn(db: any) {
+  try {
+    await execute(db, "ALTER TABLE restaurant_settings ADD COLUMN template TEXT DEFAULT 'classic'");
+  } catch {
+    // Column already exists — ignore
+  }
+}
+
 export async function onRequestGet(context: any) {
   try {
     const url = new URL(context.request.url);
@@ -41,6 +49,7 @@ export async function onRequestGet(context: any) {
     if (!tenantId) return new Response(JSON.stringify({ error: 'tenantId is required' }), { status: 400, headers: CORS });
 
     const db = getDB(context.env);
+    await ensureTemplateColumn(db);
     const row = await queryFirst(db, 'SELECT * FROM restaurant_settings WHERE tenant_id = ?', tenantId);
     return new Response(JSON.stringify(row ? rowToSettings(row) : {}), { headers: CORS });
   } catch (error) {

@@ -43,10 +43,19 @@ export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: CORS });
 }
 
+async function ensureTemplateColumn(db: any) {
+  try {
+    await execute(db, "ALTER TABLE restaurant_settings ADD COLUMN template TEXT DEFAULT 'classic'");
+  } catch {
+    // Column already exists — ignore
+  }
+}
+
 export async function onRequestGet(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);
     const db = getDB(context.env);
+    await ensureTemplateColumn(db);
     const row = await queryFirst(db, 'SELECT * FROM restaurant_settings WHERE tenant_id = ?', tenantId);
     return new Response(JSON.stringify(row ? rowToSettings(row) : {}), { headers: CORS });
   } catch (error) {
@@ -60,6 +69,7 @@ export async function onRequestPut(context: any) {
     const tenantId = getTenantIdFromRequest(context.request);
     const body = await context.request.json();
     const db = getDB(context.env);
+    await ensureTemplateColumn(db);
     const now = new Date().toISOString();
 
     const existing = await queryFirst(db, 'SELECT id FROM restaurant_settings WHERE tenant_id = ?', tenantId);
