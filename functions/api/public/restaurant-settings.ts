@@ -1,6 +1,6 @@
 import { getDB, queryFirst } from '../../db';
 
-const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
 
 function rowToSettings(r: any) {
   return {

@@ -145,7 +145,7 @@ export const publicAPI = {
 
   getRestaurantSettings: async (tenantId: string): Promise<Restaurant> => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/public/restaurant-settings?tenantId=${encodeURIComponent(tenantId)}`);
+      const response = await axios.get(`${API_BASE_URL}/public/restaurant-settings?tenantId=${encodeURIComponent(tenantId)}&_t=${Date.now()}`);
       return response.data;
     } catch {
       return {} as Restaurant;
