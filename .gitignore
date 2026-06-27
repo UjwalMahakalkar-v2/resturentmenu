@@ -30,6 +30,7 @@ dist-ssr
 
 # Wrangler
 .wrangler
+.dev.vars
 
 # Database credentials
 DB_Credentials.txt
