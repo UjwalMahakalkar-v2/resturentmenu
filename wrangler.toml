@@ -8,3 +8,11 @@ pages_build_output_dir = "./dist"
 binding = "DB"
 database_name = "restaurant_menu"
 database_id = "3394c601-9c24-4dfd-b68a-78ac300c9d95"
+
+# R2 image storage
+# Create bucket: npx wrangler r2 bucket create menumate-images
+# Set R2_PUBLIC_URL in Cloudflare Pages env vars (Dashboard → Settings → Environment Variables)
+# e.g. https://pub-XXXX.r2.dev  OR  https://cdn.yourdomain.com
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "menumate-images"

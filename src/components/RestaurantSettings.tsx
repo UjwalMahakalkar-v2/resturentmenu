@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Restaurant } from '@/types';
 import { restaurantService } from '@/services/restaurantService';
+import ImageUploader from './ImageUploader';
 import toast from 'react-hot-toast';
 import { Save } from 'lucide-react';
 
@@ -16,8 +17,6 @@ export default function RestaurantSettings() {
     about: '',
   });
   const [loading, setLoading] = useState(false);
-  const [logoPreview, setLogoPreview] = useState('');
-  const [heroPreview, setHeroPreview] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -26,11 +25,6 @@ export default function RestaurantSettings() {
     };
     load();
   }, []);
-
-  useEffect(() => {
-    setLogoPreview(formData.logo);
-    setHeroPreview(formData.heroImage);
-  }, [formData.logo, formData.heroImage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,69 +155,24 @@ export default function RestaurantSettings() {
         </div>
 
         {/* Logo */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Restaurant Logo URL
-          </label>
-          <div className="flex gap-4">
-            <input
-              type="url"
-              value={formData.logo}
-              onChange={(e) => {
-                setFormData({ ...formData, logo: e.target.value });
-                setLogoPreview(e.target.value);
-              }}
-              className="input-field flex-1"
-              placeholder="https://example.com/logo.png"
-            />
-            {logoPreview && (
-              <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                <img
-                  src={logoPreview}
-                  alt="Logo preview"
-                  className="w-full h-full object-cover"
-                  onError={() => setLogoPreview('')}
-                />
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-gray-500 mt-1">
-            Recommended size: 100x100px
-          </p>
-        </div>
+        <ImageUploader
+          value={formData.logo}
+          onChange={(url) => setFormData({ ...formData, logo: url })}
+          folder="logo"
+          label="Restaurant Logo"
+          hint="Recommended: 200×200 px · JPG, PNG, WEBP · Max 5 MB"
+          aspectRatio="square"
+        />
 
-        {/* Hero Image */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Hero Banner Image URL
-          </label>
-          <input
-            type="url"
-            value={formData.heroImage}
-            onChange={(e) => {
-              setFormData({ ...formData, heroImage: e.target.value });
-              setHeroPreview(e.target.value);
-            }}
-            className="input-field"
-            placeholder="https://example.com/hero-banner.jpg"
-          />
-          {heroPreview && (
-            <div className="mt-3 relative h-48 rounded-lg overflow-hidden bg-gray-100">
-              <img
-                src={heroPreview}
-                alt="Hero preview"
-                className="w-full h-full object-cover"
-                onError={() => setHeroPreview('')}
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                <p className="text-white font-semibold">Hero Banner Preview</p>
-              </div>
-            </div>
-          )}
-          <p className="text-xs text-gray-500 mt-1">
-            Recommended size: 1200x400px or wider
-          </p>
-        </div>
+        {/* Hero Banner */}
+        <ImageUploader
+          value={formData.heroImage}
+          onChange={(url) => setFormData({ ...formData, heroImage: url })}
+          folder="banner"
+          label="Hero Banner Image"
+          hint="Recommended: 1200×400 px or wider · JPG, PNG, WEBP · Max 5 MB"
+          aspectRatio="banner"
+        />
 
         {/* Submit Button */}
         <div className="flex justify-end pt-4 border-t border-gray-200">

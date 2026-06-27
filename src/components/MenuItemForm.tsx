@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MenuItem, Category } from '@/types';
 import Modal from './Modal';
+import ImageUploader from './ImageUploader';
 import toast from 'react-hot-toast';
 
 interface MenuItemFormProps {
@@ -25,7 +26,6 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
     available: true,
   });
   const [loading, setLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState('');
 
   useEffect(() => {
     if (editItem) {
@@ -40,7 +40,6 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
         popular: editItem.popular,
         available: editItem.available,
       });
-      setImagePreview(editItem.image || '');
     } else {
       resetForm(defaultCategoryId);
     }
@@ -58,12 +57,10 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
       popular: false,
       available: true,
     });
-    setImagePreview('');
   };
 
   const handleImageUrlChange = (url: string) => {
-    setFormData({ ...formData, image: url });
-    setImagePreview(url);
+    setFormData(prev => ({ ...prev, image: url, hasImage: url.length > 0 ? prev.hasImage : false }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,7 +80,7 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
       return;
     }
     if (formData.hasImage && !formData.image.trim()) {
-      toast.error('Please provide an image URL or disable image');
+      toast.error('Please upload an image or disable the image toggle');
       return;
     }
 
@@ -206,9 +203,6 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
                     checked={formData.hasImage}
                     onChange={(e) => {
                       setFormData({ ...formData, hasImage: e.target.checked });
-                      if (!e.target.checked) {
-                        setImagePreview('');
-                      }
                     }}
                     className="sr-only peer"
                   />
@@ -217,41 +211,16 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
               </label>
             </div>
 
-            {/* Image URL - Only show if hasImage is true */}
+            {/* Image Upload - Only show if hasImage is true */}
             {formData.hasImage && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image URL *
-                </label>
-                <input
-                  type="url"
-                  value={formData.image}
-                  onChange={(e) => handleImageUrlChange(e.target.value)}
-                  className="input-field"
-                  placeholder="https://example.com/image.jpg"
-                  required={formData.hasImage}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Paste an image URL from Unsplash, Imgur, or any image hosting service
-                </p>
-              </div>
-            )}
-
-            {/* Image Preview - Only show if hasImage and imagePreview exists */}
-            {formData.hasImage && imagePreview && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Preview
-                </label>
-                <div className="relative h-40 rounded-lg overflow-hidden bg-gray-100">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                    onError={() => setImagePreview('')}
-                  />
-                </div>
-              </div>
+              <ImageUploader
+                value={formData.image}
+                onChange={handleImageUrlChange}
+                folder="menu"
+                label="Dish Image"
+                hint="JPG, PNG, WEBP · Max 5 MB · Recommended 800×600 px"
+                aspectRatio="auto"
+              />
             )}
 
             {/* Compact Preview - Show when no image */}
