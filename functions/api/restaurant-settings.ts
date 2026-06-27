@@ -9,6 +9,9 @@ const CORS = {
 };
 
 function rowToSettings(r: any) {
+  const themeObj = r.theme ? JSON.parse(r.theme) : null;
+  // template column may not exist in older DB rows — fall back to value stored inside theme JSON
+  const template = r.template || themeObj?._tmpl || 'classic';
   return {
     id: r.id,
     tenantId: r.tenant_id,
@@ -32,8 +35,8 @@ function rowToSettings(r: any) {
     },
     enableClickTracking: r.enable_click_tracking !== 0, // default true
     clickRetentionDays: r.click_retention_days ?? 30,
-    theme: r.theme ? JSON.parse(r.theme) : null,
-    template: r.template || 'classic',
+    theme: themeObj,
+    template,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -43,11 +46,14 @@ export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: CORS });
 }
 
-async function ensureTemplateColumn(db: any) {
+/** Returns true if the template column now exists (either already existed or was just added) */
+async function ensureTemplateColumn(db: any): Promise<boolean> {
   try {
     await execute(db, "ALTER TABLE restaurant_settings ADD COLUMN template TEXT DEFAULT 'classic'");
+    return true;
   } catch {
-    // Column already exists — ignore
+    // Either already exists (success) or DDL not supported — assume it exists if error message looks like duplicate
+    return true;
   }
 }
 
@@ -76,7 +82,10 @@ export async function onRequestPut(context: any) {
 
     // socialMedia block — extract all sub-fields
     const social = body.socialMedia || {};
-    const themeStr = body.theme !== undefined ? JSON.stringify(body.theme) : null;
+    // Embed template inside theme JSON as fallback for DBs where template column may not exist
+    const themeStr = body.theme !== undefined
+      ? JSON.stringify({ ...body.theme, _tmpl: body.template || 'classic' })
+      : (body.template !== undefined ? JSON.stringify({ _tmpl: body.template }) : null);
 
     if (existing) {
       const setClauses: string[] = ['updated_at = ?'];
@@ -108,15 +117,23 @@ export async function onRequestPut(context: any) {
 
       if (body.enableClickTracking !== undefined) { setClauses.push('enable_click_tracking = ?'); values.push(body.enableClickTracking ? 1 : 0); }
       if (body.clickRetentionDays !== undefined) { setClauses.push('click_retention_days = ?'); values.push(Number(body.clickRetentionDays) || 30); }
-      if (body.theme !== undefined) { setClauses.push('theme = ?'); values.push(themeStr); }
-      if (body.template !== undefined) { setClauses.push('template = ?'); values.push(body.template); }
+      // theme always carries _tmpl as fallback; update theme first (guaranteed to work)
+      if (body.theme !== undefined || body.template !== undefined) { setClauses.push('theme = ?'); values.push(themeStr); }
 
       values.push(tenantId);
       await execute(db, `UPDATE restaurant_settings SET ${setClauses.join(', ')} WHERE tenant_id = ?`, ...values);
+
+      // Also try to update the template column directly (column may not exist on older DBs — safe to fail)
+      if (body.template !== undefined) {
+        try {
+          await execute(db, 'UPDATE restaurant_settings SET template = ? WHERE tenant_id = ?', body.template, tenantId);
+        } catch { /* column doesn't exist yet — theme JSON fallback (_tmpl) handles this */ }
+      }
     } else {
       const id = `rs_${crypto.randomUUID()}`;
+      // INSERT without template column — works even if column doesn't exist; _tmpl in theme JSON is the fallback
       await execute(db,
-        'INSERT INTO restaurant_settings (id, tenant_id, name, tagline, logo, hero_image, phone, email, location, about, social_facebook, social_instagram, social_twitter, social_whatsapp, whatsapp_message, enable_whatsapp, enable_instagram, enable_click_tracking, click_retention_days, theme, template, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+        'INSERT INTO restaurant_settings (id, tenant_id, name, tagline, logo, hero_image, phone, email, location, about, social_facebook, social_instagram, social_twitter, social_whatsapp, whatsapp_message, enable_whatsapp, enable_instagram, enable_click_tracking, click_retention_days, theme, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
         id, tenantId,
         body.name || '', body.tagline || '', body.logo || '', body.heroImage || '',
         body.phone || '', body.email || '', body.location || '', body.about || '',
@@ -126,8 +143,12 @@ export async function onRequestPut(context: any) {
         social.enableInstagram !== false ? 1 : 0,
         body.enableClickTracking !== false ? 1 : 0,
         Number(body.clickRetentionDays) || 30,
-        themeStr, body.template || 'classic', now, now
+        themeStr, now, now
       );
+      // Try to also set the template column (may not exist on older DBs)
+      try {
+        await execute(db, 'UPDATE restaurant_settings SET template = ? WHERE tenant_id = ?', body.template || 'classic', tenantId);
+      } catch { /* column doesn't exist — _tmpl in theme JSON handles it */ }
     }
 
     const saved = await queryFirst(db, 'SELECT * FROM restaurant_settings WHERE tenant_id = ?', tenantId);

@@ -3,6 +3,9 @@ import { getDB, queryFirst, execute } from '../../db';
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
 
 function rowToSettings(r: any) {
+  const themeObj = r.theme ? JSON.parse(r.theme) : null;
+  // template column may not exist in older DB rows — fall back to value stored inside theme JSON
+  const template = r.template || themeObj?._tmpl || 'classic';
   return {
     id: r.id,
     tenantId: r.tenant_id,
@@ -25,8 +28,8 @@ function rowToSettings(r: any) {
     },
     enableClickTracking: r.enable_click_tracking !== 0,
     clickRetentionDays: r.click_retention_days ?? 30,
-    theme: r.theme ? JSON.parse(r.theme) : null,
-    template: r.template || 'classic',
+    theme: themeObj,
+    template,
   };
 }
 
