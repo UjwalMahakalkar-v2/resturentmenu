@@ -41,6 +41,97 @@ export async function onRequestGet(context: any) {
     const tenantId = getTenantIdFromRequest(context.request);
     const db = getDB(context.env);
 
+    // Auto-migrate: create POS tables + pos_enabled column if not present
+    try { await execute(db, 'ALTER TABLE tenants ADD COLUMN pos_enabled INTEGER NOT NULL DEFAULT 0'); } catch {}
+    try {
+      await execute(db, `CREATE TABLE IF NOT EXISTS pos_settings (
+        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL UNIQUE,
+        gst_enabled INTEGER NOT NULL DEFAULT 0, gst_rate REAL NOT NULL DEFAULT 18.0,
+        cgst_rate REAL NOT NULL DEFAULT 9.0, sgst_rate REAL NOT NULL DEFAULT 9.0,
+        currency TEXT NOT NULL DEFAULT 'INR', currency_symbol TEXT NOT NULL DEFAULT '₹',
+        bill_prefix TEXT NOT NULL DEFAULT 'INV', next_bill_number INTEGER NOT NULL DEFAULT 1,
+        enable_kot INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+      )`);
+    } catch {}
+    try {
+      await execute(db, `CREATE TABLE IF NOT EXISTS pos_sections (
+        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, name TEXT NOT NULL,
+        description TEXT, sort_order INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+      )`);
+    } catch {}
+    try {
+      await execute(db, `CREATE TABLE IF NOT EXISTS pos_tables (
+        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, section_id TEXT NOT NULL, name TEXT NOT NULL,
+        capacity INTEGER NOT NULL DEFAULT 4, status TEXT NOT NULL DEFAULT 'available',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+        FOREIGN KEY (section_id) REFERENCES pos_sections(id) ON DELETE CASCADE
+      )`);
+    } catch {}
+    try {
+      await execute(db, `CREATE TABLE IF NOT EXISTS pos_orders (
+        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, order_number TEXT NOT NULL,
+        order_type TEXT NOT NULL DEFAULT 'dine-in', section_id TEXT, table_id TEXT, table_name TEXT,
+        customer_name TEXT, customer_phone TEXT, status TEXT NOT NULL DEFAULT 'open',
+        subtotal REAL NOT NULL DEFAULT 0, discount_amount REAL NOT NULL DEFAULT 0,
+        gst_amount REAL NOT NULL DEFAULT 0, total_amount REAL NOT NULL DEFAULT 0,
+        payment_method TEXT, payment_status TEXT NOT NULL DEFAULT 'pending', notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+      )`);
+    } catch {}
+    try {
+      await execute(db, `CREATE TABLE IF NOT EXISTS pos_order_items (
+        id TEXT PRIMARY KEY, order_id TEXT NOT NULL, tenant_id TEXT NOT NULL,
+        menu_item_id TEXT NOT NULL, name TEXT NOT NULL, price REAL NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1, notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (order_id) REFERENCES pos_orders(id) ON DELETE CASCADE,
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+      )`);
+    } catch {}
+    // Also create staff/attendance/payroll if missing
+    try {
+      await execute(db, `CREATE TABLE IF NOT EXISTS staff (
+        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, name TEXT NOT NULL, photo TEXT, phone TEXT, email TEXT,
+        role TEXT NOT NULL DEFAULT 'helper', joining_date TEXT NOT NULL,
+        salary_type TEXT NOT NULL DEFAULT 'monthly', salary_amount REAL NOT NULL DEFAULT 0,
+        emergency_contact TEXT, active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+      )`);
+    } catch {}
+    try {
+      await execute(db, `CREATE TABLE IF NOT EXISTS attendance (
+        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, staff_id TEXT NOT NULL,
+        date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'present',
+        check_in TEXT, check_out TEXT, notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(tenant_id, staff_id, date),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+        FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE
+      )`);
+    } catch {}
+    try {
+      await execute(db, `CREATE TABLE IF NOT EXISTS payroll (
+        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, staff_id TEXT NOT NULL, month TEXT NOT NULL,
+        base_salary REAL NOT NULL DEFAULT 0, overtime_amount REAL NOT NULL DEFAULT 0,
+        advance_deduction REAL NOT NULL DEFAULT 0, absent_deduction REAL NOT NULL DEFAULT 0,
+        final_amount REAL NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pending',
+        paid_date TEXT, notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(tenant_id, staff_id, month),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+        FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE
+      )`);
+    } catch {}
+
     const tenant = await queryFirst(db, 'SELECT pos_enabled FROM tenants WHERE id = ?', tenantId);
     const posEnabled = tenant?.pos_enabled === 1;
 

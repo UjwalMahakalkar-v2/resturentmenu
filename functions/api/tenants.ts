@@ -38,6 +38,12 @@ export async function onRequestGet(context: any) {
     if (caller.role !== 'super_admin') return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: CORS });
 
     const db = getDB(context.env);
+    // Auto-migrate: add pos_enabled column if this is a pre-migration DB
+    try {
+      await execute(db, 'ALTER TABLE tenants ADD COLUMN pos_enabled INTEGER NOT NULL DEFAULT 0');
+    } catch {
+      // Column already exists — ignore
+    }
     const tenants = await queryAll(db, 'SELECT * FROM tenants ORDER BY created_at DESC');
 
     const mapped = tenants.map((t: any) => ({

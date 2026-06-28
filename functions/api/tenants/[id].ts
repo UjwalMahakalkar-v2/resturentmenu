@@ -65,7 +65,24 @@ export async function onRequestPatch(context: any) {
     }
 
     values.push(id);
-    await execute(db, `UPDATE tenants SET ${setClauses.join(', ')} WHERE id = ?`, ...values);
+    const sql = `UPDATE tenants SET ${setClauses.join(', ')} WHERE id = ?`;
+
+    try {
+      await execute(db, sql, ...values);
+    } catch (execErr) {
+      const execMsg = execErr instanceof Error ? execErr.message : '';
+      // Column doesn't exist yet — run migration then retry once
+      if (execMsg.includes('no such column: pos_enabled')) {
+        try {
+          await execute(db, 'ALTER TABLE tenants ADD COLUMN pos_enabled INTEGER NOT NULL DEFAULT 0');
+        } catch {
+          // Already added by a concurrent request — ignore
+        }
+        await execute(db, sql, ...values);
+      } else {
+        throw execErr;
+      }
+    }
 
     const updated = await queryFirst(db, 'SELECT * FROM tenants WHERE id = ?', id);
     if (!updated) return new Response(JSON.stringify({ error: 'Tenant not found' }), { status: 404, headers: CORS });
@@ -73,7 +90,7 @@ export async function onRequestPatch(context: any) {
     return new Response(JSON.stringify({
       id: updated.id, slug: updated.slug, name: updated.name, status: updated.status,
       subscriptionPlan: updated.subscription_plan, email: updated.email,
-      posEnabled: updated.pos_enabled === 1,
+      posEnabled: (updated.pos_enabled ?? 0) === 1,
     }), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to update tenant';
