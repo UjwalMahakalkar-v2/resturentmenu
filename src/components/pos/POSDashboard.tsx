@@ -1,20 +1,14 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, History, Settings, Lock } from 'lucide-react';
+import { History, Settings, Lock, ShoppingCart } from 'lucide-react';
 import { posAPI } from '@/services/api';
 import POSTerminal from './POSTerminal';
 import POSOrderHistory from './POSOrderHistory';
 import POSSettings from './POSSettings';
 
-type POSTab = 'terminal' | 'history' | 'settings';
-
-const TABS: { id: POSTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'terminal', label: 'Terminal', icon: <ShoppingCart className="w-4 h-4" /> },
-  { id: 'history', label: 'Order History', icon: <History className="w-4 h-4" /> },
-  { id: 'settings', label: 'POS Settings', icon: <Settings className="w-4 h-4" /> },
-];
+type POSView = 'terminal' | 'history' | 'settings';
 
 export default function POSDashboard() {
-  const [activeTab, setActiveTab] = useState<POSTab>('terminal');
+  const [posView, setPosView] = useState<POSView>('terminal');
   const [posEnabled, setPosEnabled] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,17 +36,26 @@ export default function POSDashboard() {
     );
   }
 
+  /* When terminal is active, render full-screen overlay */
+  if (posView === 'terminal') {
+    return <POSTerminal onExit={() => setPosView('history')} />;
+  }
+
+  /* History / Settings sub-tabs */
   return (
     <div>
-      {/* Sub-navigation */}
       <div className="border-b border-gray-200 mb-5">
         <div className="flex gap-1">
-          {TABS.map(tab => (
+          {([
+            { id:'terminal' as POSView, label:'Terminal', icon:<ShoppingCart className="w-4 h-4" /> },
+            { id:'history'  as POSView, label:'Order History', icon:<History className="w-4 h-4" /> },
+            { id:'settings' as POSView, label:'POS Settings', icon:<Settings className="w-4 h-4" /> },
+          ]).map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => setPosView(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                activeTab === tab.id
+                posView === tab.id
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
               }`}
@@ -62,10 +65,8 @@ export default function POSDashboard() {
           ))}
         </div>
       </div>
-
-      {activeTab === 'terminal' && <POSTerminal />}
-      {activeTab === 'history' && <POSOrderHistory />}
-      {activeTab === 'settings' && <POSSettings />}
+      {posView === 'history'  && <POSOrderHistory />}
+      {posView === 'settings' && <POSSettings />}
     </div>
   );
 }
