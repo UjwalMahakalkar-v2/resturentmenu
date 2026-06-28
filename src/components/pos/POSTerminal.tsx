@@ -94,8 +94,8 @@ export default function POSTerminal({ onExit }: { onExit?: () => void }) {
   const [tableId,         setTableId]        = useState('');
   const [categoryId,      setCategoryId]     = useState('');
   const [searchQuery,     setSearchQuery]    = useState('');
-  const [order,           setOrder]          = useState<OrderLine[]>([]);
-  const [discountPct,     setDiscountPct]    = useState(0);
+  const [orders,          setOrders]         = useState<Record<string, OrderLine[]>>({});
+  const [discounts,       setDiscounts]      = useState<Record<string, number>>({});
   const [overlay,         setOverlay]        = useState<Overlay>(null);
   const [draft,           setDraft]          = useState<Draft | null>(null);
   const [payMethod,       setPayMethod]      = useState<'cash'|'card'|'upi'>('cash');
@@ -158,6 +158,21 @@ export default function POSTerminal({ onExit }: { onExit?: () => void }) {
   const sectionTables = tables.filter(t => t.sectionId === sectionId);
   const activeTable   = tables.find(t => t.id === tableId);
 
+  /* Per-table helpers */
+  const order      = tableId ? (orders[tableId]   ?? []) : [];
+  const discountPct = tableId ? (discounts[tableId] ?? 0) : 0;
+  const setOrder = (updater: OrderLine[] | ((prev: OrderLine[]) => OrderLine[])) => {
+    if (!tableId) return;
+    setOrders(prev => ({
+      ...prev,
+      [tableId]: typeof updater === 'function' ? updater(prev[tableId] ?? []) : updater,
+    }));
+  };
+  const setDiscountPct = (pct: number) => {
+    if (!tableId) return;
+    setDiscounts(prev => ({ ...prev, [tableId]: pct }));
+  };
+
   const filteredItems = menuItems.filter(item => {
     const matchCat = !categoryId || item.category === categoryId;
     if (!matchCat) return false;
@@ -183,6 +198,7 @@ export default function POSTerminal({ onExit }: { onExit?: () => void }) {
   const change    = Math.max(0, tendered - grand);
 
   const tableStatus  = (t: POSTable) => {
+    if ((orders[t.id]?.length ?? 0) > 0) return 'running';
     if (t.status === 'occupied') return 'running';
     if (t.status === 'available') return 'available';
     return 'billed';
@@ -375,7 +391,7 @@ export default function POSTerminal({ onExit }: { onExit?: () => void }) {
           }}>
             <span style={{ fontSize:11, fontWeight:700, color:C.muted, letterSpacing:.6, textTransform:'uppercase', marginRight:4 }}>Section</span>
             {sections.map(sec => {
-              const runCount = tables.filter(t => t.sectionId === sec.id && t.status === 'occupied').length;
+              const runCount = tables.filter(t => t.sectionId === sec.id && (t.status === 'occupied' || (orders[t.id]?.length ?? 0) > 0)).length;
               const active = sec.id === sectionId;
               return (
                 <button key={sec.id} onClick={() => { setSectionId(sec.id); setTableId(''); }} style={{

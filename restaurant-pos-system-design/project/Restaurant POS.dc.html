@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+button{font-family:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#d8d2cb;border-radius:9px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+@keyframes scUp{from{transform:translateY(16px)}to{transform:translateY(0)}}
+@keyframes scFade{from{}to{}}
+@keyframes toastIn{from{transform:translate(-50%,16px)}to{transform:translate(-50%,0)}}
+</style>
+</helmet>
+
+<div style="position:relative;width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;background:#f4f3f1;font-family:'Plus Jakarta Sans',sans-serif;color:#1c1a18;overflow:hidden">
+
+  <!-- TOP BAR -->
+  <div style="flex:0 0 auto;height:62px;display:flex;align-items:center;gap:18px;padding:0 20px;background:#fff;border-bottom:1px solid #ece8e3;z-index:5">
+    <div style="display:flex;align-items:center;gap:11px">
+      <div style="width:38px;height:38px;border-radius:11px;background:#d9542b;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;letter-spacing:.5px">SR</div>
+      <div style="display:flex;flex-direction:column;line-height:1.1">
+        <div style="font-weight:800;font-size:15px">Spice Route</div>
+        <div style="font-size:11px;color:#9a938b;font-weight:600;letter-spacing:.3px">POINT OF SALE</div>
+      </div>
+    </div>
+    <div style="display:flex;background:#f1efec;border-radius:11px;padding:4px;gap:3px">
+      <button onClick="{{ goPos }}" style="{{ navPosStyle }}">Order</button>
+      <button onClick="{{ goFloor }}" style="{{ navFloorStyle }}">Floor</button>
+    </div>
+    <div style="flex:1"></div>
+    <div style="font-size:12.5px;color:#6b645d;font-weight:600">{{ clock }}</div>
+    <div style="display:flex;align-items:center;gap:9px;padding:6px 12px 6px 6px;background:#f1efec;border-radius:30px">
+      <div style="width:28px;height:28px;border-radius:50%;background:#1c1a18;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">R</div>
+      <div style="display:flex;flex-direction:column;line-height:1.15">
+        <span style="font-size:12px;font-weight:700">Ravi K.</span>
+        <span style="font-size:10px;color:#9a938b;font-weight:600">Cashier</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- POS VIEW -->
+  <sc-if value="{{ isPos }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+
+    <!-- Section tabs -->
+    <div style="flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:11px 20px;background:#fbfaf8;border-bottom:1px solid #ece8e3;overflow-x:auto">
+      <span style="font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.6px;text-transform:uppercase;margin-right:4px">Section</span>
+      <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="4">
+        <button onClick="{{ sec.select }}" style="{{ sec.style }}">
+          <span>{{ sec.name }}</span>
+          <sc-if value="{{ sec.hasRunning }}" hint-placeholder-val="{{ true }}"><span style="{{ sec.pillStyle }}">{{ sec.runCount }}</span></sc-if>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- Table chips -->
+    <div style="flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:11px 20px;background:#fff;border-bottom:1px solid #ece8e3;overflow-x:auto">
+      <span style="font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.6px;text-transform:uppercase;margin-right:4px">Tables</span>
+      <sc-for list="{{ tables }}" as="tb" hint-placeholder-count="8">
+        <button onClick="{{ tb.select }}" style="{{ tb.style }}">
+          <span style="{{ tb.dotStyle }}"></span>
+          <span>{{ tb.label }}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- Main grid 1/6 | 3/6 | 2/6 -->
+    <div style="flex:1;display:grid;grid-template-columns:1fr 3fr 2fr;min-height:0">
+
+      <!-- COL 1: Categories -->
+      <div style="display:flex;flex-direction:column;min-height:0;border-right:1px solid #ece8e3;background:#fbfaf8">
+        <div style="flex:0 0 auto;padding:14px 14px 8px;font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.6px;text-transform:uppercase">Categories</div>
+        <div style="flex:1;overflow-y:auto;padding:4px 12px 16px">
+          <sc-for list="{{ categories }}" as="cat" hint-placeholder-count="6">
+            <button onClick="{{ cat.select }}" style="{{ cat.style }}">
+              <span style="{{ cat.badgeStyle }}">{{ cat.code }}</span>
+              <span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.25">
+                <span style="font-size:13.5px;font-weight:700">{{ cat.name }}</span>
+                <span style="{{ cat.countStyle }}">{{ cat.countLabel }}</span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- COL 2: Items -->
+      <div style="display:flex;flex-direction:column;min-height:0;background:#f4f3f1">
+        <div style="flex:0 0 auto;padding:13px 18px 9px;display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:16px;font-weight:800">{{ activeCatName }}</span>
+            <span style="font-size:12px;font-weight:600;color:#9a938b">{{ itemCountLabel }}</span>
+            <span style="flex:1"></span>
+            <div style="position:relative;width:250px">
+              <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#bdb6ad;font-size:15px;pointer-events:none">⌕</span>
+              <input value="{{ searchQuery }}" onInput="{{ onSearch }}" placeholder="Search… try “MW” for Mineral Water" style="width:100%;padding:9px 30px;border-radius:11px;border:1px solid #e7e3de;background:#fff;font-family:inherit;font-size:12.5px;outline:none;color:#1c1a18" />
+              <sc-if value="{{ searchActive }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearSearch }}" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:20px;height:20px;border:none;border-radius:50%;background:#f1efec;color:#6b645d;font-size:13px;cursor:pointer;line-height:1">×</button></sc-if>
+            </div>
+          </div>
+          <sc-if value="{{ showFavs }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;gap:7px;overflow-x:auto;padding-bottom:2px">
+              <span style="font-size:10.5px;font-weight:800;color:#c9a227;letter-spacing:.5px;text-transform:uppercase;flex:0 0 auto">★ Quick</span>
+              <sc-for list="{{ favorites }}" as="fv" hint-placeholder-count="6">
+                <button onClick="{{ fv.add }}" style="flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:20px;border:1px solid #efe6d6;background:#fdfaf3;cursor:pointer;font-size:12.5px;font-weight:700;color:#3a352f;white-space:nowrap"><span>{{ fv.name }}</span><span style="color:#9a938b;font-family:'Spline Sans Mono',monospace;font-weight:600">{{ fv.priceLabel }}</span></button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+        <div style="flex:1;overflow-y:auto;padding:4px 18px 18px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:12px">
+            <sc-for list="{{ items }}" as="it" hint-placeholder-count="8">
+              <button onClick="{{ it.tap }}" style="position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:12px;padding:14px;border-radius:15px;border:1px solid #ece8e3;background:#fff;cursor:pointer;min-height:96px;text-align:left;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:transform .08s,box-shadow .12s" style-hover="border:1px solid #d9542b;box-shadow:0 4px 14px rgba(217,84,43,.13);transform:translateY(-2px)" style-active="transform:translateY(0)">
+                <sc-if value="{{ it.inOrder }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:9px;right:9px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#d9542b;color:#fff;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center">{{ it.qtyLabel }}</span></sc-if>
+                <span style="font-size:13.5px;font-weight:700;line-height:1.3;padding-right:24px">{{ it.name }}</span>
+                <span style="display:flex;align-items:flex-end;justify-content:space-between">
+                  <span style="display:flex;flex-direction:column;line-height:1.2">
+                    <span style="font-family:'Spline Sans Mono',monospace;font-size:13.5px;font-weight:600;color:#1c1a18">{{ it.priceLabel }}</span>
+                    <sc-if value="{{ it.hasHalf }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;color:#9a938b;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-top:2px">Half / Full</span></sc-if>
+                  </span>
+                  <span style="width:24px;height:24px;border-radius:8px;background:#f4ede9;color:#d9542b;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1">+</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:48px 24px;text-align:center;color:#bdb6ad">
+              <div style="font-size:14px;font-weight:700;color:#9a938b">No items match “{{ searchQuery }}”</div>
+              <div style="font-size:12px;margin-top:5px">Search by dish name or its initials (e.g. “PBM” → Paneer Butter Masala)</div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <!-- COL 3: Order -->
+      <div style="display:flex;flex-direction:column;min-height:0;background:#fff;border-left:1px solid #ece8e3">
+        <div style="flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:15px 18px 13px;border-bottom:1px solid #ece8e3">
+          <div style="display:flex;flex-direction:column;line-height:1.15">
+            <span style="font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase">Current Order</span>
+            <span style="font-size:19px;font-weight:800">Table {{ tableLabel }} <span style="font-size:13px;font-weight:600;color:#9a938b">· {{ sectionName }}</span></span>
+          </div>
+          <span style="flex:1"></span>
+          <span style="{{ statusStyle }}">{{ statusLabel }}</span>
+        </div>
+
+        <div style="flex:1;overflow-y:auto;overflow-x:hidden;padding:6px 0">
+          <sc-if value="{{ hasItems }}" hint-placeholder-val="{{ true }}">
+            <sc-for list="{{ order }}" as="ln" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:10px;padding:11px 18px;border-bottom:1px solid #f4f1ed">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.3">
+                  <span style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ln.name }}</span>
+                  <span style="font-size:11px;color:#9a938b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ln.sub }}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:0;border:1px solid #ece8e3;border-radius:9px;overflow:hidden">
+                  <button onClick="{{ ln.dec }}" style="width:28px;height:28px;border:none;background:#f7f5f2;color:#1c1a18;font-size:16px;font-weight:700;cursor:pointer;line-height:1">−</button>
+                  <span style="min-width:26px;text-align:center;font-size:13.5px;font-weight:700;font-family:'Spline Sans Mono',monospace">{{ ln.qty }}</span>
+                  <button onClick="{{ ln.inc }}" style="width:28px;height:28px;border:none;background:#f7f5f2;color:#1c1a18;font-size:16px;font-weight:700;cursor:pointer;line-height:1">+</button>
+                </div>
+                <span style="min-width:64px;text-align:right;font-size:13.5px;font-weight:700;font-family:'Spline Sans Mono',monospace">{{ ln.totalLabel }}</span>
+                <button onClick="{{ ln.remove }}" style="width:24px;height:24px;border:none;background:transparent;color:#c4bdb5;font-size:18px;cursor:pointer;line-height:1">×</button>
+              </div>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="height:100%;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#bdb6ad;padding:30px;text-align:center">
+              <div style="width:54px;height:54px;border-radius:16px;border:2px dashed #ddd6cd;display:flex;align-items:center;justify-content:center;font-size:24px">🧾</div>
+              <div style="font-size:13.5px;font-weight:600;color:#9a938b">No items yet</div>
+              <div style="font-size:12px;color:#bdb6ad">Tap menu items to start this table's order</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- Order summary footer -->
+        <div style="flex:0 0 auto;padding:14px 18px;border-top:1px solid #ece8e3;background:#fbfaf8">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+            <span style="font-size:12px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase">Discount</span>
+            <div style="display:flex;gap:5px">
+              <sc-for list="{{ discounts }}" as="d" hint-placeholder-count="4">
+                <button onClick="{{ d.select }}" style="{{ d.style }}">{{ d.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-family:'Spline Sans Mono',monospace;font-size:12.5px;color:#6b645d;display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;justify-content:space-between"><span>Subtotal · {{ qtyTotal }} item(s)</span><span style="font-weight:600;color:#1c1a18">{{ subtotalLabel }}</span></div>
+            <sc-if value="{{ hasDiscount }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;color:#1f8a5b"><span>Discount ({{ discountPctLabel }})</span><span>−{{ discountLabel }}</span></div></sc-if>
+            <sc-if value="{{ hasService }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between"><span>Service charge ({{ servicePctLabel }})</span><span>{{ serviceLabel }}</span></div></sc-if>
+            <div style="display:flex;justify-content:space-between"><span>CGST {{ halfRateLabel }}</span><span>{{ cgstLabel }}</span></div>
+            <div style="display:flex;justify-content:space-between"><span>SGST {{ halfRateLabel }}</span><span>{{ sgstLabel }}</span></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:11px;border-top:1px dashed #ddd6cd">
+            <span style="font-size:14px;font-weight:700">Total Payable</span>
+            <span style="font-size:23px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ grandLabel }}</span>
+          </div>
+          <div style="display:flex;gap:9px;margin-top:13px">
+            <button onClick="{{ openKot }}" style="{{ kotBtnStyle }}">Print KOT</button>
+            <button onClick="{{ openBill }}" style="{{ billBtnStyle }}">Bill &amp; Pay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- FLOOR VIEW -->
+  <sc-if value="{{ isFloor }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;overflow-y:auto;background:#f4f3f1">
+    <div style="padding:18px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+      <span style="font-size:18px;font-weight:800">Floor Overview</span>
+      <span style="flex:1"></span>
+      <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#6b645d"><span style="width:11px;height:11px;border-radius:50%;background:#1f8a5b"></span>Available</div>
+      <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#6b645d"><span style="width:11px;height:11px;border-radius:50%;background:#d9542b"></span>Running</div>
+      <div style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#6b645d"><span style="width:11px;height:11px;border-radius:50%;background:#2a6fdb"></span>Billed</div>
+    </div>
+    <sc-for list="{{ floorSections }}" as="fs" hint-placeholder-count="3">
+      <div style="padding:4px 24px 22px">
+        <div style="font-size:12.5px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:11px">{{ fs.name }}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:13px">
+          <sc-for list="{{ fs.tables }}" as="ft" hint-placeholder-count="6">
+            <button onClick="{{ ft.open }}" style="{{ ft.style }}">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:20px;font-weight:800">{{ ft.label }}</span>
+                <span style="{{ ft.badgeStyle }}">{{ ft.statusLabel }}</span>
+              </div>
+              <div style="font-size:12px;color:#6b645d;font-weight:600;font-family:'Spline Sans Mono',monospace">{{ ft.metaLabel }}</div>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  </sc-if>
+
+  <!-- CUSTOMIZE SHEET -->
+  <sc-if value="{{ showCustomize }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:42;background:rgba(28,26,24,.5);display:flex;align-items:center;justify-content:center;padding:24px;animation:scFade .15s ease">
+    <div style="width:436px;max-height:86vh;overflow-y:auto;background:#fff;border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.3);animation:scUp .2s ease">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:20px 22px 14px;border-bottom:1px solid #f1ede8">
+        <div style="display:flex;flex-direction:column;line-height:1.2">
+          <span style="font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase">Customize</span>
+          <span style="font-size:19px;font-weight:800">{{ draftName }}</span>
+        </div>
+        <button onClick="{{ closeOverlay }}" style="width:30px;height:30px;border:none;border-radius:9px;background:#f1efec;color:#6b645d;font-size:18px;cursor:pointer">×</button>
+      </div>
+      <div style="padding:16px 22px;display:flex;flex-direction:column;gap:18px">
+        <sc-if value="{{ draftHasHalf }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:9px">Portion</div>
+            <div style="display:flex;gap:9px">
+              <sc-for list="{{ portionOpts }}" as="po" hint-placeholder-count="2">
+                <button onClick="{{ po.select }}" style="{{ po.style }}"><span style="font-size:13.5px;font-weight:700">{{ po.label }}</span><span style="font-size:13px;font-family:'Spline Sans Mono',monospace;font-weight:600">{{ po.priceLabel }}</span></button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ draftSavory }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:9px">Spice level</div>
+            <div style="display:flex;gap:9px">
+              <sc-for list="{{ spiceOpts }}" as="sp" hint-placeholder-count="3">
+                <button onClick="{{ sp.select }}" style="{{ sp.style }}">{{ sp.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ draftSavory }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:9px">Modifiers</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ modOpts }}" as="md" hint-placeholder-count="6">
+                <button onClick="{{ md.toggle }}" style="{{ md.style }}"><span>{{ md.label }}</span><sc-if value="{{ md.hasPrice }}" hint-placeholder-val="{{ false }}"><span style="{{ md.priceStyle }}">{{ md.priceLabel }}</span></sc-if></button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:9px">Note for kitchen</div>
+          <input value="{{ draftNote }}" onInput="{{ onNote }}" placeholder="e.g. no onion, serve after mains…" style="width:100%;padding:11px 13px;border-radius:11px;border:1px solid #e7e3de;background:#fbfaf8;font-family:inherit;font-size:13px;outline:none;color:#1c1a18" />
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 22px 20px;border-top:1px solid #f1ede8">
+        <div style="display:flex;align-items:center;border:1px solid #e7e3de;border-radius:12px;overflow:hidden">
+          <button onClick="{{ draftDec }}" style="width:40px;height:46px;border:none;background:#f7f5f2;font-size:19px;font-weight:700;cursor:pointer">−</button>
+          <span style="min-width:42px;text-align:center;font-size:16px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ draftQty }}</span>
+          <button onClick="{{ draftInc }}" style="width:40px;height:46px;border:none;background:#f7f5f2;font-size:19px;font-weight:700;cursor:pointer">+</button>
+        </div>
+        <button onClick="{{ commitDraft }}" style="flex:1;height:50px;border:none;border-radius:13px;background:#d9542b;color:#fff;font-size:15px;font-weight:800;cursor:pointer">Add to Order · {{ draftTotalLabel }}</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- KOT OVERLAY -->
+  <sc-if value="{{ showKot }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:40;background:rgba(28,26,24,.5);display:flex;align-items:center;justify-content:center;padding:24px;animation:scFade .15s ease">
+    <div style="display:flex;flex-direction:column;gap:14px;align-items:center;animation:scUp .2s ease">
+      <div style="width:320px;max-height:78vh;overflow-y:auto;background:#fff;border-radius:6px;padding:24px 22px;font-family:'Spline Sans Mono',monospace;color:#1c1a18;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+        <div style="text-align:center;border-bottom:2px dashed #cfc8c0;padding-bottom:12px;margin-bottom:12px">
+          <div style="font-size:15px;font-weight:600;letter-spacing:1px">KITCHEN ORDER TICKET</div>
+          <div style="font-size:12px;color:#6b645d;margin-top:3px">KOT #{{ kotNo }} · {{ kotTime }}</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Table</span><span style="font-size:20px;font-weight:600">{{ tableLabel }}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;border-bottom:2px dashed #cfc8c0;padding-bottom:12px;margin-bottom:12px"><span>{{ sectionName }}</span><span>Steward: Ravi K.</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#6b645d;font-weight:600;margin-bottom:8px"><span>QTY</span><span>ITEM</span></div>
+        <sc-for list="{{ kotLines }}" as="k" hint-placeholder-count="4">
+          <div style="display:flex;gap:12px;font-size:14px;font-weight:600;padding:6px 0;border-bottom:1px dotted #e6e0d8">
+            <span style="min-width:32px;font-size:16px">{{ k.qty }}×</span>
+            <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+              <span>{{ k.name }}</span>
+              <sc-if value="{{ k.hasMods }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:600;color:#b04a22">↳ {{ k.mods }}</span></sc-if>
+            </div>
+          </div>
+        </sc-for>
+        <div style="display:flex;justify-content:space-between;border-top:2px dashed #cfc8c0;margin-top:12px;padding-top:12px;font-size:13px;font-weight:600"><span>Total items</span><span>{{ qtyTotal }}</span></div>
+        <div style="text-align:center;font-size:11px;color:#9a938b;margin-top:14px">— send to kitchen —</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onClick="{{ closeOverlay }}" style="padding:12px 22px;border-radius:11px;border:1px solid #fff;background:transparent;color:#fff;font-weight:700;font-size:13.5px;cursor:pointer">Close</button>
+        <button onClick="{{ printKot }}" style="padding:12px 26px;border-radius:11px;border:none;background:#d9542b;color:#fff;font-weight:700;font-size:13.5px;cursor:pointer">Send &amp; Print KOT</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- BILL OVERLAY -->
+  <sc-if value="{{ showBill }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:40;background:rgba(28,26,24,.5);display:flex;align-items:center;justify-content:center;padding:24px;animation:scFade .15s ease">
+    <div style="display:flex;flex-direction:column;gap:14px;align-items:center;animation:scUp .2s ease">
+      <div style="width:380px;max-height:78vh;overflow-y:auto;background:#fff;border-radius:6px;padding:26px 26px 22px;font-family:'Spline Sans Mono',monospace;color:#1c1a18;box-shadow:0 24px 60px rgba(0,0,0,.3)">
+        <div style="text-align:center;border-bottom:2px dashed #cfc8c0;padding-bottom:14px;margin-bottom:13px">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;letter-spacing:.5px">SPICE ROUTE</div>
+          <div style="font-size:11px;color:#6b645d;margin-top:4px;line-height:1.5">42 Residency Road, Bengaluru 560025<br>GSTIN: 29ABCDE1234F1Z5 · FSSAI: 11223344556677</div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;margin-top:8px;color:#d9542b">TAX INVOICE</div>
+        </div>
+        <div style="font-size:11.5px;color:#6b645d;display:flex;flex-direction:column;gap:3px;border-bottom:2px dashed #cfc8c0;padding-bottom:12px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between"><span>Bill No</span><span style="color:#1c1a18;font-weight:600">#{{ billNo }}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Table</span><span style="color:#1c1a18;font-weight:600">{{ tableLabel }} · {{ sectionName }}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Date</span><span style="color:#1c1a18;font-weight:600">{{ kotTime }}</span></div>
+        </div>
+        <div style="display:flex;font-size:10.5px;color:#6b645d;font-weight:600;padding-bottom:6px;border-bottom:1px solid #ece8e3">
+          <span style="flex:1">ITEM</span><span style="width:34px;text-align:center">QTY</span><span style="width:56px;text-align:right">RATE</span><span style="width:64px;text-align:right">AMOUNT</span>
+        </div>
+        <sc-for list="{{ order }}" as="ln" hint-placeholder-count="4">
+          <div style="display:flex;font-size:12px;padding:7px 0;border-bottom:1px dotted #e6e0d8">
+            <div style="flex:1;padding-right:6px;display:flex;flex-direction:column;gap:2px">
+              <span>{{ ln.nameP }}</span>
+              <sc-if value="{{ ln.hasMods }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;color:#9a938b">{{ ln.modsLabel }}</span></sc-if>
+            </div>
+            <span style="width:34px;text-align:center">{{ ln.qty }}</span><span style="width:56px;text-align:right">{{ ln.eachNum }}</span><span style="width:64px;text-align:right;font-weight:600">{{ ln.totalNum }}</span>
+          </div>
+        </sc-for>
+        <div style="font-size:12.5px;display:flex;flex-direction:column;gap:5px;margin-top:12px">
+          <div style="display:flex;justify-content:space-between;color:#6b645d"><span>Subtotal</span><span style="color:#1c1a18">{{ subtotalLabel }}</span></div>
+          <sc-if value="{{ hasDiscount }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;color:#1f8a5b"><span>Discount ({{ discountPctLabel }})</span><span>−{{ discountLabel }}</span></div></sc-if>
+          <sc-if value="{{ hasService }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;color:#6b645d"><span>Service charge ({{ servicePctLabel }})</span><span style="color:#1c1a18">{{ serviceLabel }}</span></div></sc-if>
+          <div style="display:flex;justify-content:space-between;color:#6b645d"><span>CGST {{ halfRateLabel }}</span><span style="color:#1c1a18">{{ cgstLabel }}</span></div>
+          <div style="display:flex;justify-content:space-between;color:#6b645d"><span>SGST {{ halfRateLabel }}</span><span style="color:#1c1a18">{{ sgstLabel }}</span></div>
+          <sc-if value="{{ hasRoundOff }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;color:#6b645d"><span>Round off</span><span style="color:#1c1a18">{{ roundOffLabel }}</span></div></sc-if>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;border-top:2px dashed #cfc8c0;margin-top:12px;padding-top:12px">
+          <span style="font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800">GRAND TOTAL</span>
+          <span style="font-size:21px;font-weight:600">{{ grandLabel }}</span>
+        </div>
+        <div style="text-align:center;font-size:11px;color:#9a938b;margin-top:16px;line-height:1.6">Thank you for dining with us!<br>Please visit again 🙏</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onClick="{{ closeOverlay }}" style="padding:12px 18px;border-radius:11px;border:1px solid #fff;background:transparent;color:#fff;font-weight:700;font-size:13.5px;cursor:pointer">Close</button>
+        <button onClick="{{ printBill }}" style="padding:12px 18px;border-radius:11px;border:1px solid #fff;background:transparent;color:#fff;font-weight:700;font-size:13.5px;cursor:pointer">Print Bill</button>
+        <button onClick="{{ openPay }}" style="padding:12px 26px;border-radius:11px;border:none;background:#d9542b;color:#fff;font-weight:700;font-size:13.5px;cursor:pointer">Proceed to Payment</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- PAYMENT OVERLAY -->
+  <sc-if value="{{ showPay }}" hint-placeholder-val="{{ false }}">
+  <div style="position:absolute;inset:0;z-index:40;background:rgba(28,26,24,.5);display:flex;align-items:center;justify-content:center;padding:24px;animation:scFade .15s ease">
+    <div style="width:400px;background:#fff;border-radius:20px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,.3);animation:scUp .2s ease">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <span style="font-size:17px;font-weight:800">Payment · Table {{ tableLabel }}</span>
+        <button onClick="{{ closeOverlay }}" style="width:30px;height:30px;border:none;border-radius:9px;background:#f1efec;color:#6b645d;font-size:18px;cursor:pointer">×</button>
+      </div>
+      <div style="background:#1c1a18;border-radius:15px;padding:18px 20px;color:#fff;margin-bottom:18px">
+        <div style="font-size:12px;color:#a9a29a;font-weight:600;letter-spacing:.5px;text-transform:uppercase">Amount Payable</div>
+        <div style="font-size:34px;font-weight:800;font-family:'Spline Sans Mono',monospace;margin-top:2px">{{ grandLabel }}</div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:9px">Payment Method</div>
+      <div style="display:flex;gap:9px;margin-bottom:18px">
+        <sc-for list="{{ methods }}" as="m" hint-placeholder-count="3">
+          <button onClick="{{ m.select }}" style="{{ m.style }}">{{ m.label }}</button>
+        </sc-for>
+      </div>
+      <sc-if value="{{ isCash }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12px;font-weight:700;color:#9a938b;letter-spacing:.5px;text-transform:uppercase;margin-bottom:9px">Cash Tendered</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;background:#f7f5f2;border-radius:13px;padding:14px 16px;margin-bottom:11px">
+          <span style="font-size:13px;color:#6b645d;font-weight:600">Received</span>
+          <span style="font-size:22px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ tenderedLabel }}</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px">
+          <sc-for list="{{ tenderBtns }}" as="t" hint-placeholder-count="4">
+            <button onClick="{{ t.add }}" style="flex:1;min-width:64px;padding:11px 0;border-radius:11px;border:1px solid #ece8e3;background:#fff;font-weight:700;font-size:13px;cursor:pointer;font-family:'Spline Sans Mono',monospace">+{{ t.label }}</button>
+          </sc-for>
+          <button onClick="{{ exactTender }}" style="flex:1;min-width:64px;padding:11px 0;border-radius:11px;border:1px solid #1c1a18;background:#1c1a18;color:#fff;font-weight:700;font-size:13px;cursor:pointer">Exact</button>
+          <button onClick="{{ clearTender }}" style="flex:1;min-width:64px;padding:11px 0;border-radius:11px;border:1px solid #ece8e3;background:#fff;color:#c0392b;font-weight:700;font-size:13px;cursor:pointer">Clear</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px;margin-bottom:6px">
+          <span style="font-size:14px;font-weight:700">Change Due</span>
+          <span style="{{ changeStyle }}">{{ changeLabel }}</span>
+        </div>
+      </sc-if>
+      <button onClick="{{ complete }}" style="{{ completeStyle }}">{{ completeLabel }}</button>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- TOAST -->
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;bottom:26px;left:50%;z-index:60;background:#1c1a18;color:#fff;padding:13px 22px;border-radius:13px;font-size:13.5px;font-weight:600;box-shadow:0 12px 34px rgba(0,0,0,.3);animation:toastIn .22s ease;display:flex;align-items:center;gap:10px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#34c759"></span>{{ toast }}
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:820},&quot;gstRate&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:5,&quot;min&quot;:0,&quot;max&quot;:18,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Tax &amp; Charges&quot;},&quot;serviceChargePct&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0,&quot;min&quot;:0,&quot;max&quot;:15,&quot;step&quot;:1,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Tax &amp; Charges&quot;},&quot;roundOff&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Tax &amp; Charges&quot;}}">
+class Component extends DCLogic {
+  sections = [
+    { id:'s1', name:'Main Hall', tables:['M1','M2','M3','M4','M5','M6','M7','M8'] },
+    { id:'s2', name:'AC Section', tables:['A1','A2','A3','A4','A5','A6'] },
+    { id:'s3', name:'Rooftop', tables:['R1','R2','R3','R4','R5','R6'] },
+    { id:'s4', name:'Garden', tables:['G1','G2','G3','G4'] },
+  ];
+  categories = [
+    { id:'c1', name:'Starters', code:'ST' },
+    { id:'c2', name:'Main Course', code:'MC' },
+    { id:'c3', name:'Breads', code:'BR' },
+    { id:'c4', name:'Rice & Biryani', code:'RB' },
+    { id:'c5', name:'Beverages', code:'BV' },
+    { id:'c6', name:'Desserts', code:'DS' },
+  ];
+  // half = half-plate price (null = no half/full option)
+  menu = [
+    {id:'st1',cat:'c1',name:'Paneer Tikka',price:320,half:200,fav:false},
+    {id:'st2',cat:'c1',name:'Veg Spring Roll',price:240,half:150},
+    {id:'st3',cat:'c1',name:'Chicken 65',price:360,half:220},
+    {id:'st4',cat:'c1',name:'Tandoori Chicken',price:640,half:360},
+    {id:'st5',cat:'c1',name:'Crispy Corn',price:260,half:160},
+    {id:'st6',cat:'c1',name:'Hara Bhara Kabab',price:280,half:175},
+    {id:'mc1',cat:'c2',name:'Paneer Butter Masala',price:340,half:210,fav:true},
+    {id:'mc2',cat:'c2',name:'Dal Makhani',price:280,half:175},
+    {id:'mc3',cat:'c2',name:'Kadai Paneer',price:330,half:200},
+    {id:'mc4',cat:'c2',name:'Butter Chicken',price:420,half:260},
+    {id:'mc5',cat:'c2',name:'Veg Kolhapuri',price:300,half:185},
+    {id:'mc6',cat:'c2',name:'Mushroom Masala',price:320,half:195},
+    {id:'br1',cat:'c3',name:'Butter Naan',price:60,half:null,fav:true},
+    {id:'br2',cat:'c3',name:'Garlic Naan',price:80,half:null},
+    {id:'br3',cat:'c3',name:'Tandoori Roti',price:35,half:null},
+    {id:'br4',cat:'c3',name:'Laccha Paratha',price:70,half:null},
+    {id:'br5',cat:'c3',name:'Missi Roti',price:65,half:null},
+    {id:'rb1',cat:'c4',name:'Veg Biryani',price:280,half:175},
+    {id:'rb2',cat:'c4',name:'Chicken Biryani',price:360,half:220,fav:true},
+    {id:'rb3',cat:'c4',name:'Jeera Rice',price:180,half:null},
+    {id:'rb4',cat:'c4',name:'Veg Pulao',price:220,half:140},
+    {id:'rb5',cat:'c4',name:'Steamed Rice',price:140,half:null},
+    {id:'bv1',cat:'c5',name:'Masala Chai',price:60,half:null,fav:true},
+    {id:'bv2',cat:'c5',name:'Fresh Lime Soda',price:90,half:null},
+    {id:'bv3',cat:'c5',name:'Cold Coffee',price:140,half:null},
+    {id:'bv4',cat:'c5',name:'Sweet Lassi',price:110,half:null},
+    {id:'bv5',cat:'c5',name:'Mineral Water',price:40,half:null,fav:true},
+    {id:'bv6',cat:'c5',name:'Coke',price:60,half:null},
+    {id:'ds1',cat:'c6',name:'Gulab Jamun',price:120,half:null,fav:true},
+    {id:'ds2',cat:'c6',name:'Gajar Halwa',price:160,half:null},
+    {id:'ds3',cat:'c6',name:'Vanilla Ice Cream',price:100,half:null},
+    {id:'ds4',cat:'c6',name:'Rasmalai',price:140,half:null},
+  ];
+  MODS = [
+    {l:'No Onion',p:0},{l:'No Garlic',p:0},{l:'Extra Spicy',p:0},
+    {l:'Less Oil',p:0},{l:'Extra Gravy',p:30},{l:'Extra Cheese',p:40},{l:'Jain',p:0},
+  ];
+  SPICES = ['Mild','Medium','Spicy'];
+
+  mkLine(id,portion,spice,mods,note,qty){
+    const sig=[id,portion,spice||'',[...mods].sort().join('+'),note||''].join('|');
+    return { key:'L'+(this._lk=(this._lk||0)+1), sig, id, portion, spice:spice||null, mods:[...mods], note:note||'', qty };
+  }
+
+  state = {
+    view:'pos', overlay:null, draft:null,
+    sectionId:'s1', tableId:'M3', categoryId:'c1', searchQuery:'',
+    orders:{
+      M3:[ this.mkLine('st1','full','Medium',['No Onion'],'',1), this.mkLine('mc4','full','Spicy',[],'',1), this.mkLine('br1','full',null,[],'',4), this.mkLine('mc2','half','Medium',[],'',1), this.mkLine('bv4','full',null,[],'',2) ],
+      M6:[ this.mkLine('rb2','full','Medium',[],'',2), this.mkLine('bv6','full',null,[],'',2) ],
+      A2:[ this.mkLine('st3','full','Spicy',['Extra Spicy'],'',2), this.mkLine('mc5','full','Medium',[],'',1), this.mkLine('br2','full',null,[],'',3) ],
+      R1:[ this.mkLine('bv1','full',null,[],'',3), this.mkLine('ds1','full',null,[],'',2) ],
+      G2:[ this.mkLine('mc1','half','Medium',['Extra Cheese'],'',1), this.mkLine('rb3','full',null,[],'',2), this.mkLine('br1','full',null,[],'',3) ],
+    },
+    billed:{ G2:true },
+    discountPct:0, payMethod:'upi', tendered:0,
+    toast:'', clock:'', kotNo:1041, billNo:2087,
+  };
+
+  componentDidMount(){ this.tick(); this._t=setInterval(()=>this.tick(),20000); }
+  componentWillUnmount(){ clearInterval(this._t); }
+  tick(){
+    const d=new Date();
+    const wd=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+    const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+    let h=d.getHours(); const m=String(d.getMinutes()).padStart(2,'0'); const ap=h<12?'AM':'PM'; h=h%12||12;
+    this.setState({ clock:`${wd}, ${d.getDate()} ${mo} · ${h}:${m} ${ap}` });
+  }
+
+  map(){ return this._m || (this._m=Object.fromEntries(this.menu.map(x=>[x.id,x]))); }
+  item(id){ return this.map()[id]; }
+  modPrice(l){ const m=this.MODS.find(x=>x.l===l); return m?m.p:0; }
+  savory(id){ return ['c1','c2','c4'].includes(this.item(id).cat); }
+  hasHalf(id){ return !!this.item(id).half; }
+  sectionOf(t){ const s=this.sections.find(s=>s.tables.includes(t)); return s||this.sections[0]; }
+  statusOf(t){ if(this.state.billed[t]) return 'billed'; const o=this.state.orders[t]; return (o&&o.length)?'running':'available'; }
+
+  lines(t){
+    return (this.state.orders[t]||[]).map(l=>{
+      const it=this.item(l.id);
+      const base=(l.portion==='half' && it.half) ? it.half : it.price;
+      const modsTotal=l.mods.reduce((s,m)=>s+this.modPrice(m),0);
+      const unit=base+modsTotal;
+      return { ...l, item:it, name:it.name, unit, lineTotal:unit*l.qty };
+    });
+  }
+  props_(){ return { gst:+(this.props.gstRate ?? 5), sc:+(this.props.serviceChargePct ?? 0), ro:(this.props.roundOff ?? true) }; }
+  totals(t){
+    const p=this.props_(); const ls=this.lines(t);
+    const subtotal=ls.reduce((s,l)=>s+l.lineTotal,0);
+    const qty=ls.reduce((s,l)=>s+l.qty,0);
+    const disc=subtotal*this.state.discountPct/100;
+    const scAmt=(subtotal-disc)*p.sc/100;
+    const taxable=subtotal-disc+scAmt;
+    const cgst=taxable*(p.gst/2)/100, sgst=taxable*(p.gst/2)/100;
+    const grand=taxable+cgst+sgst;
+    const rgrand=p.ro?Math.round(grand):grand;
+    const roundOff=rgrand-grand;
+    return {ls,subtotal,qty,disc,scAmt,taxable,cgst,sgst,grand,rgrand,roundOff,p};
+  }
+  f2(n){ return '₹'+(Math.round(n*100)/100).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  f0(n){ return '₹'+Math.round(n).toLocaleString('en-IN'); }
+
+  toastMsg(msg){ this.setState({toast:msg}); clearTimeout(this._tt); this._tt=setTimeout(()=>this.setState({toast:''}),2600); }
+
+  addLine(pl){
+    const t=this.state.tableId; const orders={...this.state.orders};
+    const sig=[pl.id,pl.portion,pl.spice||'',[...pl.mods].sort().join('+'),pl.note||''].join('|');
+    const arr=(orders[t]||[]).slice(); const i=arr.findIndex(l=>l.sig===sig);
+    if(i>=0) arr[i]={...arr[i],qty:arr[i].qty+pl.qty};
+    else arr.push(this.mkLine(pl.id,pl.portion,pl.spice,pl.mods,pl.note,pl.qty));
+    orders[t]=arr; const billed={...this.state.billed}; delete billed[t];
+    this.setState({orders,billed});
+  }
+  incLine(key){ const t=this.state.tableId; const orders={...this.state.orders}; orders[t]=(orders[t]||[]).map(l=>l.key===key?{...l,qty:l.qty+1}:l); this.setState({orders}); }
+  decLine(key){ const t=this.state.tableId; const orders={...this.state.orders}; orders[t]=(orders[t]||[]).map(l=>l.key===key?{...l,qty:l.qty-1}:l).filter(l=>l.qty>0); this.setState({orders}); }
+  removeLine(key){ const t=this.state.tableId; const orders={...this.state.orders}; orders[t]=(orders[t]||[]).filter(l=>l.key!==key); this.setState({orders}); }
+
+  quickAdd(id){ this.addLine({id,portion:'full',spice:this.savory(id)?'Medium':null,mods:[],note:'',qty:1}); this.toastMsg(this.item(id).name+' added'); }
+  openCustomize(id){ this.setState({overlay:'customize',draft:{id,portion:'full',spice:this.savory(id)?'Medium':null,mods:[],note:'',qty:1}}); }
+  patchDraft(p){ this.setState(s=>({draft:{...s.draft,...p}})); }
+  toggleMod(l){ this.setState(s=>{ const has=s.draft.mods.includes(l); return {draft:{...s.draft,mods:has?s.draft.mods.filter(m=>m!==l):[...s.draft.mods,l]}}; }); }
+  commitDraft(){ const d=this.state.draft; this.addLine(d); const it=this.item(d.id); this.setState({overlay:null,draft:null}); this.toastMsg(it.name+(d.portion==='half'?' (Half)':'')+' ×'+d.qty+' added'); }
+
+  setDiscount(p){ this.setState({discountPct:p}); }
+  openOverlay(o){
+    if(o==='bill'){ const billed={...this.state.billed}; billed[this.state.tableId]=true; this.setState({billed,overlay:o}); }
+    else this.setState({overlay:o});
+  }
+  complete(){
+    const t=this.state.tableId; const orders={...this.state.orders}; delete orders[t];
+    const billed={...this.state.billed}; delete billed[t];
+    this.setState({orders,billed,overlay:null,discountPct:0,tendered:0,billNo:this.state.billNo+1,kotNo:this.state.kotNo+1});
+    this.toastMsg('Payment received · Table '+t+' cleared');
+  }
+
+  matches(it,q){
+    if(!q) return true;
+    const name=it.name.toUpperCase();
+    if(name.includes(q)) return true;
+    const initials=it.name.split(/\s+/).map(w=>w[0]).join('').toUpperCase();
+    return initials.startsWith(q);
+  }
+
+  renderVals(){
+    const S=this.state;
+    const t=S.tableId; const sec=this.sectionOf(t);
+    const T=this.totals(t); const p=T.p;
+    const accent='#d9542b';
+    const q=(S.searchQuery||'').trim().toUpperCase();
+    const searchActive=q.length>0;
+    const statusColors={ available:{bg:'#eef5f0',fg:'#1f8a5b',dot:'#1f8a5b',label:'Available'}, running:{bg:'#fcefe9',fg:'#d9542b',dot:'#d9542b',label:'Running'}, billed:{bg:'#eaf0fb',fg:'#2a6fdb',dot:'#2a6fdb',label:'Billed'} };
+    const navBtn=(a)=>({padding:'7px 18px',borderRadius:'8px',border:'none',cursor:'pointer',fontSize:'13px',fontWeight:700,background:a?'#1c1a18':'transparent',color:a?'#fff':'#6b645d'});
+
+    const sections=this.sections.map(s=>{
+      const active=s.id===S.sectionId;
+      const run=s.tables.filter(x=>this.statusOf(x)!=='available').length;
+      return { name:s.name, select:()=>this.setState({sectionId:s.id,tableId:s.tables[0]}),
+        style:{display:'flex',alignItems:'center',gap:'8px',flex:'0 0 auto',padding:'9px 15px',borderRadius:'10px',border:'1px solid '+(active?'#1c1a18':'#e7e3de'),background:active?'#1c1a18':'#fff',color:active?'#fff':'#3a352f',cursor:'pointer',fontSize:'13.5px',fontWeight:600,whiteSpace:'nowrap'},
+        hasRunning:run>0, runCount:String(run),
+        pillStyle:{minWidth:'18px',height:'18px',padding:'0 5px',borderRadius:'9px',background:active?'rgba(255,255,255,.2)':'#fcefe9',color:active?'#fff':'#d9542b',fontSize:'10.5px',fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'} };
+    });
+
+    const tables=sec.tables.map(x=>{
+      const active=x===t; const st=statusColors[this.statusOf(x)];
+      return { label:x, select:()=>this.setState({tableId:x}),
+        style:{display:'flex',alignItems:'center',gap:'7px',flex:'0 0 auto',padding:'8px 13px',borderRadius:'10px',border:'1.5px solid '+(active?accent:'#e7e3de'),background:'#fff',boxShadow:active?'0 0 0 3px rgba(217,84,43,.13)':'none',cursor:'pointer',fontSize:'13px',fontWeight:700,color:'#1c1a18'},
+        dotStyle:{width:'8px',height:'8px',borderRadius:'50%',background:st.dot,flex:'0 0 auto'} };
+    });
+
+    const counts=Object.fromEntries(this.categories.map(c=>[c.id,this.menu.filter(m=>m.cat===c.id).length]));
+    const categories=this.categories.map(c=>{
+      const active=!searchActive && c.id===S.categoryId;
+      return { name:c.name, code:c.code, select:()=>this.setState({categoryId:c.id,searchQuery:''}),
+        countLabel:counts[c.id]+' items',
+        style:{display:'flex',alignItems:'center',gap:'11px',width:'100%',padding:'11px 12px',borderRadius:'13px',border:'1px solid '+(active?'transparent':'#ece8e3'),background:active?'#1c1a18':'#fff',color:active?'#fff':'#1c1a18',cursor:'pointer',marginBottom:'8px',textAlign:'left'},
+        badgeStyle:{width:'36px',height:'36px',flex:'0 0 auto',borderRadius:'10px',background:active?accent:'#f4ede9',color:active?'#fff':accent,fontSize:'11.5px',fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',letterSpacing:'.5px'},
+        countStyle:{fontSize:'11px',fontWeight:600,color:active?'rgba(255,255,255,.6)':'#9a938b'} };
+    });
+
+    // qty per item id (for card badge)
+    const curLines=S.orders[t]||[];
+    const qtyById={}; curLines.forEach(l=>{ qtyById[l.id]=(qtyById[l.id]||0)+l.qty; });
+
+    const activeCat=this.categories.find(c=>c.id===S.categoryId)||this.categories[0];
+    const itemList=searchActive ? this.menu.filter(m=>this.matches(m,q)) : this.menu.filter(m=>m.cat===S.categoryId);
+    const items=itemList.map(m=>({
+      name:m.name, hasHalf:!!m.half,
+      priceLabel: m.half ? (this.f0(m.half)+' / '+this.f0(m.price)) : this.f0(m.price),
+      tap:()=>this.openCustomize(m.id),
+      inOrder:!!qtyById[m.id], qtyLabel:String(qtyById[m.id]||'') }));
+
+    const favorites=this.menu.filter(m=>m.fav).map(m=>({ name:m.name, priceLabel:this.f0(m.price), add:()=>this.quickAdd(m.id) }));
+
+    // order lines (shared by order panel + bill)
+    const order=T.ls.map(l=>{
+      const subParts=[];
+      if(l.portion==='half') subParts.push('Half');
+      if(l.spice) subParts.push(l.spice);
+      if(l.mods.length) subParts.push(l.mods.join(', '));
+      if(l.note) subParts.push('“'+l.note+'”');
+      subParts.push(this.f0(l.unit)+' ea');
+      const modParts=[];
+      if(l.spice && l.spice!=='Medium') modParts.push(l.spice);
+      if(l.mods.length) modParts.push(l.mods.join(', '));
+      if(l.note) modParts.push('Note: '+l.note);
+      return { name:l.name, nameP:l.name+(l.portion==='half'?' (Half)':''), qty:l.qty,
+        sub:subParts.join(' · '),
+        hasMods:modParts.length>0, modsLabel:modParts.join(' · '),
+        eachNum:this.f0(l.unit), totalNum:this.f0(l.lineTotal), totalLabel:this.f0(l.lineTotal),
+        inc:()=>this.incLine(l.key), dec:()=>this.decLine(l.key), remove:()=>this.removeLine(l.key) };
+    });
+
+    const discounts=[0,5,10,15].map(d=>{ const active=d===S.discountPct; return { label:d+'%', select:()=>this.setDiscount(d), style:{padding:'5px 11px',borderRadius:'8px',border:'1px solid '+(active?accent:'#e7e3de'),background:active?accent:'#fff',color:active?'#fff':'#6b645d',cursor:'pointer',fontSize:'12px',fontWeight:700} }; });
+
+    const st=statusColors[this.statusOf(t)];
+
+    const floorSections=this.sections.map(s=>({ name:s.name, tables:s.tables.map(x=>{
+      const stt=this.statusOf(x); const sc2=statusColors[stt]; const tt=this.totals(x);
+      let meta='Available'; if(stt==='running') meta=tt.qty+' items · '+this.f0(tt.subtotal); if(stt==='billed') meta='Billed · '+this.f0(tt.rgrand);
+      return { label:x, open:()=>this.setState({view:'pos',sectionId:s.id,tableId:x,overlay:null}),
+        style:{display:'flex',flexDirection:'column',gap:'10px',padding:'15px',borderRadius:'15px',border:'1px solid #ece8e3',borderLeft:'4px solid '+sc2.dot,background:'#fff',cursor:'pointer',textAlign:'left',boxShadow:'0 1px 2px rgba(0,0,0,.03)'},
+        statusLabel:sc2.label, badgeStyle:{padding:'3px 9px',borderRadius:'20px',background:sc2.bg,color:sc2.fg,fontSize:'10.5px',fontWeight:700}, metaLabel:meta };
+    }) }));
+
+    const methods=['upi','card','cash'].map(mm=>{ const active=mm===S.payMethod; const lbl={upi:'UPI',card:'Card',cash:'Cash'}[mm]; return { label:lbl, select:()=>this.setState({payMethod:mm,tendered:0}), style:{flex:1,padding:'13px 0',borderRadius:'12px',border:'1.5px solid '+(active?'#1c1a18':'#ece8e3'),background:active?'#1c1a18':'#fff',color:active?'#fff':'#3a352f',cursor:'pointer',fontSize:'13.5px',fontWeight:700} }; });
+    const tenderBtns=[100,200,500,2000].map(v=>({ label:'₹'+v, add:()=>this.setState({tendered:S.tendered+v}) }));
+    const change=S.tendered-T.rgrand;
+    const isCash=S.payMethod==='cash';
+    const completeEnabled=!isCash || S.tendered>=T.rgrand;
+
+    // draft / customize sheet
+    const d=S.draft||{id:null,portion:'full',spice:null,mods:[],note:'',qty:1};
+    const di=d.id?this.item(d.id):null;
+    const dHasHalf=di?!!di.half:false;
+    const dSavory=d.id?this.savory(d.id):false;
+    const dBase=(d.portion==='half'&&dHasHalf)?di.half:(di?di.price:0);
+    const dMods=d.mods.reduce((s,m)=>s+this.modPrice(m),0);
+    const dUnit=dBase+dMods;
+    const segOn={padding:'12px 0',flex:1,borderRadius:'12px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'4px',border:'1.5px solid #1c1a18',background:'#1c1a18',color:'#fff'};
+    const segOff={padding:'12px 0',flex:1,borderRadius:'12px',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'4px',border:'1.5px solid #e7e3de',background:'#fff',color:'#3a352f'};
+    const portionOpts=[ {key:'full',label:'Full',price:di?di.price:0}, {key:'half',label:'Half',price:di?di.half:0} ].map(o=>({ label:o.label, priceLabel:this.f0(o.price), select:()=>this.patchDraft({portion:o.key}), style:d.portion===o.key?segOn:segOff }));
+    const chipOn={padding:'9px 16px',borderRadius:'10px',cursor:'pointer',fontSize:'13px',fontWeight:700,border:'1.5px solid #1c1a18',background:'#1c1a18',color:'#fff'};
+    const chipOff={padding:'9px 16px',borderRadius:'10px',cursor:'pointer',fontSize:'13px',fontWeight:700,border:'1.5px solid #e7e3de',background:'#fff',color:'#3a352f'};
+    const spiceOpts=this.SPICES.map(sp=>({ label:sp, select:()=>this.patchDraft({spice:sp}), style:d.spice===sp?chipOn:chipOff }));
+    const modOpts=this.MODS.map(mo=>{ const on=d.mods.includes(mo.l); return { label:mo.l, toggle:()=>this.toggleMod(mo.l), hasPrice:mo.p>0, priceLabel:'+'+this.f0(mo.p),
+      style:{display:'flex',alignItems:'center',gap:'6px',padding:'8px 12px',borderRadius:'20px',cursor:'pointer',fontSize:'12.5px',fontWeight:700,border:'1.5px solid '+(on?accent:'#e7e3de'),background:on?'#fcefe9':'#fff',color:on?'#b04a22':'#3a352f'},
+      priceStyle:{fontSize:'11px',fontWeight:700,color:on?'#b04a22':'#9a938b'} }; });
+
+    return {
+      clock:S.clock,
+      isPos:S.view==='pos', isFloor:S.view==='floor',
+      goPos:()=>this.setState({view:'pos'}), goFloor:()=>this.setState({view:'floor'}),
+      navPosStyle:navBtn(S.view==='pos'), navFloorStyle:navBtn(S.view==='floor'),
+      sections, tables, categories, items, order, discounts, floorSections, methods, tenderBtns, favorites,
+      searchQuery:S.searchQuery, searchActive, showFavs:!searchActive,
+      onSearch:(e)=>this.setState({searchQuery:e.target.value}), clearSearch:()=>this.setState({searchQuery:''}),
+      noResults:searchActive && items.length===0,
+      activeCatName: searchActive ? ('Results for “'+S.searchQuery.trim()+'”') : activeCat.name,
+      itemCountLabel:items.length+' items',
+      tableLabel:t, sectionName:sec.name,
+      statusLabel:st.label, statusStyle:{padding:'5px 12px',borderRadius:'20px',background:st.bg,color:st.fg,fontSize:'12px',fontWeight:700},
+      hasItems:T.ls.length>0, isEmpty:T.ls.length===0,
+      qtyTotal:T.qty,
+      subtotalLabel:this.f0(T.subtotal),
+      hasDiscount:T.disc>0, discountPctLabel:S.discountPct+'%', discountLabel:this.f0(T.disc),
+      hasService:T.scAmt>0, servicePctLabel:p.sc+'%', serviceLabel:this.f0(T.scAmt),
+      halfRateLabel:(p.gst/2)+'%', cgstLabel:this.f2(T.cgst), sgstLabel:this.f2(T.sgst),
+      hasRoundOff:p.ro && Math.abs(T.roundOff)>0.001, roundOffLabel:(T.roundOff>=0?'+':'−')+this.f2(Math.abs(T.roundOff)).slice(1),
+      grandLabel:this.f0(T.rgrand),
+      kotBtnStyle:{flex:1,padding:'13px 0',borderRadius:'12px',border:'1.5px solid #1c1a18',background:'#fff',color:'#1c1a18',cursor:T.ls.length?'pointer':'not-allowed',opacity:T.ls.length?1:.4,fontSize:'14px',fontWeight:700},
+      billBtnStyle:{flex:1.4,padding:'13px 0',borderRadius:'12px',border:'none',background:T.ls.length?accent:'#e0d9d2',color:'#fff',cursor:T.ls.length?'pointer':'not-allowed',fontSize:'14px',fontWeight:700},
+      openKot:()=>{ if(T.ls.length) this.openOverlay('kot'); },
+      openBill:()=>{ if(T.ls.length) this.openOverlay('bill'); },
+      openPay:()=>this.openOverlay('pay'),
+      closeOverlay:()=>this.setState({overlay:null,draft:null}),
+      printKot:()=>{ this.setState({overlay:null}); this.toastMsg('KOT #'+S.kotNo+' sent to kitchen'); },
+      printBill:()=>this.toastMsg('Bill #'+S.billNo+' sent to printer'),
+      complete:()=>{ if(completeEnabled) this.complete(); },
+      showKot:S.overlay==='kot', showBill:S.overlay==='bill', showPay:S.overlay==='pay', showCustomize:S.overlay==='customize',
+      kotNo:S.kotNo, billNo:S.billNo, kotTime:S.clock,
+      kotLines:T.ls.map(l=>{ const mp=[]; if(l.spice&&l.spice!=='Medium') mp.push(l.spice); if(l.mods.length) mp.push(l.mods.join(', ')); if(l.note) mp.push('Note: '+l.note); return {qty:l.qty, name:l.name+(l.portion==='half'?' (Half)':''), hasMods:mp.length>0, mods:mp.join(' · ')}; }),
+      payMethod:S.payMethod, isCash,
+      tenderedLabel:this.f0(S.tendered),
+      exactTender:()=>this.setState({tendered:T.rgrand}), clearTender:()=>this.setState({tendered:0}),
+      changeLabel:change>=0?this.f0(change):'—', changeStyle:{fontSize:'20px',fontWeight:800,fontFamily:"'Spline Sans Mono',monospace",color:change>0?'#1f8a5b':'#1c1a18'},
+      completeLabel:isCash&&S.tendered<T.rgrand?'Enter cash received':'Complete Payment · '+this.f0(T.rgrand),
+      completeStyle:{width:'100%',padding:'15px 0',marginTop:'6px',borderRadius:'13px',border:'none',background:completeEnabled?'#1f8a5b':'#e0d9d2',color:'#fff',cursor:completeEnabled?'pointer':'not-allowed',fontSize:'15px',fontWeight:800},
+      // customize
+      draftName:di?di.name:'', draftHasHalf:dHasHalf, draftSavory:dSavory,
+      portionOpts, spiceOpts, modOpts,
+      draftNote:d.note, onNote:(e)=>this.patchDraft({note:e.target.value}),
+      draftQty:d.qty, draftInc:()=>this.patchDraft({qty:d.qty+1}), draftDec:()=>this.patchDraft({qty:Math.max(1,d.qty-1)}),
+      draftTotalLabel:this.f0(dUnit*d.qty),
+      commitDraft:()=>this.commitDraft(),
+      toast:S.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
