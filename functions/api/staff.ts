@@ -74,6 +74,20 @@ export async function onRequestPost(context: any) {
     }
 
     const db = getDB(context.env);
+
+    // Auto-migrate: create staff table if not present yet
+    try {
+      await execute(db, `CREATE TABLE IF NOT EXISTS staff (
+        id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, name TEXT NOT NULL,
+        photo TEXT, phone TEXT, email TEXT, role TEXT NOT NULL DEFAULT 'helper',
+        joining_date TEXT NOT NULL, salary_type TEXT NOT NULL DEFAULT 'monthly',
+        salary_amount REAL NOT NULL DEFAULT 0, emergency_contact TEXT,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+      )`);
+    } catch { /* already exists */ }
     const now = new Date().toISOString();
     const id = `staff_${crypto.randomUUID()}`;
 

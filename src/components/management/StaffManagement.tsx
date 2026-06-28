@@ -37,15 +37,21 @@ export default function StaffManagement() {
   useEffect(() => { load(); }, [load]);
 
   const handleSave = async (data: Omit<Staff, 'id' | 'tenantId' | 'createdAt' | 'updatedAt' | 'active'>) => {
-    if (editing) {
-      await staffAPI.update(editing.id, data);
-      toast.success('Staff updated');
-    } else {
-      await staffAPI.create(data);
-      toast.success('Staff added');
+    try {
+      if (editing) {
+        await staffAPI.update(editing.id, data);
+        toast.success('Staff updated');
+      } else {
+        await staffAPI.create(data);
+        toast.success('Staff added');
+      }
+      await load();
+      setEditing(null);
+    } catch (e: any) {
+      const msg = e?.response?.data?.error || e?.message || 'Failed to save staff';
+      toast.error(msg);
+      throw e; // re-throw so StaffForm keeps modal open
     }
-    await load();
-    setEditing(null);
   };
 
   const handleToggleActive = async (s: Staff) => {

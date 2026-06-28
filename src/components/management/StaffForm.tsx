@@ -59,6 +59,8 @@ export default function StaffForm({ isOpen, onClose, onSave, editStaff }: Props)
     try {
       await onSave({ ...form, salaryAmount: Number(form.salaryAmount) });
       onClose();
+    } catch {
+      // error already toasted by parent — keep modal open
     } finally {
       setSaving(false);
     }
