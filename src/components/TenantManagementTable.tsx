@@ -1,18 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import {
-  Building2,
-  Mail,
-  Phone,
-  Calendar,
-  Eye,
-  Edit,
-  Trash2,
-  Ban,
-  CheckCircle,
-  ExternalLink,
-  MoreVertical,
-  UserCheck,
-  ShoppingCart,
+  Building2, Mail, Phone, MapPin, Calendar,
+  Eye, Edit, Trash2, Ban, CheckCircle,
+  ShoppingCart, LayoutDashboard,
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
 import api from '@/services/api';
@@ -24,333 +14,254 @@ interface TenantManagementTableProps {
   onEdit: (tenant: Tenant) => void;
 }
 
+// Generate a consistent color from the tenant name
+function avatarColor(name: string): string {
+  const colors = [
+    'from-violet-500 to-purple-600',
+    'from-blue-500 to-indigo-600',
+    'from-emerald-500 to-teal-600',
+    'from-orange-500 to-amber-600',
+    'from-pink-500 to-rose-600',
+    'from-cyan-500 to-blue-600',
+    'from-green-500 to-emerald-600',
+    'from-red-500 to-rose-600',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function initials(name: string): string {
+  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+}
+
+const STATUS_CFG: Record<string, { bg: string; dot: string; label: string }> = {
+  active:    { bg: 'bg-green-100 text-green-700',  dot: 'bg-green-500',  label: 'Active' },
+  suspended: { bg: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-500',  label: 'Suspended' },
+  inactive:  { bg: 'bg-gray-100 text-gray-600',    dot: 'bg-gray-400',   label: 'Inactive' },
+  deleted:   { bg: 'bg-red-100 text-red-700',      dot: 'bg-red-500',    label: 'Deleted' },
+};
+
+const PLAN_CFG: Record<string, { bg: string; label: string }> = {
+  starter:  { bg: 'bg-blue-100 text-blue-700',   label: 'Starter' },
+  business: { bg: 'bg-purple-100 text-purple-700', label: 'Business' },
+  premium:  { bg: 'bg-amber-100 text-amber-700', label: 'Premium' },
+};
+
 export default function TenantManagementTable({ tenants, onRefresh, onEdit }: TenantManagementTableProps) {
   const [loading, setLoading] = useState<string | null>(null);
-  const [showActions, setShowActions] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowActions(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleSuspend = async (tenant: Tenant) => {
-    if (!confirm(`Are you sure you want to suspend ${tenant.name}?`)) return;
-    
+    if (!confirm(`Suspend ${tenant.name}?`)) return;
     setLoading(tenant.id);
-    setShowActions(null);
     try {
       await api.patch(`/tenants/${tenant.id}`, { status: 'suspended' });
-      toast.success(`${tenant.name} has been suspended`);
+      toast.success(`${tenant.name} suspended`);
       await onRefresh();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to suspend tenant');
-    } finally {
-      setLoading(null);
-    }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed');
+    } finally { setLoading(null); }
   };
 
   const handleActivate = async (tenant: Tenant) => {
     setLoading(tenant.id);
-    setShowActions(null);
     try {
       await api.patch(`/tenants/${tenant.id}`, { status: 'active' });
-      toast.success(`${tenant.name} has been activated`);
+      toast.success(`${tenant.name} activated`);
       await onRefresh();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to activate tenant');
-    } finally {
-      setLoading(null);
-    }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed');
+    } finally { setLoading(null); }
   };
 
   const handleImpersonate = async (tenant: Tenant) => {
     setLoading(tenant.id);
-    setShowActions(null);
     try {
       const response = await api.post('/impersonate', { tenantId: tenant.id });
       const { token, tenant: t } = response.data;
-      // Store token and tenant info for the admin dashboard
       localStorage.setItem('admin_token', token);
       localStorage.setItem('current_tenant_id', t.id);
       localStorage.setItem('current_tenant_slug', t.slug);
-      toast.success(`Now logged in as ${tenant.name}`);
-      // Open admin dashboard in a new tab
+      toast.success(`Logged in as ${tenant.name}`);
       window.open(`/${t.slug}/admin/dashboard`, '_blank');
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to impersonate tenant');
-    } finally {
-      setLoading(null);
-    }
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Failed to login as tenant');
+    } finally { setLoading(null); }
   };
 
   const handleDelete = async (tenant: Tenant) => {
-    if (!confirm(`Are you sure you want to delete ${tenant.name}? This action cannot be undone.`)) return;
-    
-    const confirmText = prompt('Type "DELETE" to confirm:');
-    if (confirmText !== 'DELETE') {
-      toast.error('Deletion cancelled');
-      return;
-    }
-
+    if (!confirm(`Delete ${tenant.name}? This cannot be undone.`)) return;
+    if (prompt('Type "DELETE" to confirm:') !== 'DELETE') { toast.error('Cancelled'); return; }
     setLoading(tenant.id);
-    setShowActions(null);
     try {
       await api.delete(`/tenants/${tenant.id}`);
-      toast.success(`${tenant.name} has been deleted`);
+      toast.success(`${tenant.name} deleted`);
       await onRefresh();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete tenant');
-    } finally {
-      setLoading(null);
-    }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed');
+    } finally { setLoading(null); }
   };
 
   const handleTogglePOS = async (tenant: Tenant) => {
     const newVal = !tenant.posEnabled;
     setLoading(tenant.id);
-    setShowActions(null);
     try {
       await api.patch(`/tenants/${tenant.id}`, { posEnabled: newVal ? 1 : 0 });
       toast.success(`POS ${newVal ? 'enabled' : 'disabled'} for ${tenant.name}`);
       await onRefresh();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to toggle POS');
-    } finally {
-      setLoading(null);
-    }
+    } catch (e: any) {
+      toast.error(e.message || 'Failed');
+    } finally { setLoading(null); }
   };
 
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      active: 'bg-green-100 text-green-800',
-      suspended: 'bg-yellow-100 text-yellow-800',
-      inactive: 'bg-gray-100 text-gray-800',
-      deleted: 'bg-red-100 text-red-800',
-    };
-
+  if (tenants.length === 0) {
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[status as keyof typeof styles] || styles.inactive}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
+      <div className="text-center py-16">
+        <Building2 className="mx-auto h-14 w-14 text-gray-300 mb-3" />
+        <p className="text-gray-500 font-medium">No tenants found</p>
+        <p className="text-sm text-gray-400 mt-1">Add your first tenant to get started.</p>
+      </div>
     );
-  };
-
-  const getPlanBadge = (plan: string) => {
-    const styles = {
-      starter: 'bg-blue-100 text-blue-800',
-      business: 'bg-purple-100 text-purple-800',
-      premium: 'bg-amber-100 text-amber-800',
-    };
-
-    return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full ${styles[plan as keyof typeof styles] || styles.starter}`}>
-        {plan.charAt(0).toUpperCase() + plan.slice(1)}
-      </span>
-    );
-  };
-
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString('en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="overflow-x-auto">
-        <div className="max-h-[600px] overflow-y-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0 z-10">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Restaurant
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Slug/Subdomain
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Owner
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Contact
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Plan
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
-                  Created
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap sticky right-0 bg-gray-50">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {tenants.map((tenant) => (
-              <tr key={tenant.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="flex items-center min-w-[200px]">
-                    <div className="flex-shrink-0 h-8 w-8 bg-primary-100 rounded-full flex items-center justify-center">
-                      <Building2 className="h-4 w-4 text-primary-600" />
-                    </div>
-                    <div className="ml-3">
-                      <div className="text-sm font-medium text-gray-900">{tenant.name}</div>
-                    </div>
+    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      {tenants.map(tenant => {
+        const status = STATUS_CFG[tenant.status] ?? STATUS_CFG.inactive;
+        const plan   = PLAN_CFG[tenant.plan]     ?? PLAN_CFG.starter;
+        const busy   = loading === tenant.id;
+        const grad   = avatarColor(tenant.name);
+        const joinDate = new Date(tenant.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        return (
+          <div
+            key={tenant.id}
+            className={`relative flex flex-col bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden ${busy ? 'opacity-60 pointer-events-none' : ''}`}
+          >
+            {/* Top color stripe */}
+            <div className={`h-1.5 w-full bg-gradient-to-r ${grad}`} />
+
+            <div className="p-5 flex-1 flex flex-col">
+              {/* Avatar + name row */}
+              <div className="flex items-start gap-3 mb-4">
+                <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-lg shadow-sm`}>
+                  {initials(tenant.name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-gray-900 text-sm leading-tight truncate">{tenant.name}</h3>
+                  <p className="text-xs text-gray-400 font-mono mt-0.5 truncate">{tenant.subdomain || tenant.slug}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${status.bg}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
+                      {status.label}
+                    </span>
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${plan.bg}`}>
+                      {plan.label}
+                    </span>
                   </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-xs text-gray-900 font-mono bg-gray-100 px-2 py-1 rounded">
-                    {tenant.subdomain || tenant.slug}
+                </div>
+              </div>
+
+              {/* Contact info */}
+              <div className="space-y-1.5 mb-4">
+                {tenant.email && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 truncate">
+                    <Mail className="w-3 h-3 flex-shrink-0 text-gray-400" />
+                    <span className="truncate">{tenant.email}</span>
                   </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{tenant.ownerName || '-'}</div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex flex-col gap-1 min-w-[180px]">
-                    <div className="flex items-center text-xs text-gray-500">
-                      <Mail className="h-3 w-3 mr-1 flex-shrink-0" />
-                      <span className="truncate">{tenant.email}</span>
-                    </div>
-                    <div className="flex items-center text-xs text-gray-500">
-                      <Phone className="h-3 w-3 mr-1 flex-shrink-0" />
-                      {tenant.phone}
-                    </div>
+                )}
+                {tenant.phone && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Phone className="w-3 h-3 flex-shrink-0 text-gray-400" />
+                    <span>{tenant.phone}</span>
                   </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {getStatusBadge(tenant.status)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  {getPlanBadge(tenant.plan)}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="flex items-center text-xs text-gray-500">
-                    <Calendar className="h-3 w-3 mr-1" />
-                    {formatDate(tenant.createdAt)}
+                )}
+                {tenant.address && (
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 truncate">
+                    <MapPin className="w-3 h-3 flex-shrink-0 text-gray-400" />
+                    <span className="truncate">{tenant.address}</span>
                   </div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">
-                  <div className="relative inline-block" ref={showActions === tenant.id ? dropdownRef : null}>
-                    <button
-                      onClick={() => setShowActions(showActions === tenant.id ? null : tenant.id)}
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                      disabled={loading === tenant.id}
-                    >
-                      <MoreVertical className="h-5 w-5" />
-                    </button>
-                    
-                    {showActions === tenant.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
-                        <div className="py-1">
-                          <a
-                            href={`/${tenant.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Menu
-                          </a>
-                          <a
-                            href={`/${tenant.slug}/admin/dashboard`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Open Dashboard
-                          </a>
-                          <button
-                            onClick={() => {
-                              onEdit(tenant);
-                              setShowActions(null);
-                            }}
-                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </button>
-                          {tenant.status === 'active' && (
-                            <button
-                              onClick={() => handleImpersonate(tenant)}
-                              className="flex items-center w-full px-4 py-2 text-sm text-indigo-700 hover:bg-indigo-50"
-                            >
-                              <UserCheck className="h-4 w-4 mr-2" />
-                              Login As Tenant
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleTogglePOS(tenant)}
-                            className={`flex items-center w-full px-4 py-2 text-sm hover:bg-amber-50 ${tenant.posEnabled ? 'text-amber-700' : 'text-gray-600'}`}
-                          >
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            {tenant.posEnabled ? 'Disable POS' : 'Enable POS'}
-                          </button>
-                          {tenant.status === 'active' ? (
-                            <button
-                              onClick={() => {
-                                handleSuspend(tenant);
-                                setShowActions(null);
-                              }}
-                              className="flex items-center w-full px-4 py-2 text-sm text-yellow-700 hover:bg-yellow-50"
-                            >
-                              <Ban className="h-4 w-4 mr-2" />
-                              Suspend
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => {
-                                handleActivate(tenant);
-                                setShowActions(null);
-                              }}
-                              className="flex items-center w-full px-4 py-2 text-sm text-green-700 hover:bg-green-50"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Activate
-                            </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              handleDelete(tenant);
-                              setShowActions(null);
-                            }}
-                            className="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                )}
+              </div>
+
+              {/* Stats row */}
+              <div className="flex items-center gap-3 mb-4 py-2.5 border-t border-b border-gray-100">
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                  <span>{joinDate}</span>
+                </div>
+                {tenant.posEnabled && (
+                  <div className="flex items-center gap-1 text-xs text-amber-600 font-medium ml-auto">
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    POS On
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          </table>
-        </div>
-      </div>
-      
-      {tenants.length === 0 && (
-        <div className="text-center py-12">
-          <Building2 className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">No tenants</h3>
-          <p className="mt-1 text-sm text-gray-500">Get started by creating a new tenant.</p>
-        </div>
-      )}
+                )}
+              </div>
+
+              {/* Primary action: Open Dashboard */}
+              <button
+                onClick={() => handleImpersonate(tenant)}
+                disabled={tenant.status !== 'active'}
+                className="w-full flex items-center justify-center gap-2 py-2 mb-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-200 disabled:text-gray-400 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Open Dashboard
+              </button>
+
+              {/* Secondary actions row */}
+              <div className="grid grid-cols-4 gap-1.5">
+                <a
+                  href={`/${tenant.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  title="View Menu"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                </a>
+                <button
+                  onClick={() => onEdit(tenant)}
+                  className="flex items-center justify-center gap-1 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  title="Edit"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => tenant.status === 'active' ? handleSuspend(tenant) : handleActivate(tenant)}
+                  className={`flex items-center justify-center py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    tenant.status === 'active'
+                      ? 'text-amber-700 bg-amber-50 hover:bg-amber-100'
+                      : 'text-green-700 bg-green-50 hover:bg-green-100'
+                  }`}
+                  title={tenant.status === 'active' ? 'Suspend' : 'Activate'}
+                >
+                  {tenant.status === 'active' ? <Ban className="w-3.5 h-3.5" /> : <CheckCircle className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  onClick={() => handleDelete(tenant)}
+                  className="flex items-center justify-center py-1.5 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                  title="Delete"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* POS toggle */}
+              <button
+                onClick={() => handleTogglePOS(tenant)}
+                className={`mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  tenant.posEnabled
+                    ? 'border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100'
+                    : 'border-gray-200 text-gray-500 bg-white hover:bg-gray-50'
+                }`}
+              >
+                <ShoppingCart className="w-3.5 h-3.5" />
+                {tenant.posEnabled ? 'Disable POS' : 'Enable POS'}
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

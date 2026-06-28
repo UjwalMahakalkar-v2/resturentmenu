@@ -189,63 +189,49 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Tenant Management
-                {filteredTenants.length !== tenants.length && (
-                  <span className="ml-2 text-sm font-normal text-gray-500">
-                    ({filteredTenants.length} of {tenants.length})
-                  </span>
-                )}
+        {/* Tenant Grid Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200">
+          {/* Toolbar */}
+          <div className="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 flex-1">
+              <h2 className="text-base font-semibold text-gray-900 whitespace-nowrap">
+                Tenants
+                <span className="ml-2 text-sm font-normal text-gray-400">
+                  ({filteredTenants.length}{filteredTenants.length !== tenants.length ? ` of ${tenants.length}` : ''})
+                </span>
               </h2>
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="btn-primary flex items-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Add New Tenant
-              </button>
             </div>
 
-            {/* Search + Filters */}
-            <div className="flex flex-wrap gap-3">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search by name, slug, email, phone..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="input-field pl-9 w-full"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-400" />
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="input-field py-2 pr-8 text-sm"
-                >
-                  <option value="all">All Status</option>
-                  <option value="active">Active</option>
-                  <option value="suspended">Suspended</option>
-                  <option value="inactive">Inactive</option>
-                </select>
-                <select
-                  value={planFilter}
-                  onChange={(e) => setPlanFilter(e.target.value)}
-                  className="input-field py-2 pr-8 text-sm"
-                >
-                  <option value="all">All Plans</option>
-                  <option value="starter">Starter</option>
-                  <option value="business">Business</option>
-                  <option value="premium">Premium</option>
-                </select>
-              </div>
+            <div className="relative flex-1 min-w-[200px] max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search name, slug, email…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input-field pl-9 w-full text-sm"
+              />
             </div>
+
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-field py-2 text-sm">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="suspended">Suspended</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <select value={planFilter} onChange={(e) => setPlanFilter(e.target.value)} className="input-field py-2 text-sm">
+                <option value="all">All Plans</option>
+                <option value="starter">Starter</option>
+                <option value="business">Business</option>
+                <option value="premium">Premium</option>
+              </select>
+            </div>
+
+            <button onClick={() => setShowAddForm(true)} className="btn-primary flex items-center gap-2 text-sm whitespace-nowrap">
+              <Plus className="w-4 h-4" /> Add Tenant
+            </button>
           </div>
 
           <TenantManagementTable
