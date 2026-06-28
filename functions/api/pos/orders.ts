@@ -141,7 +141,9 @@ export async function onRequestPost(context: any) {
 
     // Update table status if dine-in
     if (body.tableId && body.orderType === 'dine-in') {
-      await execute(db, "UPDATE pos_tables SET status = 'occupied', updated_at = ? WHERE id = ? AND tenant_id = ?", now, body.tableId, tenantId);
+      const isPaid = body.status === 'paid' || body.paymentStatus === 'paid';
+      const newStatus = isPaid ? 'available' : 'occupied';
+      await execute(db, `UPDATE pos_tables SET status = '${newStatus}', updated_at = ? WHERE id = ? AND tenant_id = ?`, now, body.tableId, tenantId);
     }
 
     const savedOrder = await queryFirst(db, 'SELECT * FROM pos_orders WHERE id = ?', id);
