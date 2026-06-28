@@ -43,7 +43,7 @@ export async function onRequestGet(context: any) {
     const mapped = tenants.map((t: any) => ({
       id: t.id, slug: t.slug, subdomain: t.subdomain, name: t.name,
       email: t.email, phone: t.phone, address: t.address, status: t.status,
-      subscriptionPlan: t.subscription_plan, posEnabled: t.pos_enabled === 1,
+      subscriptionPlan: t.subscription_plan, posEnabled: (t.pos_enabled ?? 0) === 1,
       createdAt: t.created_at, updatedAt: t.updated_at,
       socialAnalytics: {
         whatsappClicks: t.whatsapp_clicks, instagramClicks: t.instagram_clicks,

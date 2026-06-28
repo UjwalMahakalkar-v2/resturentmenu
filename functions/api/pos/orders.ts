@@ -77,6 +77,7 @@ export async function onRequestGet(context: any) {
     return new Response(JSON.stringify(result), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to fetch orders';
+    if (msg.includes('no such table')) return new Response(JSON.stringify([]), { headers: CORS });
     return new Response(JSON.stringify({ error: msg }), {
       status: msg.includes('Unauthorized') ? 401 : 500,
       headers: CORS,

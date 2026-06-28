@@ -55,6 +55,12 @@ export async function onRequestGet(context: any) {
     return new Response(JSON.stringify(rowToSettings(settings, posEnabled)), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to fetch POS settings';
+    if (msg.includes('no such table') || msg.includes('no such column')) {
+      return new Response(JSON.stringify({
+        posEnabled: false, gstEnabled: false, gstRate: 18, cgstRate: 9, sgstRate: 9,
+        currency: 'INR', currencySymbol: '₹', billPrefix: 'INV', nextBillNumber: 1, enableKot: true,
+      }), { headers: CORS });
+    }
     return new Response(JSON.stringify({ error: msg }), {
       status: msg.includes('Unauthorized') ? 401 : 500,
       headers: CORS,
