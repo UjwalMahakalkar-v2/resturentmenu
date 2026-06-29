@@ -8,6 +8,7 @@ import { useState, useMemo, useRef } from 'react';
 import { Search, X, Phone, Mail, MapPin, Star, Heart, ArrowRight } from 'lucide-react';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
+import ReservationWidget from '@/components/ReservationWidget';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, Category } from '@/types';
 
@@ -109,13 +110,23 @@ export default function ModernBistroTemplate({ restaurant, menuItems, categories
           <div className="max-w-6xl mx-auto">
             <h2 className="text-white text-3xl sm:text-5xl font-bold mb-2 tracking-tight">{restaurant.name}</h2>
             <p className="text-gray-200 text-sm sm:text-lg mb-4">{restaurant.tagline || 'Welcome to our restaurant'}</p>
-            <button
-              onClick={() => menuRef.current?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-medium text-sm shadow-lg hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: 'var(--color-primary)' }}
-            >
-              View Menu <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => menuRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-medium text-sm shadow-lg hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                View Menu <ArrowRight className="w-4 h-4" />
+              </button>
+              {tenant && (
+                <ReservationWidget
+                  tenantId={tenant.id}
+                  accent="var(--color-primary)"
+                  triggerClassName="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-medium text-sm border border-white/60 hover:bg-white/10 transition-colors"
+                  label="Reserve a Table"
+                />
+              )}
+            </div>
           </div>
         </div>
       </section>

@@ -8,6 +8,7 @@ import { useState, useMemo, useRef } from 'react';
 import { Search, X, Phone, MapPin, Flame, Zap } from 'lucide-react';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
+import ReservationWidget from '@/components/ReservationWidget';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, Category } from '@/types';
 
@@ -116,13 +117,23 @@ export default function StreetFoodTemplate({ restaurant, menuItems, categories, 
               {restaurant.name}
             </h2>
             <p className="text-white/60 text-sm sm:text-base mb-5">{restaurant.tagline || 'Street food at its best'}</p>
-            <button
-              onClick={() => menuRef.current?.scrollIntoView({ behavior: 'smooth' })}
-              className="px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-lg hover:opacity-90 transition-opacity"
-              style={{ backgroundColor: 'var(--color-primary)', color: '#000' }}
-            >
-              Order Now →
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => menuRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                className="px-6 py-2.5 rounded-xl font-extrabold text-sm shadow-lg hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: 'var(--color-primary)', color: '#000' }}
+              >
+                Order Now →
+              </button>
+              {tenant && (
+                <ReservationWidget
+                  tenantId={tenant.id}
+                  accent="var(--color-primary)"
+                  triggerClassName="px-6 py-2.5 rounded-xl font-extrabold text-sm border-2 border-white/30 text-white hover:bg-white/10 transition-colors"
+                  label="Reserve a Table"
+                />
+              )}
+            </div>
           </div>
         </div>
       </section>

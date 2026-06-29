@@ -18,8 +18,8 @@ import PremiumDarkTemplate from '@/components/templates/PremiumDarkTemplate';
 import StreetFoodTemplate from '@/components/templates/StreetFoodTemplate';
 import OrganicCafeTemplate from '@/components/templates/OrganicCafeTemplate';
 import LuxuryDiningTemplate from '@/components/templates/LuxuryDiningTemplate';
-import { Loader2, ArrowLeft, Search, X, CalendarCheck } from 'lucide-react';
-import { publicReservationsAPI } from '@/services/api';
+import { Loader2, ArrowLeft, Search, X } from 'lucide-react';
+import ReservationWidget from '@/components/ReservationWidget';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, MenuTemplate } from '@/types';
 
@@ -35,14 +35,6 @@ export default function Menu() {
   const [showCategorySelection, setShowCategorySelection] = useState(true);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [template, setTemplate] = useState<MenuTemplate>('classic');
-  const [posEnabled, setPosEnabled] = useState(false);
-  const [showBooking, setShowBooking] = useState(false);
-  const [bookingForm, setBookingForm] = useState({
-    customerName: '', customerPhone: '', customerEmail: '',
-    reservationDate: '', reservationTime: '', partySize: 2, notes: '',
-  });
-  const [bookingSubmitting, setBookingSubmitting] = useState(false);
-  const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
   const [restaurant, setRestaurant] = useState<Restaurant>({
     name: '',
     tagline: '',
@@ -72,7 +64,6 @@ export default function Menu() {
       setRestaurant(r);
       if (r.theme) applyTheme(r.theme);
       if (r.template) setTemplate(r.template);
-      if ((r as any).posEnabled) setPosEnabled(true);
     };
     load();
   }, [tenant?.id]);
@@ -108,26 +99,6 @@ export default function Menu() {
     setSearchQuery('');
     setMobileSearchOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleBookingSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tenant?.id) return;
-    setBookingSubmitting(true);
-    try {
-      const res = await publicReservationsAPI.create({
-        tenantId: tenant.id,
-        ...bookingForm,
-        customerEmail: bookingForm.customerEmail || undefined,
-        notes: bookingForm.notes || undefined,
-      });
-      setBookingSuccess(res.id);
-      setBookingForm({ customerName: '', customerPhone: '', customerEmail: '', reservationDate: '', reservationTime: '', partySize: 2, notes: '' });
-    } catch {
-      alert('Failed to submit booking. Please try again.');
-    } finally {
-      setBookingSubmitting(false);
-    }
   };
 
   const scrollToMenu = () => {
@@ -246,16 +217,14 @@ export default function Menu() {
       <Hero restaurant={restaurant} onViewMenu={scrollToMenu} />
 
       {/* Reserve a Table CTA */}
-      {posEnabled && (
+      {tenant && (
         <div className="container-custom py-4 flex justify-center">
-          <button
-            onClick={() => { setShowBooking(true); setBookingSuccess(null); }}
-            className="flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm shadow-md transition-transform hover:scale-105 active:scale-95"
-            style={{ background: 'var(--color-primary)', color: '#fff' }}
-          >
-            <CalendarCheck className="w-4 h-4" />
-            Reserve a Table
-          </button>
+          <ReservationWidget
+            tenantId={tenant.id}
+            accent="var(--color-primary)"
+            triggerClassName="flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm text-white shadow-md transition-transform hover:scale-105 active:scale-95"
+            triggerStyle={{ background: 'var(--color-primary)' }}
+          />
         </div>
       )}
 
@@ -383,109 +352,6 @@ export default function Menu() {
       {/* Floating Social Buttons */}
       {tenant && (
         <FloatingSocialButtons restaurant={restaurant} tenantId={tenant.id} />
-      )}
-
-      {/* Booking Modal */}
-      {showBooking && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.55)' }}
-          onClick={e => { if (e.target === e.currentTarget) { setShowBooking(false); setBookingSuccess(null); } }}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <CalendarCheck className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-                <h2 className="text-lg font-bold text-gray-900">Reserve a Table</h2>
-              </div>
-              <button
-                onClick={() => { setShowBooking(false); setBookingSuccess(null); }}
-                className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-              ><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="px-6 py-5">
-              {bookingSuccess ? (
-                <div className="text-center py-6">
-                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                    <CalendarCheck className="w-8 h-8 text-green-600" />
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">Booking Received!</h3>
-                  <p className="text-gray-500 text-sm mb-1">We'll confirm your reservation shortly.</p>
-                  <p className="text-xs text-gray-400 font-mono">Ref: {bookingSuccess}</p>
-                  <button
-                    onClick={() => { setShowBooking(false); setBookingSuccess(null); }}
-                    className="mt-5 px-6 py-2.5 rounded-full text-sm font-semibold text-white transition-colors"
-                    style={{ background: 'var(--color-primary)' }}
-                  >Done</button>
-                </div>
-              ) : (
-                <form onSubmit={handleBookingSubmit} className="flex flex-col gap-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Your Name *</label>
-                      <input required value={bookingForm.customerName} onChange={e => setBookingForm(f => ({ ...f, customerName: e.target.value }))}
-                        placeholder="Full name" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{'--tw-ring-color':'var(--color-primary)'} as any} />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Phone *</label>
-                      <input required type="tel" value={bookingForm.customerPhone} onChange={e => setBookingForm(f => ({ ...f, customerPhone: e.target.value }))}
-                        placeholder="+91 98765..." className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{'--tw-ring-color':'var(--color-primary)'} as any} />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Email</label>
-                      <input type="email" value={bookingForm.customerEmail} onChange={e => setBookingForm(f => ({ ...f, customerEmail: e.target.value }))}
-                        placeholder="optional" className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{'--tw-ring-color':'var(--color-primary)'} as any} />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Date *</label>
-                      <input required type="date" value={bookingForm.reservationDate}
-                        min={new Date().toISOString().slice(0, 10)}
-                        onChange={e => setBookingForm(f => ({ ...f, reservationDate: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2" style={{'--tw-ring-color':'var(--color-primary)'} as any} />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Time *</label>
-                      <select required value={bookingForm.reservationTime} onChange={e => setBookingForm(f => ({ ...f, reservationTime: e.target.value }))}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 bg-white" style={{'--tw-ring-color':'var(--color-primary)'} as any}>
-                        <option value="">Select time</option>
-                        {Array.from({ length: 25 }, (_, i) => {
-                          const h = Math.floor(i / 2) + 10;
-                          const m = i % 2 === 0 ? '00' : '30';
-                          if (h > 22) return null;
-                          const suffix = h < 12 ? 'AM' : 'PM';
-                          const label = `${h % 12 || 12}:${m} ${suffix}`;
-                          return <option key={`${h}:${m}`} value={`${String(h).padStart(2,'0')}:${m}`}>{label}</option>;
-                        })}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Party Size *</label>
-                      <div className="flex items-center gap-3 border border-gray-300 rounded-lg px-3 py-2.5">
-                        <button type="button" onClick={() => setBookingForm(f => ({ ...f, partySize: Math.max(1, f.partySize - 1) }))}
-                          className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm flex items-center justify-center">−</button>
-                        <span className="flex-1 text-center text-sm font-semibold">{bookingForm.partySize}</span>
-                        <button type="button" onClick={() => setBookingForm(f => ({ ...f, partySize: Math.min(20, f.partySize + 1) }))}
-                          className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm flex items-center justify-center">+</button>
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-semibold text-gray-600 mb-1">Special Requests</label>
-                      <textarea value={bookingForm.notes} onChange={e => setBookingForm(f => ({ ...f, notes: e.target.value }))}
-                        placeholder="Allergies, celebrations, seating preference…" rows={2}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none" style={{'--tw-ring-color':'var(--color-primary)'} as any} />
-                    </div>
-                  </div>
-                  <button type="submit" disabled={bookingSubmitting}
-                    className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-60 transition-opacity"
-                    style={{ background: 'var(--color-primary)' }}>
-                    {bookingSubmitting ? 'Submitting…' : 'Request Reservation'}
-                  </button>
-                </form>
-              )}
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

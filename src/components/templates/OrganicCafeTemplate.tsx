@@ -8,6 +8,7 @@ import { useState, useMemo, useRef } from 'react';
 import { Search, X, Phone, Mail, MapPin, Leaf, Heart } from 'lucide-react';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
+import ReservationWidget from '@/components/ReservationWidget';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, Category } from '@/types';
 
@@ -121,6 +122,17 @@ export default function OrganicCafeTemplate({ restaurant, menuItems, categories,
               <Leaf className="w-3 h-3" /> Fresh · Natural · Wholesome
             </div>
             <h2 className="text-2xl sm:text-4xl font-bold text-[#2c2420] leading-tight">{restaurant.name}</h2>
+            {tenant && (
+              <div className="mt-3">
+                <ReservationWidget
+                  tenantId={tenant.id}
+                  accent="var(--color-primary)"
+                  triggerClassName="inline-flex items-center gap-2 px-5 py-2 rounded-full text-white text-sm font-semibold shadow-sm hover:opacity-90 transition-opacity"
+                  triggerStyle={{ backgroundColor: 'var(--color-primary)' }}
+                  label="Reserve a Table"
+                />
+              </div>
+            )}
           </div>
         </div>
       </section>

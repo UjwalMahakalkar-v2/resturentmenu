@@ -8,6 +8,7 @@ import { useState, useMemo, useRef } from 'react';
 import { Search, X, Phone, Mail, MapPin, Star } from 'lucide-react';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
+import ReservationWidget from '@/components/ReservationWidget';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, Category } from '@/types';
 
@@ -87,11 +88,14 @@ export default function LuxuryDiningTemplate({ restaurant, menuItems, categories
             >
               Menu
             </button>
-            {restaurant.phone && (
-              <a href={`tel:${restaurant.phone}`}
-                className="text-[11px] tracking-[0.15em] uppercase font-medium px-4 py-2 border border-[#1a1612]/20 hover:border-[#1a1612] text-[#1a1612] transition-all hidden sm:block">
-                Reserve
-              </a>
+            {tenant && (
+              <ReservationWidget
+                tenantId={tenant.id}
+                accent="var(--color-primary)"
+                triggerClassName="text-[11px] tracking-[0.15em] uppercase font-medium px-4 py-2 border border-[#1a1612]/20 hover:border-[#1a1612] text-[#1a1612] transition-all hidden sm:block"
+                label="Reserve"
+                showIcon={false}
+              />
             )}
             {restaurant.phone && (
               <a href={`tel:${restaurant.phone}`} className="sm:hidden">
@@ -129,12 +133,15 @@ export default function LuxuryDiningTemplate({ restaurant, menuItems, categories
             >
               View Menu
             </button>
-            {restaurant.phone && (
-              <a href={`tel:${restaurant.phone}`}
-                className="px-8 py-3 text-[11px] tracking-[0.25em] uppercase font-semibold text-[#1a1612]"
-                style={{ backgroundColor: 'var(--color-primary)' }}>
-                Reserve
-              </a>
+            {tenant && (
+              <ReservationWidget
+                tenantId={tenant.id}
+                accent="var(--color-primary)"
+                triggerClassName="px-8 py-3 text-[11px] tracking-[0.25em] uppercase font-semibold text-[#1a1612] transition-opacity hover:opacity-90"
+                triggerStyle={{ backgroundColor: 'var(--color-primary)' }}
+                label="Reserve a Table"
+                showIcon={false}
+              />
             )}
           </div>
         </div>

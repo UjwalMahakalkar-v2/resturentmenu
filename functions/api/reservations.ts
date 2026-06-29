@@ -1,10 +1,27 @@
-import { getDB, queryAll } from '../db';
+import { getDB, queryAll, execute } from '../db';
 import { getTenantIdFromRequest } from '../utils/jwt';
 
 const CORS = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
 };
+
+/**
+ * The admin list LEFT JOINs pos_tables for the assigned table name. Reservations are
+ * offered on every storefront (not just POS tenants), so a non-POS tenant may have no
+ * pos_tables table — which would make the join throw and hide real bookings. Create a
+ * minimal pos_tables if missing so the join always resolves (empty → null table name).
+ */
+async function ensurePosTablesTable(db: any) {
+  try {
+    await execute(db, `CREATE TABLE IF NOT EXISTS pos_tables (
+      id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, section_id TEXT,
+      name TEXT NOT NULL, capacity INTEGER NOT NULL DEFAULT 4,
+      status TEXT NOT NULL DEFAULT 'available', sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+  } catch { /* already exists */ }
+}
 
 export async function onRequestOptions() {
   return new Response(null, {
@@ -40,6 +57,7 @@ export async function onRequestGet(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);
     const db = getDB(context.env);
+    await ensurePosTablesTable(db);
     const url = new URL(context.request.url);
     const date = url.searchParams.get('date');
     const status = url.searchParams.get('status');

@@ -17,11 +17,24 @@ export async function onRequestOptions() {
   });
 }
 
+/** The response SELECT joins pos_tables; ensure it exists so non-POS tenants don't 500. */
+async function ensurePosTablesTable(db: any) {
+  try {
+    await execute(db, `CREATE TABLE IF NOT EXISTS pos_tables (
+      id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, section_id TEXT,
+      name TEXT NOT NULL, capacity INTEGER NOT NULL DEFAULT 4,
+      status TEXT NOT NULL DEFAULT 'available', sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )`);
+  } catch { /* already exists */ }
+}
+
 export async function onRequestPut(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);
     const { id } = context.params;
     const db = getDB(context.env);
+    await ensurePosTablesTable(db);
 
     const existing = await queryFirst(db, 'SELECT * FROM reservations WHERE id = ? AND tenant_id = ?', id, tenantId);
     if (!existing) return new Response(JSON.stringify({ error: 'Reservation not found' }), { status: 404, headers: CORS });

@@ -8,6 +8,7 @@ import { useState, useMemo, useRef } from 'react';
 import { Search, X, Phone, Mail, MapPin, Star, Heart, UtensilsCrossed } from 'lucide-react';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
+import ReservationWidget from '@/components/ReservationWidget';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, Category } from '@/types';
 
@@ -117,14 +118,25 @@ export default function PremiumDarkTemplate({ restaurant, menuItems, categories,
           <p className="text-xs tracking-[0.3em] uppercase mb-4" style={{ color: accent }}>Welcome to</p>
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-4">{restaurant.name}</h1>
           <p className="text-white/60 text-base sm:text-xl max-w-xl mb-8">{restaurant.tagline || 'An Exclusive Dining Experience'}</p>
-          <button
-            onClick={() => menuRef.current?.scrollIntoView({ behavior: 'smooth' })}
-            className="px-8 py-3 border-2 text-sm font-medium tracking-wider uppercase hover:bg-white hover:text-black transition-all duration-300"
-            style={{ borderColor: accent, color: accent }}
-            onMouseEnter={e => { e.currentTarget.style.backgroundColor = String(accent).replace('var(--color-primary)', ''); }}
-          >
-            Explore Menu
-          </button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => menuRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              className="px-8 py-3 border-2 text-sm font-medium tracking-wider uppercase hover:bg-white hover:text-black transition-all duration-300"
+              style={{ borderColor: accent, color: accent }}
+            >
+              Explore Menu
+            </button>
+            {tenant && (
+              <ReservationWidget
+                tenantId={tenant.id}
+                accent="var(--color-primary)"
+                triggerClassName="px-8 py-3 text-sm font-medium tracking-wider uppercase transition-opacity hover:opacity-90"
+                triggerStyle={{ backgroundColor: accent, color: '#0a0a0a' }}
+                label="Reserve a Table"
+                showIcon={false}
+              />
+            )}
+          </div>
         </div>
       </section>
 
