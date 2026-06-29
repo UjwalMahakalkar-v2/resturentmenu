@@ -45,7 +45,7 @@ export default function CategorySelection({ categories, onCategorySelect }: Cate
         {/* Category Grid — 2 cols always on mobile, 2-3 on tablet+ */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {sortedCategories.map((category) => {
-            const image = categoryImages[category.id] || DEFAULT_IMAGE;
+            const image = category.image || categoryImages[category.id] || DEFAULT_IMAGE;
 
             return (
               <button

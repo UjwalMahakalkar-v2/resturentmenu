@@ -34,6 +34,7 @@ export interface Category {
   name: string;
   order: number;
   icon?: string;
+  image?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

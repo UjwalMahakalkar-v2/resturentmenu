@@ -306,6 +306,9 @@ export default function AdminDashboard() {
                   onAdd={async (cat) => {
                     await addCategory(cat as Omit<TenantCategory, 'id' | 'tenantId'>);
                   }}
+                  onUpdate={async (id, patch) => {
+                    await updateCategory(id, patch);
+                  }}
                   onDelete={handleDeleteCategory}
                   onReorder={handleReorderCategories}
                 />

@@ -143,6 +143,7 @@ export interface TenantCategory extends TenantResource {
   order: number;
   icon?: string;
   description?: string;
+  image?: string;
 }
 
 export interface TenantRestaurant extends TenantResource {
