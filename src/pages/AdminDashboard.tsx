@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   LogOut, Plus, Settings, BarChart2, QrCode,
-  Upload, Download, GripVertical, Package, Briefcase, ShoppingCart,
+  Upload, Download, GripVertical, Package, Briefcase, ShoppingCart, CalendarClock,
 } from 'lucide-react';
 import { useMenuItems, useCategories } from '@/hooks/useMenu';
 import MenuItemForm from '@/components/MenuItemForm';
@@ -15,13 +15,14 @@ import CategoryManager from '@/components/admin/CategoryManager';
 import MenuByCategory from '@/components/admin/MenuByCategory';
 import ManagementDashboard from '@/components/management/ManagementDashboard';
 import POSDashboard from '@/components/pos/POSDashboard';
+import ReservationManager from '@/components/reservations/ReservationManager';
 import api from '@/services/api';
 import { restaurantSettingsAPI } from '@/services/api';
 import { applyTheme } from '@/contexts/ThemeContext';
 import type { TenantMenuItem, TenantCategory } from '@/types/tenant';
 import toast from 'react-hot-toast';
 
-type Tab = 'menu' | 'categories' | 'analytics' | 'qrcode' | 'settings' | 'management' | 'pos';
+type Tab = 'menu' | 'categories' | 'analytics' | 'qrcode' | 'settings' | 'management' | 'pos' | 'reservations';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -183,6 +184,7 @@ export default function AdminDashboard() {
     { id: 'settings', label: 'Settings', icon: <Settings className="w-4 h-4" /> },
     { id: 'management', label: 'Management', icon: <Briefcase className="w-4 h-4" /> },
     { id: 'pos', label: 'POS', icon: <ShoppingCart className="w-4 h-4" /> },
+    { id: 'reservations', label: 'Reservations', icon: <CalendarClock className="w-4 h-4" /> },
   ];
 
   return (
@@ -340,6 +342,9 @@ export default function AdminDashboard() {
 
             {/* ── POS TAB ── */}
             {activeTab === 'pos' && <POSDashboard />}
+
+            {/* ── RESERVATIONS TAB ── */}
+            {activeTab === 'reservations' && <ReservationManager />}
           </div>
         </div>
       </div>

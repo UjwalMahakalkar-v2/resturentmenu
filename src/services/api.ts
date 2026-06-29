@@ -282,4 +282,39 @@ export const posAPI = {
   },
 };
 
+// Reservations API (admin — authenticated)
+export const reservationsAPI = {
+  getAll: async (params?: { date?: string; status?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.date)   q.set('date', params.date);
+    if (params?.status) q.set('status', params.status);
+    const response = await api.get(`/reservations${q.toString() ? '?' + q.toString() : ''}`);
+    return response.data;
+  },
+  update: async (id: string, data: Record<string, any>) => {
+    const response = await api.put(`/reservations/${id}`, data);
+    return response.data;
+  },
+  delete: async (id: string) => {
+    await api.delete(`/reservations/${id}`);
+  },
+};
+
+// Public Reservations API (no auth — customer-facing)
+export const publicReservationsAPI = {
+  create: async (data: {
+    tenantId: string;
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    reservationDate: string;
+    reservationTime: string;
+    partySize: number;
+    notes?: string;
+  }) => {
+    const response = await axios.post(`${API_BASE_URL}/public/reservations`, data);
+    return response.data;
+  },
+};
+
 export default api;
