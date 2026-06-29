@@ -8,8 +8,17 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import SuperAdminLogin from './pages/SuperAdminLogin';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import { getTenantSubdomainHost } from './utils/tenantHost';
 
 const DEFAULT_SLUG = import.meta.env.VITE_DEFAULT_SLUG as string | undefined;
+
+// When the app is served from a tenant subdomain (pizza.menumate.in), the root path
+// IS that tenant's storefront — render Menu (it resolves the tenant by host).
+function RootRoute() {
+  if (getTenantSubdomainHost()) return <Menu />;
+  if (DEFAULT_SLUG) return <Navigate to={`/${DEFAULT_SLUG}`} replace />;
+  return <LandingPage />;
+}
 
 function App() {
   return (
@@ -39,15 +48,8 @@ function App() {
           }}
         />
         <Routes>
-          {/* Root: redirect to default tenant slug if configured, else show landing */}
-          <Route
-            path="/"
-            element={
-              DEFAULT_SLUG
-                ? <Navigate to={`/${DEFAULT_SLUG}`} replace />
-                : <LandingPage />
-            }
-          />
+          {/* Root: tenant subdomain -> that tenant's menu; else default slug or landing */}
+          <Route path="/" element={<RootRoute />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/super-admin/login" element={<SuperAdminLogin />} />

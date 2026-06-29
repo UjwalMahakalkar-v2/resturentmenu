@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { publicAPI } from '@/services/api';
 import { applyTheme } from '@/contexts/ThemeContext';
+import { getTenantSubdomainHost } from '@/utils/tenantHost';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import SearchBar from '@/components/SearchBar';
@@ -54,14 +55,19 @@ export default function Menu() {
   // All theme/template/data state is set together before loading flips false, so the
   // page never renders the default template before the tenant's real theme is known.
   useEffect(() => {
-    if (!tenantSlug) { setLoading(false); return; }
+    // Path-based access uses the /:tenantSlug param; subdomain access (pizza.menumate.in)
+    // has no slug, so fall back to resolving the tenant by the current host.
+    const subdomainHost = tenantSlug ? null : getTenantSubdomainHost();
+    if (!tenantSlug && !subdomainHost) { setLoading(false); return; }
     let cancelled = false;
     // initial=true shows the full-screen loader (gates the first paint until the
     // tenant's template/theme are known — prevents flashing the default template).
     // Background refreshes (admin edit events) refresh data silently, no blank screen.
     const load = async (initial = false) => {
       if (initial) setLoading(true);
-      const data = await publicAPI.getBootstrap(tenantSlug);
+      const data = await publicAPI.getBootstrap(
+        tenantSlug ? { slug: tenantSlug } : { subdomain: subdomainHost! },
+      );
       if (cancelled) return;
       if (!data || !data.tenant) { setLoading(false); return; }
       setTenant(data.tenant);

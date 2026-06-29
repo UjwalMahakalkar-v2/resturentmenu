@@ -1,4 +1,5 @@
 import { getDB, queryFirst, queryAll } from '../../db';
+import { resolveTenantRow } from '../../utils/tenant';
 
 /**
  * Combined public bootstrap for the customer menu page.
@@ -62,13 +63,7 @@ export async function onRequestGet(context: any) {
 
     const db = getDB(context.env);
 
-    let tenant: any = null;
-    if (slug) {
-      tenant = await queryFirst(db, "SELECT * FROM tenants WHERE slug = ? AND status != 'deleted'", slug);
-      if (!tenant) tenant = await queryFirst(db, "SELECT * FROM tenants WHERE subdomain = ? AND status != 'deleted'", slug);
-    } else if (subdomain) {
-      tenant = await queryFirst(db, "SELECT * FROM tenants WHERE subdomain = ? AND status != 'deleted'", subdomain);
-    }
+    const tenant = await resolveTenantRow(db, { slug, subdomain });
 
     if (!tenant) {
       return new Response(JSON.stringify({ error: 'Tenant not found' }), { status: 404, headers: CORS });

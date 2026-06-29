@@ -107,10 +107,15 @@ export const authAPI = {
 
 // Public API — no auth required, used by customer-facing menu page
 export const publicAPI = {
-  // Single combined call for the storefront: tenant + settings + categories + menu
-  getBootstrap: async (slug: string): Promise<{ tenant: any; settings: any; categories: any[]; menu: any[] } | null> => {
+  // Single combined call for the storefront: tenant + settings + categories + menu.
+  // Resolve by slug (path-based access) or subdomain (subdomain-based access).
+  getBootstrap: async (params: { slug?: string; subdomain?: string }): Promise<{ tenant: any; settings: any; categories: any[]; menu: any[] } | null> => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/public/bootstrap?slug=${encodeURIComponent(slug)}&_t=${Date.now()}`);
+      const q = new URLSearchParams();
+      if (params.slug) q.set('slug', params.slug);
+      if (params.subdomain) q.set('subdomain', params.subdomain);
+      q.set('_t', String(Date.now()));
+      const response = await axios.get(`${API_BASE_URL}/public/bootstrap?${q.toString()}`);
       return response.data;
     } catch {
       return null;
