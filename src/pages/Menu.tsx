@@ -12,6 +12,7 @@ import CategorySelection from '@/components/CategorySelection';
 import MenuCard from '@/components/MenuCard';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
+import AnnouncementBar from '@/components/AnnouncementBar';
 import ModernBistroTemplate from '@/components/templates/ModernBistroTemplate';
 import PremiumDarkTemplate from '@/components/templates/PremiumDarkTemplate';
 import StreetFoodTemplate from '@/components/templates/StreetFoodTemplate';
@@ -159,69 +160,88 @@ export default function Menu() {
     );
   }
 
+  // Announcement bar renders above every template; self-gates (returns null when inactive)
+  const announcementEl = <AnnouncementBar announcement={restaurant.announcement} />;
+
   // ── Template 2: Modern Bistro ──
   if (template === 'modern-bistro') {
     return (
-      <ModernBistroTemplate
-        restaurant={restaurant}
-        menuItems={menuItems}
-        categories={categories}
-        tenant={tenant}
-      />
+      <>
+        {announcementEl}
+        <ModernBistroTemplate
+          restaurant={restaurant}
+          menuItems={menuItems}
+          categories={categories}
+          tenant={tenant}
+        />
+      </>
     );
   }
 
   // ── Template 3: Premium Dark ──
   if (template === 'premium-dark') {
     return (
-      <PremiumDarkTemplate
-        restaurant={restaurant}
-        menuItems={menuItems}
-        categories={categories}
-        tenant={tenant}
-      />
+      <>
+        {announcementEl}
+        <PremiumDarkTemplate
+          restaurant={restaurant}
+          menuItems={menuItems}
+          categories={categories}
+          tenant={tenant}
+        />
+      </>
     );
   }
 
   // ── Template 4: Street Food ──
   if (template === 'street-food') {
     return (
-      <StreetFoodTemplate
-        restaurant={restaurant}
-        menuItems={menuItems}
-        categories={categories}
-        tenant={tenant}
-      />
+      <>
+        {announcementEl}
+        <StreetFoodTemplate
+          restaurant={restaurant}
+          menuItems={menuItems}
+          categories={categories}
+          tenant={tenant}
+        />
+      </>
     );
   }
 
   // ── Template 5: Organic Cafe ──
   if (template === 'organic-cafe') {
     return (
-      <OrganicCafeTemplate
-        restaurant={restaurant}
-        menuItems={menuItems}
-        categories={categories}
-        tenant={tenant}
-      />
+      <>
+        {announcementEl}
+        <OrganicCafeTemplate
+          restaurant={restaurant}
+          menuItems={menuItems}
+          categories={categories}
+          tenant={tenant}
+        />
+      </>
     );
   }
 
   // ── Template 6: Luxury Dining ──
   if (template === 'luxury-dining') {
     return (
-      <LuxuryDiningTemplate
-        restaurant={restaurant}
-        menuItems={menuItems}
-        categories={categories}
-        tenant={tenant}
-      />
+      <>
+        {announcementEl}
+        <LuxuryDiningTemplate
+          restaurant={restaurant}
+          menuItems={menuItems}
+          categories={categories}
+          tenant={tenant}
+        />
+      </>
     );
   }
 
   // ── Template 1: Classic (default) ──
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--color-bg)' }}>
+      {announcementEl}
       <Header restaurant={restaurant} />
       <Hero restaurant={restaurant} onViewMenu={scrollToMenu} />
 

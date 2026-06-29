@@ -100,6 +100,8 @@ CREATE TABLE IF NOT EXISTS restaurant_settings (
   theme           TEXT,
   -- Template: 'classic' | 'modern-bistro' | 'premium-dark'
   template        TEXT DEFAULT 'classic',
+  -- Announcement bar config stored as JSON string
+  announcement    TEXT,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE

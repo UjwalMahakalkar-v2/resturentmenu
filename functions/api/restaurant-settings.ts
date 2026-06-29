@@ -37,6 +37,7 @@ function rowToSettings(r: any) {
     clickRetentionDays: r.click_retention_days ?? 30,
     theme: themeObj,
     template,
+    announcement: r.announcement ? JSON.parse(r.announcement) : null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -57,11 +58,21 @@ async function ensureTemplateColumn(db: any): Promise<boolean> {
   }
 }
 
+/** Self-heal: add the announcement column on older DBs. Safe to call repeatedly. */
+async function ensureAnnouncementColumn(db: any): Promise<void> {
+  try {
+    await execute(db, 'ALTER TABLE restaurant_settings ADD COLUMN announcement TEXT');
+  } catch {
+    // Column already exists — ignore
+  }
+}
+
 export async function onRequestGet(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);
     const db = getDB(context.env);
     await ensureTemplateColumn(db);
+    await ensureAnnouncementColumn(db);
     const row = await queryFirst(db, 'SELECT * FROM restaurant_settings WHERE tenant_id = ?', tenantId);
     return new Response(JSON.stringify(row ? rowToSettings(row) : {}), { headers: CORS });
   } catch (error) {
@@ -76,6 +87,7 @@ export async function onRequestPut(context: any) {
     const body = await context.request.json();
     const db = getDB(context.env);
     await ensureTemplateColumn(db);
+    await ensureAnnouncementColumn(db);
     const now = new Date().toISOString();
 
     const existing = await queryFirst(db, 'SELECT id FROM restaurant_settings WHERE tenant_id = ?', tenantId);
@@ -119,6 +131,7 @@ export async function onRequestPut(context: any) {
       if (body.clickRetentionDays !== undefined) { setClauses.push('click_retention_days = ?'); values.push(Number(body.clickRetentionDays) || 30); }
       // theme always carries _tmpl as fallback; update theme first (guaranteed to work)
       if (body.theme !== undefined || body.template !== undefined) { setClauses.push('theme = ?'); values.push(themeStr); }
+      if (body.announcement !== undefined) { setClauses.push('announcement = ?'); values.push(JSON.stringify(body.announcement)); }
 
       values.push(tenantId);
       await execute(db, `UPDATE restaurant_settings SET ${setClauses.join(', ')} WHERE tenant_id = ?`, ...values);
@@ -149,6 +162,12 @@ export async function onRequestPut(context: any) {
       try {
         await execute(db, 'UPDATE restaurant_settings SET template = ? WHERE tenant_id = ?', body.template || 'classic', tenantId);
       } catch { /* column doesn't exist — _tmpl in theme JSON handles it */ }
+      // Persist announcement on the freshly inserted row (column ensured above)
+      if (body.announcement !== undefined) {
+        try {
+          await execute(db, 'UPDATE restaurant_settings SET announcement = ? WHERE tenant_id = ?', JSON.stringify(body.announcement), tenantId);
+        } catch { /* column missing on very old DB — ignore */ }
+      }
     }
 
     const saved = await queryFirst(db, 'SELECT * FROM restaurant_settings WHERE tenant_id = ?', tenantId);

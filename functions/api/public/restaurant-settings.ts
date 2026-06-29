@@ -30,6 +30,7 @@ function rowToSettings(r: any) {
     clickRetentionDays: r.click_retention_days ?? 30,
     theme: themeObj,
     template,
+    announcement: r.announcement ? JSON.parse(r.announcement) : null,
   };
 }
 
@@ -40,6 +41,11 @@ export async function onRequestOptions() {
 async function ensureTemplateColumn(db: any) {
   try {
     await execute(db, "ALTER TABLE restaurant_settings ADD COLUMN template TEXT DEFAULT 'classic'");
+  } catch {
+    // Column already exists — ignore
+  }
+  try {
+    await execute(db, 'ALTER TABLE restaurant_settings ADD COLUMN announcement TEXT');
   } catch {
     // Column already exists — ignore
   }

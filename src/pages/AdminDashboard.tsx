@@ -10,6 +10,7 @@ import RestaurantSettings from '@/components/RestaurantSettings';
 import ThemeSettings from '@/components/ThemeSettings';
 import AnalyticsTab from '@/components/AnalyticsTab';
 import SocialLinksSettings from '@/components/admin/SocialLinksSettings';
+import AnnouncementSettings from '@/components/AnnouncementSettings';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
 import CategoryManager from '@/components/admin/CategoryManager';
 import MenuByCategory from '@/components/admin/MenuByCategory';
@@ -333,6 +334,7 @@ export default function AdminDashboard() {
               <div className="space-y-8">
                 <RestaurantSettings />
                 <SocialLinksSettings />
+                <AnnouncementSettings />
                 <ThemeSettings />
               </div>
             )}

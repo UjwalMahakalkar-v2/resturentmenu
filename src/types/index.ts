@@ -12,6 +12,22 @@ export interface RestaurantTheme {
   buttonStyle?: 'rounded' | 'pill' | 'square';
 }
 
+export type AnnouncementType = 'offer' | 'information' | 'warning' | 'event';
+export type AnnouncementSpeed = 'slow' | 'medium' | 'fast';
+
+export interface AnnouncementBar {
+  enabled?: boolean;
+  text?: string;
+  type?: AnnouncementType;
+  backgroundColor?: string;
+  textColor?: string;
+  speed?: AnnouncementSpeed;
+  link?: string;
+  buttonText?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface Category {
   _id?: string;
   id: string;
@@ -61,6 +77,7 @@ export interface Restaurant {
   clickRetentionDays?: number;
   theme?: RestaurantTheme;
   template?: MenuTemplate;
+  announcement?: AnnouncementBar;
   socialAnalytics?: {
     whatsappClicks: number;
     instagramClicks: number;
