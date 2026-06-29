@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { DollarSign, CheckCircle, Clock, RefreshCw, ChevronDown, ChevronUp, Users, FileText } from 'lucide-react';
-import { staffAPI, payrollAPI } from '@/services/api';
+import { staffAPI, payrollAPI, attendanceAPI } from '@/services/api';
 import type { Staff, Payroll } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -30,6 +30,22 @@ function GenerateModal({ staff, month, existing, onClose, onDone }: GenerateModa
     notes: existing?.notes ?? '',
   });
   const [saving, setSaving] = useState(false);
+  const [att, setAtt] = useState({ present: 0, absent: 0, half_day: 0, leave: 0, loading: true });
+
+  // Load this staff's attendance for the selected month to show a present/absent breakdown
+  useEffect(() => {
+    const [y, mo] = month.split('-').map(Number);
+    const days = new Date(y, mo, 0).getDate();
+    const from = `${month}-01`;
+    const to = `${month}-${String(days).padStart(2, '0')}`;
+    attendanceAPI.getByRange(from, to, staff.id)
+      .then((rows: any[]) => {
+        const c = { present: 0, absent: 0, half_day: 0, leave: 0 };
+        rows.forEach(r => { if (r.status in c) c[r.status as keyof typeof c]++; });
+        setAtt({ ...c, loading: false });
+      })
+      .catch(() => setAtt(a => ({ ...a, loading: false })));
+  }, [month, staff.id]);
 
   const absentDed = existing?.absentDeduction ?? 0;
   const final = Math.max(0, Number(form.baseSalary) + Number(form.overtimeAmount) - absentDed - Number(form.advanceDeduction));
@@ -67,6 +83,23 @@ function GenerateModal({ staff, month, existing, onClose, onDone }: GenerateModa
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl">✕</button>
         </div>
         <div className="p-4 space-y-3">
+          {/* Attendance breakdown for the month */}
+          <div>
+            <p className="text-xs font-medium text-gray-600 mb-1.5">Attendance — {monthLabel(month)}</p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: 'Present',  value: att.present,  cls: 'bg-green-50 text-green-700' },
+                { label: 'Absent',   value: att.absent,   cls: 'bg-red-50 text-red-700' },
+                { label: 'Half-day', value: att.half_day, cls: 'bg-amber-50 text-amber-700' },
+                { label: 'Leave',    value: att.leave,    cls: 'bg-blue-50 text-blue-700' },
+              ].map(x => (
+                <div key={x.label} className={`rounded-lg py-2 text-center ${x.cls}`}>
+                  <p className="text-lg font-bold leading-none">{att.loading ? '–' : x.value}</p>
+                  <p className="text-[10px] font-medium mt-1">{x.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
           <div>
             <label className="text-xs font-medium text-gray-600">Base Salary (₹)</label>
             <input
