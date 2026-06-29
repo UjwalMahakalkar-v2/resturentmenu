@@ -1,14 +1,22 @@
 import { useState, useEffect } from 'react';
-import { History, Settings, Lock, ShoppingCart } from 'lucide-react';
+import { BarChart2, History, Settings, Lock, ShoppingCart } from 'lucide-react';
 import { posAPI } from '@/services/api';
 import POSTerminal from './POSTerminal';
 import POSOrderHistory from './POSOrderHistory';
 import POSSettings from './POSSettings';
+import POSAnalyticsDashboard from './POSAnalyticsDashboard';
 
-type POSView = 'terminal' | 'history' | 'settings';
+type POSView = 'dashboard' | 'terminal' | 'history' | 'settings';
+
+const TABS: { id: POSView; label: string; icon: React.ReactNode }[] = [
+  { id:'dashboard', label:'Dashboard',     icon:<BarChart2    className="w-4 h-4" /> },
+  { id:'terminal',  label:'POS Terminal',  icon:<ShoppingCart className="w-4 h-4" /> },
+  { id:'history',   label:'Order History', icon:<History      className="w-4 h-4" /> },
+  { id:'settings',  label:'POS Settings',  icon:<Settings     className="w-4 h-4" /> },
+];
 
 export default function POSDashboard() {
-  const [posView, setPosView] = useState<POSView>('terminal');
+  const [posView, setPosView] = useState<POSView>('dashboard');
   const [posEnabled, setPosEnabled] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,21 +44,16 @@ export default function POSDashboard() {
     );
   }
 
-  /* When terminal is active, render full-screen overlay */
+  /* POS Terminal is full-screen */
   if (posView === 'terminal') {
-    return <POSTerminal onExit={() => setPosView('history')} />;
+    return <POSTerminal onExit={() => setPosView('dashboard')} />;
   }
 
-  /* History / Settings sub-tabs */
   return (
     <div>
       <div className="border-b border-gray-200 mb-5">
         <div className="flex gap-1">
-          {([
-            { id:'terminal' as POSView, label:'Terminal', icon:<ShoppingCart className="w-4 h-4" /> },
-            { id:'history'  as POSView, label:'Order History', icon:<History className="w-4 h-4" /> },
-            { id:'settings' as POSView, label:'POS Settings', icon:<Settings className="w-4 h-4" /> },
-          ]).map(tab => (
+          {TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => setPosView(tab.id)}
@@ -65,8 +68,10 @@ export default function POSDashboard() {
           ))}
         </div>
       </div>
-      {posView === 'history'  && <POSOrderHistory />}
-      {posView === 'settings' && <POSSettings />}
+
+      {posView === 'dashboard' && <POSAnalyticsDashboard />}
+      {posView === 'history'   && <POSOrderHistory />}
+      {posView === 'settings'  && <POSSettings />}
     </div>
   );
 }
