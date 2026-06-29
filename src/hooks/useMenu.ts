@@ -1,56 +1,7 @@
 import { useState, useEffect } from 'react';
-import { publicAPI, menuAPI, categoryAPI } from '@/services/api';
+import { menuAPI, categoryAPI } from '@/services/api';
 import type { TenantMenuItem, TenantCategory } from '@/types/tenant';
 import toast from 'react-hot-toast';
-
-export const useMenu = (tenantId?: string) => {
-  const [menuItems, setMenuItems] = useState<TenantMenuItem[]>([]);
-  const [categories, setCategories] = useState<TenantCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchMenu = async () => {
-    if (!tenantId) {
-      setLoading(false);
-      return;
-    }
-    try {
-      setLoading(true);
-      const [items, cats] = await Promise.all([
-        publicAPI.getMenuItems(tenantId),
-        publicAPI.getCategories(tenantId),
-      ]);
-      setMenuItems(items as TenantMenuItem[]);
-      setCategories(cats as TenantCategory[]);
-      setError(null);
-    } catch (err) {
-      setError('Failed to fetch menu data');
-      console.error(err);
-      toast.error('Failed to load menu');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMenu();
-
-    const handleMenuUpdate = () => {
-      fetchMenu();
-    };
-
-    window.addEventListener('menu-updated', handleMenuUpdate);
-    return () => window.removeEventListener('menu-updated', handleMenuUpdate);
-  }, [tenantId]);
-
-  return {
-    menuItems,
-    categories,
-    loading,
-    error,
-    refetch: fetchMenu,
-  };
-};
 
 export const useCategories = (_tenantId?: string) => {
   const [categories, setCategories] = useState<TenantCategory[]>([]);

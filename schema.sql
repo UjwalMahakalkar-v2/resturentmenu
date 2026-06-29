@@ -268,6 +268,26 @@ CREATE TABLE IF NOT EXISTS pos_order_items (
   FOREIGN KEY (tenant_id) REFERENCES tenants(id)     ON DELETE CASCADE
 );
 
+-- ── Reservations / Table Booking ──────────────────────────────
+CREATE TABLE IF NOT EXISTS reservations (
+  id               TEXT PRIMARY KEY,
+  tenant_id        TEXT NOT NULL,
+  customer_name    TEXT NOT NULL,
+  customer_phone   TEXT NOT NULL,
+  customer_email   TEXT,
+  reservation_date TEXT NOT NULL,
+  reservation_time TEXT NOT NULL,
+  party_size       INTEGER NOT NULL DEFAULT 2,
+  table_id         TEXT,
+  status           TEXT NOT NULL DEFAULT 'pending',
+  notes            TEXT,
+  created_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at       TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_reservations_tenant   ON reservations(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_date     ON reservations(tenant_id, reservation_date);
+
 CREATE INDEX IF NOT EXISTS idx_pos_settings_tenant    ON pos_settings(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_pos_sections_tenant    ON pos_sections(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_pos_tables_tenant      ON pos_tables(tenant_id);

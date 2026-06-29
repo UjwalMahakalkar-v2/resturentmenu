@@ -107,6 +107,16 @@ export const authAPI = {
 
 // Public API — no auth required, used by customer-facing menu page
 export const publicAPI = {
+  // Single combined call for the storefront: tenant + settings + categories + menu
+  getBootstrap: async (slug: string): Promise<{ tenant: any; settings: any; categories: any[]; menu: any[] } | null> => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/public/bootstrap?slug=${encodeURIComponent(slug)}&_t=${Date.now()}`);
+      return response.data;
+    } catch {
+      return null;
+    }
+  },
+
   getTenantBySlug: async (slug: string): Promise<{ id: string; name: string; slug: string; subdomain?: string; status: string } | null> => {
     try {
       const response = await axios.get(`${API_BASE_URL}/public/tenant?slug=${encodeURIComponent(slug)}`);

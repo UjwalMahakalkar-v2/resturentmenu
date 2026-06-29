@@ -1,7 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useMenu } from '@/hooks/useMenu';
-import { restaurantService } from '@/services/restaurantService';
 import { publicAPI } from '@/services/api';
 import { applyTheme } from '@/contexts/ThemeContext';
 import Header from '@/components/Header';
@@ -20,13 +18,26 @@ import OrganicCafeTemplate from '@/components/templates/OrganicCafeTemplate';
 import LuxuryDiningTemplate from '@/components/templates/LuxuryDiningTemplate';
 import { Loader2, ArrowLeft, Search, X } from 'lucide-react';
 import ReservationWidget from '@/components/ReservationWidget';
-import type { TenantMenuItem } from '@/types/tenant';
+import type { TenantMenuItem, TenantCategory } from '@/types/tenant';
 import type { Restaurant, MenuTemplate } from '@/types';
+
+const DEFAULT_RESTAURANT: Restaurant = {
+  name: 'Restaurant',
+  tagline: 'Delicious food, served with love',
+  logo: '',
+  heroImage: '',
+  phone: '',
+  email: '',
+  location: '',
+  about: 'Welcome to our restaurant.',
+};
 
 export default function Menu() {
   const { tenantSlug } = useParams();
   const [tenant, setTenant] = useState<{ id: string; name: string } | null>(null);
-  const { menuItems, categories, loading } = useMenu(tenant?.id);
+  const [menuItems, setMenuItems] = useState<TenantMenuItem[]>([]);
+  const [categories, setCategories] = useState<TenantCategory[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('');
@@ -35,50 +46,40 @@ export default function Menu() {
   const [showCategorySelection, setShowCategorySelection] = useState(true);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [template, setTemplate] = useState<MenuTemplate>('classic');
-  const [restaurant, setRestaurant] = useState<Restaurant>({
-    name: '',
-    tagline: '',
-    logo: '',
-    heroImage: '',
-    phone: '',
-    email: '',
-    location: '',
-    about: '',
-  });
+  const [restaurant, setRestaurant] = useState<Restaurant>(DEFAULT_RESTAURANT);
   const menuSectionRef = useRef<HTMLDivElement>(null);
   const mobileSearchRef = useRef<HTMLInputElement>(null);
 
-  // Load tenant by slug
+  // Single combined bootstrap: tenant + settings + categories + menu in one request.
+  // All theme/template/data state is set together before loading flips false, so the
+  // page never renders the default template before the tenant's real theme is known.
   useEffect(() => {
-    if (!tenantSlug) return;
-    publicAPI.getTenantBySlug(tenantSlug)
-      .then(t => setTenant(t))
-      .catch(console.error);
-  }, [tenantSlug]);
-
-  // Load restaurant settings + apply theme (only when we have a real tenantId)
-  useEffect(() => {
-    if (!tenant?.id) return;
+    if (!tenantSlug) { setLoading(false); return; }
+    let cancelled = false;
     const load = async () => {
-      const r = await restaurantService.get(tenant.id);
+      setLoading(true);
+      const data = await publicAPI.getBootstrap(tenantSlug);
+      if (cancelled) return;
+      if (!data || !data.tenant) { setLoading(false); return; }
+      setTenant(data.tenant);
+      const r: Restaurant = { ...DEFAULT_RESTAURANT, ...(data.settings || {}) };
       setRestaurant(r);
       if (r.theme) applyTheme(r.theme);
       if (r.template) setTemplate(r.template);
+      setMenuItems((data.menu || []) as TenantMenuItem[]);
+      setCategories((data.categories || []) as TenantCategory[]);
+      setLoading(false);
     };
     load();
-  }, [tenant?.id]);
-
-  useEffect(() => {
-    if (!tenant?.id) return;
-    const handleUpdate = async () => {
-      const r = await restaurantService.get(tenant.id);
-      setRestaurant(r);
-      if (r.theme) applyTheme(r.theme);
-      if (r.template) setTemplate(r.template);
+    const onUpdate = () => load();
+    window.addEventListener('restaurant-updated', onUpdate);
+    window.addEventListener('menu-updated', onUpdate);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('restaurant-updated', onUpdate);
+      window.removeEventListener('menu-updated', onUpdate);
     };
-    window.addEventListener('restaurant-updated', handleUpdate);
-    return () => window.removeEventListener('restaurant-updated', handleUpdate);
-  }, [tenant?.id]);
+  }, [tenantSlug]);
 
   // Auto-focus mobile search input when opened
   useEffect(() => {
