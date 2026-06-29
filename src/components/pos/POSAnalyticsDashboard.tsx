@@ -137,55 +137,73 @@ interface OrderRow {
   subtotal: number;
   discountAmount: number;
   gstAmount: number;
+  tableName: string | null;
+  tableId: string | null;
   items: { menuItemId: string; name: string; price: number; quantity: number }[];
   createdAt: string;
 }
 
 function buildSeries(orders: OrderRow[], range: Range) {
   const now = new Date();
+
   if (range === 'today') {
-    const hours = Array.from({length:12}, (_,i) => i+11); // 11am–10pm
-    const labels = ['11a','12p','1p','2p','3p','4p','5p','6p','7p','8p','9p','10p'];
-    const rev  = new Array(12).fill(0);
+    // 12 two-hour buckets covering full 24h: 0-1→"12a", 2-3→"2a", ..., 22-23→"10p"
+    const labels = ['12a','2a','4a','6a','8a','10a','12p','2p','4p','6p','8p','10p'];
+    const rev   = new Array(12).fill(0);
     const bills = new Array(12).fill(0);
     orders.forEach(o => {
       const h = new Date(o.createdAt).getHours();
-      const idx = hours.indexOf(h);
-      if (idx < 0) return;
+      const idx = Math.floor(h / 2); // 0-1→0, 2-3→1, …, 22-23→11
       rev[idx]   += o.totalAmount;
       bills[idx] += 1;
     });
     return { labels, rev, bills };
   }
+
   if (range === '7d') {
-    const labels = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const rev  = new Array(7).fill(0);
+    // Last 7 calendar days as ordered slots: oldest first, today last
+    const today = new Date(now); today.setHours(0,0,0,0);
+    const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const labels: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today); d.setDate(d.getDate() - i);
+      labels.push(DAY_NAMES[d.getDay()]);
+    }
+    const rev   = new Array(7).fill(0);
     const bills = new Array(7).fill(0);
     orders.forEach(o => {
-      const d = new Date(o.createdAt);
-      const dow = (d.getDay() + 6) % 7; // Mon=0
-      rev[dow]   += o.totalAmount;
-      bills[dow] += 1;
+      const d = new Date(o.createdAt); d.setHours(0,0,0,0);
+      const diffDays = Math.round((today.getTime() - d.getTime()) / 86400000);
+      if (diffDays >= 0 && diffDays <= 6) {
+        const idx = 6 - diffDays; // today → idx 6
+        rev[idx]   += o.totalAmount;
+        bills[idx] += 1;
+      }
     });
     return { labels, rev, bills };
   }
+
   if (range === '30d') {
-    const labels = ['W1','W2','W3','W4','W5'];
-    const rev  = new Array(5).fill(0);
-    const bills = new Array(5).fill(0);
+    // Last 30 days split into 6 blocks of 5 days: oldest first
+    const labels = ['1-5','6-10','11-15','16-20','21-25','26-30'];
+    const rev   = new Array(6).fill(0);
+    const bills = new Array(6).fill(0);
+    const today = new Date(now); today.setHours(0,0,0,0);
     orders.forEach(o => {
-      const d = new Date(o.createdAt);
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const dayN = Math.floor((d.getTime() - startOfMonth.getTime()) / 86400000);
-      const w = Math.min(4, Math.floor(dayN / 7));
-      rev[w]   += o.totalAmount;
-      bills[w] += 1;
+      const d = new Date(o.createdAt); d.setHours(0,0,0,0);
+      const diffDays = Math.round((today.getTime() - d.getTime()) / 86400000);
+      if (diffDays >= 0 && diffDays < 30) {
+        const idx = 5 - Math.floor(diffDays / 5); // most recent → idx 5
+        rev[idx]   += o.totalAmount;
+        bills[idx] += 1;
+      }
     });
     return { labels, rev, bills };
   }
-  // year
+
+  // year: 12 months
   const mos = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const rev  = new Array(12).fill(0);
+  const rev   = new Array(12).fill(0);
   const bills = new Array(12).fill(0);
   orders.forEach(o => {
     const m = new Date(o.createdAt).getMonth();
@@ -668,9 +686,9 @@ export default function POSAnalyticsDashboard() {
               }}>View all →</button>
             </div>
             <div style={{ overflowX:'auto' }}>
-              <div style={{ minWidth:460 }}>
-                <div style={{ display:'grid', gridTemplateColumns:'0.9fr 1.4fr 1fr 1.1fr 0.9fr', gap:10, padding:'0 6px 10px', fontSize:10.5, fontWeight:700, color:C.muted, letterSpacing:.5, textTransform:'uppercase', borderBottom:`1px solid ${C.border}` }}>
-                  <span>Bill No</span><span>Date</span><span style={{ textAlign:'right' }}>Amount</span><span>Payment</span><span style={{ textAlign:'right' }}>Status</span>
+              <div style={{ minWidth:540 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'0.9fr 1.3fr 0.7fr 1fr 1.1fr 0.9fr', gap:10, padding:'0 6px 10px', fontSize:10.5, fontWeight:700, color:C.muted, letterSpacing:.5, textTransform:'uppercase', borderBottom:`1px solid ${C.border}` }}>
+                  <span>Bill No</span><span>Date</span><span>Table</span><span style={{ textAlign:'right' }}>Amount</span><span>Payment</span><span style={{ textAlign:'right' }}>Status</span>
                 </div>
                 {recentTxns.length === 0 ? (
                   <div style={{ padding:'32px 0', textAlign:'center', color:C.muted, fontSize:13 }}>No transactions yet</div>
@@ -679,10 +697,12 @@ export default function POSAnalyticsDashboard() {
                   const pm = x.paymentMethod ?? 'cash';
                   const dc = payDotColor[pm] ?? C.muted;
                   const dateStr = new Date(x.createdAt).toLocaleString('en-IN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+                  const tableLabel = x.tableName ?? (x.tableId ? x.tableId : '—');
                   return (
-                    <div key={i} style={{ display:'grid', gridTemplateColumns:'0.9fr 1.4fr 1fr 1.1fr 0.9fr', gap:10, alignItems:'center', padding:'11px 6px', borderBottom:`1px solid #f4f1ed`, fontSize:12.5 }}>
+                    <div key={i} style={{ display:'grid', gridTemplateColumns:'0.9fr 1.3fr 0.7fr 1fr 1.1fr 0.9fr', gap:10, alignItems:'center', padding:'11px 6px', borderBottom:`1px solid #f4f1ed`, fontSize:12.5 }}>
                       <span style={{ fontWeight:700, fontFamily:MONO }}>{x.orderNumber}</span>
                       <span style={{ color:C.sec, fontWeight:600 }}>{dateStr}</span>
+                      <span style={{ fontWeight:700, color:C.dark }}>{tableLabel}</span>
                       <span style={{ textAlign:'right', fontWeight:700, fontFamily:MONO }}>{fmtINR(x.totalAmount)}</span>
                       <span style={{ display:'flex', alignItems:'center', gap:6 }}>
                         <span style={{ width:8, height:8, borderRadius:'50%', background:dc, flexShrink:0 }} />
