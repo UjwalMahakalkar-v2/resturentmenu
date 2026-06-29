@@ -17,6 +17,39 @@ export async function onRequestOptions() {
   });
 }
 
+/**
+ * Self-heal: payroll generation reads `attendance` (absent days) and writes `payroll`.
+ * These tables were previously only created in the POS settings endpoint, so tenants
+ * who reached Management without opening POS hit "no such table". Create them here too.
+ * The UNIQUE(tenant_id, staff_id, month) is required for the POST's ON CONFLICT upsert.
+ */
+async function ensureTables(db: any) {
+  try {
+    await execute(db, `CREATE TABLE IF NOT EXISTS attendance (
+      id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, staff_id TEXT NOT NULL,
+      date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'present',
+      check_in TEXT, check_out TEXT, notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(tenant_id, staff_id, date),
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE
+    )`);
+  } catch { /* already exists */ }
+  try {
+    await execute(db, `CREATE TABLE IF NOT EXISTS payroll (
+      id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, staff_id TEXT NOT NULL, month TEXT NOT NULL,
+      base_salary REAL NOT NULL DEFAULT 0, overtime_amount REAL NOT NULL DEFAULT 0,
+      advance_deduction REAL NOT NULL DEFAULT 0, absent_deduction REAL NOT NULL DEFAULT 0,
+      final_amount REAL NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pending',
+      paid_date TEXT, notes TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(tenant_id, staff_id, month),
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+      FOREIGN KEY (staff_id) REFERENCES staff(id) ON DELETE CASCADE
+    )`);
+  } catch { /* already exists */ }
+}
+
 function rowToPayroll(r: any) {
   return {
     id: r.id,
@@ -43,6 +76,7 @@ export async function onRequestGet(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);
     const db = getDB(context.env);
+    await ensureTables(db);
     const url = new URL(context.request.url);
     const month = url.searchParams.get('month');
     const staffId = url.searchParams.get('staffId');
@@ -108,6 +142,7 @@ export async function onRequestPost(context: any) {
     }
 
     const db = getDB(context.env);
+    await ensureTables(db);
 
     // Get staff salary
     const staff = await queryFirst(
@@ -194,6 +229,7 @@ export async function onRequestPut(context: any) {
     }
 
     const db = getDB(context.env);
+    await ensureTables(db);
     const now = new Date().toISOString();
 
     await execute(

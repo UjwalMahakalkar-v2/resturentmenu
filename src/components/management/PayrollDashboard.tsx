@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DollarSign, CheckCircle, Clock, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { DollarSign, CheckCircle, Clock, RefreshCw, ChevronDown, ChevronUp, Users, FileText } from 'lucide-react';
 import { staffAPI, payrollAPI } from '@/services/api';
 import type { Staff, Payroll } from '@/types';
 import toast from 'react-hot-toast';
@@ -238,8 +238,8 @@ export default function PayrollDashboard() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Total Staff', value: summary.total, icon: <DollarSign className="w-5 h-5" />, color: 'text-gray-600', bg: 'bg-gray-50' },
-          { label: 'Generated', value: summary.generated, icon: <Clock className="w-5 h-5" />, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Total Staff', value: summary.total, icon: <Users className="w-5 h-5" />, color: 'text-gray-600', bg: 'bg-gray-50' },
+          { label: 'Generated', value: summary.generated, icon: <FileText className="w-5 h-5" />, color: 'text-blue-600', bg: 'bg-blue-50' },
           { label: 'Paid', value: summary.paid, icon: <CheckCircle className="w-5 h-5" />, color: 'text-green-600', bg: 'bg-green-50' },
           { label: 'Pending', value: summary.pending, icon: <Clock className="w-5 h-5" />, color: 'text-orange-600', bg: 'bg-orange-50' },
         ].map(c => (
@@ -292,17 +292,21 @@ export default function PayrollDashboard() {
                         <p className="font-medium text-gray-900">{s.name}</p>
                         <p className="text-xs text-gray-500">{s.role}</p>
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-700 hidden sm:table-cell">
-                        {p ? `₹${p.baseSalary.toLocaleString('en-IN')}` : '—'}
+                      <td className="px-4 py-3 text-right hidden sm:table-cell">
+                        {p ? <span className="text-gray-700">₹{p.baseSalary.toLocaleString('en-IN')}</span> : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-green-600 hidden sm:table-cell">
-                        {p?.overtimeAmount ? `+₹${p.overtimeAmount.toLocaleString('en-IN')}` : '—'}
+                      <td className="px-4 py-3 text-right hidden sm:table-cell">
+                        {p && p.overtimeAmount > 0
+                          ? <span className="text-green-600">+₹{p.overtimeAmount.toLocaleString('en-IN')}</span>
+                          : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-red-600 hidden sm:table-cell">
-                        {p ? `-₹${(p.absentDeduction + p.advanceDeduction).toLocaleString('en-IN')}` : '—'}
+                      <td className="px-4 py-3 text-right hidden sm:table-cell">
+                        {p && (p.absentDeduction + p.advanceDeduction) > 0
+                          ? <span className="text-red-600">-₹{(p.absentDeduction + p.advanceDeduction).toLocaleString('en-IN')}</span>
+                          : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-gray-900">
-                        {p ? `₹${p.finalAmount.toLocaleString('en-IN')}` : '—'}
+                      <td className="px-4 py-3 text-right font-bold">
+                        {p ? <span className="text-gray-900">₹{p.finalAmount.toLocaleString('en-IN')}</span> : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {p ? (
