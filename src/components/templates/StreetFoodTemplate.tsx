@@ -103,7 +103,9 @@ export default function StreetFoodTemplate({ restaurant, menuItems, categories, 
           src={restaurant.heroImage || 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1400&h=600&fit=crop'}
           alt={restaurant.name}
           className="w-full h-full object-cover"
-          loading="lazy"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[#111318] via-[#111318]/70 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#111318] via-transparent to-transparent" />

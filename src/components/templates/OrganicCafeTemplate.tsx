@@ -113,7 +113,9 @@ export default function OrganicCafeTemplate({ restaurant, menuItems, categories,
           src={restaurant.heroImage || 'https://images.unsplash.com/photo-1490914327627-9fe8d52f4d90?w=1400&h=600&fit=crop'}
           alt={restaurant.name}
           className="w-full h-full object-cover"
-          loading="lazy"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#f9f5f0] via-black/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-7 sm:px-10">

@@ -93,6 +93,7 @@ export default function MenuCard({ item, onClick }: MenuCardProps) {
           onError={() => { setImageError(true); setImageLoaded(true); }}
           className={`w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           loading="lazy"
+          decoding="async"
         />
 
         {/* Badges */}

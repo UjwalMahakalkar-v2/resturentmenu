@@ -81,6 +81,25 @@ export default function Menu() {
     };
   }, [tenantSlug]);
 
+  // Preconnect to the image (R2) host so the first images don't pay full TLS/DNS
+  // setup cost. The host is a deploy-time env var, so derive it from a real image URL.
+  useEffect(() => {
+    const sample = restaurant.heroImage || restaurant.logo || menuItems.find(m => m.image)?.image || '';
+    if (!/^https?:\/\//.test(sample)) return;
+    let origin = '';
+    try { origin = new URL(sample).origin; } catch { return; }
+    if (origin === window.location.origin) return; // same-origin needs no preconnect
+    if (document.head.querySelector(`link[data-img-preconnect="${origin}"]`)) return;
+    for (const rel of ['preconnect', 'dns-prefetch']) {
+      const link = document.createElement('link');
+      link.rel = rel;
+      link.href = origin;
+      if (rel === 'preconnect') link.crossOrigin = 'anonymous';
+      link.setAttribute('data-img-preconnect', origin);
+      document.head.appendChild(link);
+    }
+  }, [restaurant.heroImage, restaurant.logo, menuItems]);
+
   // Auto-focus mobile search input when opened
   useEffect(() => {
     if (mobileSearchOpen) {

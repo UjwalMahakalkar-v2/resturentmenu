@@ -104,6 +104,9 @@ export default function ModernBistroTemplate({ restaurant, menuItems, categories
           src={restaurant.heroImage || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1400&h=600&fit=crop'}
           alt={restaurant.name}
           className="w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">

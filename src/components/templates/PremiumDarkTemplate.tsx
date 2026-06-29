@@ -82,6 +82,9 @@ export default function PremiumDarkTemplate({ restaurant, menuItems, categories,
           src={restaurant.heroImage || 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1400&h=900&fit=crop'}
           alt={restaurant.name}
           className="w-full h-full object-cover"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-black/60 to-black/30" />
 

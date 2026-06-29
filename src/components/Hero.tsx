@@ -18,6 +18,8 @@ export default function Hero({ restaurant, onViewMenu }: HeroProps) {
           alt="Restaurant"
           className="w-full h-full object-cover"
           loading="eager"
+          fetchPriority="high"
+          decoding="async"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
       </div>
