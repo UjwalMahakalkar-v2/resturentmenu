@@ -56,8 +56,11 @@ export default function Menu() {
   useEffect(() => {
     if (!tenantSlug) { setLoading(false); return; }
     let cancelled = false;
-    const load = async () => {
-      setLoading(true);
+    // initial=true shows the full-screen loader (gates the first paint until the
+    // tenant's template/theme are known — prevents flashing the default template).
+    // Background refreshes (admin edit events) refresh data silently, no blank screen.
+    const load = async (initial = false) => {
+      if (initial) setLoading(true);
       const data = await publicAPI.getBootstrap(tenantSlug);
       if (cancelled) return;
       if (!data || !data.tenant) { setLoading(false); return; }
@@ -70,8 +73,8 @@ export default function Menu() {
       setCategories((data.categories || []) as TenantCategory[]);
       setLoading(false);
     };
-    load();
-    const onUpdate = () => load();
+    load(true);
+    const onUpdate = () => load(false);
     window.addEventListener('restaurant-updated', onUpdate);
     window.addEventListener('menu-updated', onUpdate);
     return () => {
