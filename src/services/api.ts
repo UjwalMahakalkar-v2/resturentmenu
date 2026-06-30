@@ -352,6 +352,16 @@ export const inventoryAPI = {
   recordMovement: async (data: Record<string, any>) => (await api.post('/inventory/movements', data)).data,
   getRecipe: async (menuItemId: string) => (await api.get(`/inventory/recipes?menuItemId=${encodeURIComponent(menuItemId)}`)).data,
   saveRecipe: async (menuItemId: string, lines: any[]) => (await api.put('/inventory/recipes', { menuItemId, lines })).data,
+  // Suppliers
+  getSuppliers: async () => (await api.get('/inventory/suppliers')).data,
+  createSupplier: async (data: Record<string, any>) => (await api.post('/inventory/suppliers', data)).data,
+  updateSupplier: async (id: string, data: Record<string, any>) => (await api.put(`/inventory/suppliers/${id}`, data)).data,
+  deleteSupplier: async (id: string) => { await api.delete(`/inventory/suppliers/${id}`); },
+  // Purchase orders
+  getPurchaseOrders: async (status?: string) => (await api.get(`/inventory/purchase-orders${status ? '?status=' + status : ''}`)).data,
+  createPurchaseOrder: async (data: Record<string, any>) => (await api.post('/inventory/purchase-orders', data)).data,
+  updatePurchaseOrder: async (id: string, data: Record<string, any>) => (await api.put(`/inventory/purchase-orders/${id}`, data)).data,
+  deletePurchaseOrder: async (id: string) => { await api.delete(`/inventory/purchase-orders/${id}`); },
 };
 
 export default api;

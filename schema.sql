@@ -368,6 +368,55 @@ CREATE TABLE IF NOT EXISTS inventory_settings (
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS suppliers (
+  id             TEXT PRIMARY KEY,
+  tenant_id      TEXT NOT NULL,
+  name           TEXT NOT NULL,
+  contact_name   TEXT,
+  phone          TEXT,
+  email          TEXT,
+  address        TEXT,
+  outstanding    REAL NOT NULL DEFAULT 0,
+  lead_time_days INTEGER NOT NULL DEFAULT 0,
+  notes          TEXT,
+  active         INTEGER NOT NULL DEFAULT 1,
+  created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id           TEXT PRIMARY KEY,
+  tenant_id    TEXT NOT NULL,
+  supplier_id  TEXT,
+  po_number    TEXT,
+  status       TEXT NOT NULL DEFAULT 'draft',   -- draft | ordered | received | cancelled
+  expected_date TEXT,
+  total_amount REAL NOT NULL DEFAULT 0,
+  notes        TEXT,
+  received_at  TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS purchase_order_items (
+  id                TEXT PRIMARY KEY,
+  po_id             TEXT NOT NULL,
+  tenant_id         TEXT NOT NULL,
+  inventory_item_id TEXT NOT NULL,
+  name              TEXT,
+  quantity          REAL NOT NULL DEFAULT 0,
+  unit              TEXT,
+  unit_price        REAL NOT NULL DEFAULT 0,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (po_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_suppliers_tenant    ON suppliers(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_po_tenant           ON purchase_orders(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_poi_po              ON purchase_order_items(po_id);
 CREATE INDEX IF NOT EXISTS idx_inv_items_tenant    ON inventory_items(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_inv_items_category  ON inventory_items(category_id);
 CREATE INDEX IF NOT EXISTS idx_inv_cats_tenant     ON inventory_categories(tenant_id);

@@ -40,6 +40,24 @@ export async function ensureInventoryTables(db: any) {
     continue_selling INTEGER NOT NULL DEFAULT 1,
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`).catch(() => {});
+  await execute(db, `CREATE TABLE IF NOT EXISTS suppliers (
+    id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, name TEXT NOT NULL,
+    contact_name TEXT, phone TEXT, email TEXT, address TEXT,
+    outstanding REAL NOT NULL DEFAULT 0, lead_time_days INTEGER NOT NULL DEFAULT 0,
+    notes TEXT, active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`).catch(() => {});
+  await execute(db, `CREATE TABLE IF NOT EXISTS purchase_orders (
+    id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, supplier_id TEXT, po_number TEXT,
+    status TEXT NOT NULL DEFAULT 'draft', expected_date TEXT, total_amount REAL NOT NULL DEFAULT 0,
+    notes TEXT, received_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`).catch(() => {});
+  await execute(db, `CREATE TABLE IF NOT EXISTS purchase_order_items (
+    id TEXT PRIMARY KEY, po_id TEXT NOT NULL, tenant_id TEXT NOT NULL, inventory_item_id TEXT NOT NULL,
+    name TEXT, quantity REAL NOT NULL DEFAULT 0, unit TEXT, unit_price REAL NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`).catch(() => {});
   // Idempotency flag on orders so a re-saved/re-paid order never deducts twice.
   await execute(db, 'ALTER TABLE pos_orders ADD COLUMN inventory_deducted INTEGER NOT NULL DEFAULT 0').catch(() => {});
 }

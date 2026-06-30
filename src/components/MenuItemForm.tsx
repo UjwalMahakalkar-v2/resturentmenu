@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MenuItem, Category } from '@/types';
 import Modal from './Modal';
 import ImageUploader from './ImageUploader';
-import RecipeEditor from './inventory/RecipeEditor';
+import RecipeEditor, { type RecipeLine } from './inventory/RecipeEditor';
+import { inventoryAPI } from '@/services/api';
 import toast from 'react-hot-toast';
 
 interface MenuItemFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (item: Omit<MenuItem, '_id' | 'id'>) => Promise<void>;
+  onSave: (item: Omit<MenuItem, '_id' | 'id'>) => Promise<any>;
   categories: Category[];
   editItem?: MenuItem | null;
   defaultCategoryId?: string;
@@ -27,6 +28,8 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
     available: true,
   });
   const [loading, setLoading] = useState(false);
+  // Recipe lines are captured from RecipeEditor and persisted on save (new + edit).
+  const recipeRef = useRef<{ lines: RecipeLine[]; enabled: boolean }>({ lines: [], enabled: false });
 
   useEffect(() => {
     if (editItem) {
@@ -87,7 +90,7 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
 
     setLoading(true);
     try {
-      await onSave({
+      const saved = await onSave({
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: parseFloat(formData.price),
@@ -98,6 +101,15 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
         popular: formData.popular,
         available: formData.available,
       });
+      // Persist the recipe/BOM against the saved item (best-effort; won't block item save).
+      const itemId = saved?.id || editItem?.id;
+      if (recipeRef.current.enabled && itemId) {
+        try {
+          await inventoryAPI.saveRecipe(itemId, recipeRef.current.lines
+            .filter(l => l.inventoryItemId && Number(l.quantity) > 0)
+            .map(l => ({ inventoryItemId: l.inventoryItemId, quantity: Number(l.quantity), unit: l.unit })));
+        } catch { /* recipe save failed — item still saved */ }
+      }
       toast.success(editItem ? 'Item updated successfully' : 'Item added successfully');
       onClose();
       resetForm();
@@ -310,8 +322,12 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
           </div>
         </div>
 
-        {/* Recipe / BOM — only for saved items (needs the menu item id); self-hides if inventory module is off */}
-        {editItem?.id && <RecipeEditor menuItemId={editItem.id} dishPrice={parseFloat(formData.price) || 0} />}
+        {/* Recipe / BOM — works for new & existing items; self-hides if inventory module is off */}
+        <RecipeEditor
+          menuItemId={editItem?.id}
+          dishPrice={parseFloat(formData.price) || 0}
+          onChange={(lines, enabled) => { recipeRef.current = { lines, enabled }; }}
+        />
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">

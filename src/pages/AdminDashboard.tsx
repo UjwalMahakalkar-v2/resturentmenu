@@ -74,19 +74,11 @@ export default function AdminDashboard() {
   };
 
   const handleSaveItem = async (itemData: Omit<TenantMenuItem, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      if (editingItem) {
-        await updateItem(editingItem.id, itemData);
-      } else {
-        await addItem(itemData);
-      }
-      setIsFormOpen(false);
-      setEditingItem(null);
-      setDefaultCategoryId(undefined);
-      await refetch();
-    } catch (error) {
-      console.error('Error saving item:', error);
-    }
+    // Return the saved item so the form can attach a recipe to brand-new items.
+    // Errors propagate to the form (which keeps the modal open and shows a toast).
+    const saved = editingItem ? await updateItem(editingItem.id, itemData) : await addItem(itemData);
+    await refetch();
+    return saved;
   };
 
   const handleDeleteItem = async (id: string, name: string) => {

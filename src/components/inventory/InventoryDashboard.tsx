@@ -14,6 +14,7 @@ const SANS = "'Plus Jakarta Sans', sans-serif";
 const UNITS = ['pcs', 'kg', 'g', 'L', 'ml', 'packet', 'box', 'crate'];
 const MOVE_TYPES = ['purchase', 'adjustment', 'waste', 'spoilage', 'return', 'transfer', 'correction', 'production'];
 
+const inr = (n: number) => '₹' + Math.round(n).toLocaleString('en-IN');
 const fk = (n: number) => n >= 100000 ? '₹' + (n / 100000).toFixed(2).replace(/\.?0+$/, '') + 'L'
   : n >= 1000 ? '₹' + (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'K' : '₹' + Math.round(n);
 
@@ -32,7 +33,7 @@ const EMPTY_ITEM = {
   currentStock: '0', minStock: '0', maxStock: '0', purchasePrice: '0', sellingPrice: '0', gstRate: '0', supplier: '', notes: '',
 };
 
-type Tab = 'dashboard' | 'items' | 'movements' | 'lowstock' | 'categories' | 'settings';
+type Tab = 'dashboard' | 'items' | 'movements' | 'orders' | 'suppliers' | 'lowstock' | 'categories' | 'settings';
 
 export default function InventoryDashboard() {
   const [enabled, setEnabled] = useState<boolean | null>(null);
@@ -40,12 +41,16 @@ export default function InventoryDashboard() {
   const [items, setItems] = useState<Item[]>([]);
   const [cats, setCats] = useState<any[]>([]);
   const [movements, setMovements] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({ autoHide: false, showOutOfStockBadge: true, continueSelling: true });
   const [loading, setLoading] = useState(true);
 
   // modals
   const [productForm, setProductForm] = useState<any | null>(null); // null = closed
   const [adjustItem, setAdjustItem] = useState<Item | null>(null);
+  const [supplierForm, setSupplierForm] = useState<any | null>(null);
+  const [showPO, setShowPO] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -53,10 +58,11 @@ export default function InventoryDashboard() {
       setEnabled(!!s.inventoryEnabled);
       setSettings(s);
       if (!s.inventoryEnabled) { setLoading(false); return; }
-      const [its, cs, mv] = await Promise.all([
+      const [its, cs, mv, sup, po] = await Promise.all([
         inventoryAPI.getItems(), inventoryAPI.getCategories(), inventoryAPI.getMovements({ limit: 80 }),
+        inventoryAPI.getSuppliers().catch(() => []), inventoryAPI.getPurchaseOrders().catch(() => []),
       ]);
-      setItems(its); setCats(cs); setMovements(mv);
+      setItems(its); setCats(cs); setMovements(mv); setSuppliers(sup); setOrders(po);
     } catch {
       setEnabled(false);
     } finally {
@@ -66,8 +72,11 @@ export default function InventoryDashboard() {
   useEffect(() => { load(); }, [load]);
 
   const refresh = async () => {
-    const [its, mv, cs] = await Promise.all([inventoryAPI.getItems(), inventoryAPI.getMovements({ limit: 80 }), inventoryAPI.getCategories()]);
-    setItems(its); setMovements(mv); setCats(cs);
+    const [its, mv, cs, sup, po] = await Promise.all([
+      inventoryAPI.getItems(), inventoryAPI.getMovements({ limit: 80 }), inventoryAPI.getCategories(),
+      inventoryAPI.getSuppliers().catch(() => []), inventoryAPI.getPurchaseOrders().catch(() => []),
+    ]);
+    setItems(its); setMovements(mv); setCats(cs); setSuppliers(sup); setOrders(po);
   };
 
   /* ── derived KPIs ── */
@@ -131,7 +140,9 @@ export default function InventoryDashboard() {
 
   const TABS: { id: Tab; label: string; badge?: number }[] = [
     { id: 'dashboard', label: 'Dashboard' }, { id: 'items', label: 'Inventory' },
-    { id: 'movements', label: 'Stock Movements' }, { id: 'lowstock', label: 'Low Stock', badge: kpis.lowCount + kpis.critCount },
+    { id: 'movements', label: 'Stock Movements' }, { id: 'orders', label: 'Purchase Orders' },
+    { id: 'suppliers', label: 'Suppliers' },
+    { id: 'lowstock', label: 'Low Stock', badge: kpis.lowCount + kpis.critCount },
     { id: 'categories', label: 'Categories' }, { id: 'settings', label: 'Settings' },
   ];
 
@@ -155,17 +166,23 @@ export default function InventoryDashboard() {
         <span style={{ flex: 1 }} />
         {tab === 'items' && <button onClick={() => setProductForm({ ...EMPTY_ITEM })} style={primaryBtn}>+ Add Product</button>}
         {tab === 'categories' && <button onClick={addCategory} style={primaryBtn}>+ New Category</button>}
+        {tab === 'suppliers' && <button onClick={() => setSupplierForm({ name: '', contactName: '', phone: '', email: '', address: '', leadTimeDays: '', notes: '' })} style={primaryBtn}>+ Add Supplier</button>}
+        {tab === 'orders' && <button onClick={() => setShowPO(true)} style={primaryBtn} title={items.length ? '' : 'Add inventory items first'}>+ New Order</button>}
       </div>
 
       {tab === 'dashboard' && <DashboardView kpis={kpis} lowItems={lowItems} cats={cats} onReorder={(it: Item) => setAdjustItem(it)} />}
       {tab === 'items' && <ItemsView items={items} onEdit={(it: Item) => setProductForm(toForm(it))} onAdjust={setAdjustItem} onDelete={deleteProduct} />}
       {tab === 'movements' && <MovementsView movements={movements} />}
+      {tab === 'orders' && <OrdersView orders={orders} onReceive={receivePO} onCancel={cancelPO} />}
+      {tab === 'suppliers' && <SuppliersView suppliers={suppliers} onNewOrder={() => setShowPO(true)} onSettle={settleDues} />}
       {tab === 'lowstock' && <LowStockView lowItems={lowItems} onReorder={setAdjustItem} />}
       {tab === 'categories' && <CategoriesView cats={cats} />}
       {tab === 'settings' && <SettingsView settings={settings} onSave={async (s: any) => { const r = await inventoryAPI.updateSettings(s); setSettings(r); toast.success('Settings saved'); }} />}
 
       {productForm && <ProductModal form={productForm} setForm={setProductForm} cats={cats} onClose={() => setProductForm(null)} onSave={saveProduct} />}
       {adjustItem && <AdjustModal item={adjustItem} onClose={() => setAdjustItem(null)} onSaved={async () => { setAdjustItem(null); await refresh(); }} />}
+      {supplierForm && <SupplierModal form={supplierForm} setForm={setSupplierForm} onClose={() => setSupplierForm(null)} onSave={saveSupplier} />}
+      {showPO && <PurchaseOrderModal items={items} suppliers={suppliers} onClose={() => setShowPO(false)} onSaved={async () => { setShowPO(false); await refresh(); }} />}
     </div>
   );
 
@@ -173,6 +190,32 @@ export default function InventoryDashboard() {
     const name = prompt('New inventory category name:');
     if (!name?.trim()) return;
     try { await inventoryAPI.createCategory({ name: name.trim() }); toast.success('Category added'); await refresh(); } catch { toast.error('Failed'); }
+  }
+
+  async function saveSupplier() {
+    const f = supplierForm;
+    if (!f.name.trim()) { toast.error('Supplier name required'); return; }
+    try {
+      if (f.id) await inventoryAPI.updateSupplier(f.id, f);
+      else await inventoryAPI.createSupplier({ ...f, leadTimeDays: Number(f.leadTimeDays) || 0 });
+      toast.success(f.id ? 'Supplier updated' : 'Supplier added');
+      setSupplierForm(null);
+      await refresh();
+    } catch { toast.error('Failed to save supplier'); }
+  }
+
+  async function receivePO(po: any) {
+    if (!confirm(`Receive ${po.poNumber}? This adds all line items to stock.`)) return;
+    try { await inventoryAPI.updatePurchaseOrder(po.id, { status: 'received' }); toast.success('Stock received'); await refresh(); } catch { toast.error('Failed to receive'); }
+  }
+  async function cancelPO(po: any) {
+    if (!confirm(`Cancel ${po.poNumber}?`)) return;
+    try { await inventoryAPI.updatePurchaseOrder(po.id, { status: 'cancelled' }); toast.success('Order cancelled'); await refresh(); } catch { toast.error('Failed'); }
+  }
+  async function settleDues(sup: any) {
+    if (!sup.outstanding) { toast('No outstanding dues'); return; }
+    if (!confirm(`Mark ₹${Math.round(sup.outstanding)} as settled for ${sup.name}?`)) return;
+    try { await inventoryAPI.updateSupplier(sup.id, { outstanding: 0 }); toast.success('Dues settled'); await refresh(); } catch { toast.error('Failed'); }
   }
 }
 
@@ -504,6 +547,176 @@ function AdjustModal({ item, onClose, onSaved }: { item: Item; onClose: () => vo
       </div>
       <div style={{ display: 'flex', gap: 10, padding: '16px 22px', borderTop: `1px solid ${C.border}` }}>
         <span style={{ flex: 1 }} /><button onClick={onClose} style={ghostBtn}>Cancel</button><button onClick={submit} disabled={saving} style={{ ...primaryBtn, opacity: saving ? .6 : 1 }}>{saving ? 'Saving…' : 'Record Movement'}</button>
+      </div>
+    </Overlay>
+  );
+}
+
+const PO_STATUS: Record<string, { bg: string; fg: string }> = {
+  draft: { bg: '#f4f1ee', fg: C.sec }, ordered: { bg: '#eaf0fb', fg: C.blue },
+  received: { bg: '#eef5f0', fg: C.green }, cancelled: { bg: '#fdeeee', fg: C.red },
+};
+
+function OrdersView({ orders, onReceive, onCancel }: any) {
+  const [filter, setFilter] = useState('all');
+  const shown = filter === 'all' ? orders : orders.filter((o: any) => o.status === filter);
+  if (!orders.length) return <div style={{ ...cardBox, borderRadius: 18, padding: 40, textAlign: 'center', color: C.muted }}>No purchase orders yet. Click “New Order”.</div>;
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+        {['all', 'draft', 'ordered', 'received', 'cancelled'].map(f => <button key={f} onClick={() => setFilter(f)} style={{ ...ghostBtn, textTransform: 'capitalize', background: filter === f ? C.dark : '#fff', color: filter === f ? '#fff' : '#3a352f', border: filter === f ? 'none' : ghostBtn.border }}>{f}</button>)}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(330px,1fr))', gap: 16 }}>
+        {shown.map((o: any) => {
+          const st = PO_STATUS[o.status] || PO_STATUS.draft;
+          const open = o.status === 'draft' || o.status === 'ordered';
+          return (
+            <div key={o.id} style={{ ...cardBox, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
+                <span style={{ width: 38, height: 38, borderRadius: 11, background: '#faf6ef', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🛒</span>
+                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 800 }}>{o.supplierName || 'No supplier'}</div><div style={{ fontSize: 11.5, fontWeight: 700, color: C.muted, fontFamily: MONO }}>{o.poNumber}</div></div>
+                <span style={{ padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.fg, fontSize: 10.5, fontWeight: 800, textTransform: 'capitalize' }}>{o.status}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 18, padding: '13px 0', borderTop: '1px solid #f4f1ed', borderBottom: '1px solid #f4f1ed' }}>
+                <Stat label="Items" value={String(o.itemCount)} />
+                <Stat label="Total" value={fk(o.totalAmount)} />
+                <span style={{ flex: 1 }} />
+                <div style={{ textAlign: 'right' }}><Stat label="Expected" value={o.expectedDate || '—'} color={C.sec} /></div>
+              </div>
+              {open ? (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => onReceive(o)} style={{ flex: 1, padding: 9, borderRadius: 10, border: 'none', background: C.green, color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Receive → stock in</button>
+                  <button onClick={() => onCancel(o)} style={ghostBtn}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{o.status === 'received' ? `Received ${o.receivedAt ? new Date(o.receivedAt).toLocaleDateString('en-IN') : ''}` : 'Cancelled'}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SuppliersView({ suppliers, onNewOrder, onSettle }: any) {
+  if (!suppliers.length) return <div style={{ ...cardBox, borderRadius: 18, padding: 40, textAlign: 'center', color: C.muted }}>No suppliers yet. Click “Add Supplier”.</div>;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: 16 }}>
+      {suppliers.map((s: any) => (
+        <div key={s.id} style={{ ...cardBox, padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ width: 42, height: 42, borderRadius: 12, background: C.dark, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 800 }}>{(s.name || '?').slice(0, 2).toUpperCase()}</span>
+            <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 15, fontWeight: 800 }}>{s.name}</div><div style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>{s.contactName || '—'}</div></div>
+            {s.outstanding > 0 && <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#e9a23b', flex: '0 0 auto' }} />}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, fontSize: 12.5 }}>
+            <div style={{ display: 'flex', gap: 9 }}><span style={{ width: 15 }}>📞</span><span style={{ color: '#3a352f', fontWeight: 600, fontFamily: MONO }}>{s.phone || '—'}</span></div>
+            <div style={{ display: 'flex', gap: 9 }}><span style={{ width: 15 }}>✉️</span><span style={{ color: '#3a352f', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.email || '—'}</span></div>
+          </div>
+          <div style={{ display: 'flex', gap: 10, paddingTop: 13, borderTop: '1px solid #f4f1ed' }}>
+            <div style={{ flex: 1 }}><Stat label="Payable" value={fk(s.outstanding)} color={s.outstanding > 0 ? C.red : C.dark} /></div>
+            <div style={{ flex: 1 }}><Stat label="Total Buys" value={fk(s.totalBuys)} /></div>
+            <div style={{ flex: 1 }}><Stat label="Last Buy" value={s.lastBuy ? new Date(s.lastBuy).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—'} color={C.sec} /></div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={onNewOrder} style={{ flex: 1, padding: 9, borderRadius: 10, border: 'none', background: C.dark, color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>New Order</button>
+            <button onClick={() => onSettle(s)} style={{ ...ghostBtn, flex: 1 }}>Settle Dues</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SupplierModal({ form, setForm, onClose, onSave }: any) {
+  const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
+  return (
+    <Overlay onClose={onClose}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 22px', borderBottom: `1px solid ${C.border}` }}>
+        <span style={{ width: 34, height: 34, borderRadius: 10, background: '#fcefe9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🚚</span>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 800 }}>{form.id ? 'Edit Supplier' : 'Add Supplier'}</div></div>
+        <button onClick={onClose} style={{ ...iconBtn, width: 32, height: 32 }}>✕</button>
+      </div>
+      <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div><label style={label}>Company / Supplier Name</label><input value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Amul Distributors" style={input} /></div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 13 }}>
+          <div><label style={label}>Contact Person</label><input value={form.contactName} onChange={e => set('contactName', e.target.value)} style={input} /></div>
+          <div><label style={label}>Phone</label><input value={form.phone} onChange={e => set('phone', e.target.value)} style={{ ...input, fontFamily: MONO }} /></div>
+          <div><label style={label}>Email</label><input value={form.email} onChange={e => set('email', e.target.value)} style={input} /></div>
+          <div><label style={label}>Lead Time (days)</label><input value={form.leadTimeDays} onChange={e => set('leadTimeDays', e.target.value)} placeholder="2" style={{ ...input, fontFamily: MONO }} /></div>
+        </div>
+        <div><label style={label}>Address</label><input value={form.address} onChange={e => set('address', e.target.value)} style={input} /></div>
+        <div><label style={label}>Notes</label><input value={form.notes} onChange={e => set('notes', e.target.value)} style={input} /></div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, padding: '16px 22px', borderTop: `1px solid ${C.border}` }}><span style={{ flex: 1 }} /><button onClick={onClose} style={ghostBtn}>Cancel</button><button onClick={onSave} style={primaryBtn}>{form.id ? 'Save' : 'Add Supplier'}</button></div>
+    </Overlay>
+  );
+}
+
+function PurchaseOrderModal({ items, suppliers, onClose, onSaved }: any) {
+  const [supplierId, setSupplierId] = useState(suppliers[0]?.id || '');
+  const [expectedDate, setExpectedDate] = useState('');
+  const [notes, setNotes] = useState('');
+  const [lines, setLines] = useState<any[]>(items.length ? [{ inventoryItemId: items[0].id, quantity: '', unit: items[0].unit, unitPrice: String(items[0].purchasePrice || '') }] : []);
+  const [saving, setSaving] = useState(false);
+  const itemById = Object.fromEntries(items.map((i: any) => [i.id, i]));
+  const total = lines.reduce((s, l) => s + (Number(l.quantity) || 0) * (Number(l.unitPrice) || 0), 0);
+
+  const setLine = (i: number, patch: any) => setLines(p => p.map((l, idx) => idx === i ? { ...l, ...patch } : l));
+  const addLine = () => setLines(p => [...p, { inventoryItemId: items[0]?.id || '', quantity: '', unit: items[0]?.unit || 'pcs', unitPrice: '' }]);
+
+  const submit = async (status: 'draft' | 'ordered') => {
+    const payloadItems = lines.filter(l => l.inventoryItemId && Number(l.quantity) > 0)
+      .map(l => ({ inventoryItemId: l.inventoryItemId, name: itemById[l.inventoryItemId]?.name || '', quantity: Number(l.quantity), unit: l.unit, unitPrice: Number(l.unitPrice) || 0 }));
+    if (!payloadItems.length) { toast.error('Add at least one line item'); return; }
+    setSaving(true);
+    try {
+      await inventoryAPI.createPurchaseOrder({ supplierId: supplierId || null, expectedDate, notes, status, items: payloadItems });
+      toast.success(status === 'ordered' ? 'Purchase order placed' : 'Draft saved');
+      onSaved();
+    } catch { toast.error('Failed to create order'); } finally { setSaving(false); }
+  };
+
+  return (
+    <Overlay onClose={onClose}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 22px', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, background: '#fff' }}>
+        <span style={{ width: 34, height: 34, borderRadius: 10, background: '#fcefe9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🛒</span>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 800 }}>New Purchase Order</div><div style={{ fontSize: 12, color: C.muted }}>Receiving it later will stock in these items</div></div>
+        <button onClick={onClose} style={{ ...iconBtn, width: 32, height: 32 }}>✕</button>
+      </div>
+      <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {items.length === 0 && <div style={{ fontSize: 13, color: C.red }}>Add inventory products first.</div>}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 13 }}>
+          <div><label style={label}>Supplier</label><select value={supplierId} onChange={e => setSupplierId(e.target.value)} style={input}><option value="">— None —</option>{suppliers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+          <div><label style={label}>Expected Date</label><input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} style={input} /></div>
+        </div>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}><label style={{ ...label, marginBottom: 0 }}>Line Items</label><span style={{ flex: 1 }} />{items.length > 0 && <button onClick={addLine} style={{ ...ghostBtn, padding: '5px 10px' }}>+ Add line</button>}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {lines.map((l, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <select value={l.inventoryItemId} onChange={e => { const ni = itemById[e.target.value]; setLine(i, { inventoryItemId: e.target.value, unit: ni?.unit || l.unit, unitPrice: l.unitPrice || String(ni?.purchasePrice || '') }); }} style={{ ...input, flex: 1 }}>
+                  {items.map((iv: any) => <option key={iv.id} value={iv.id}>{iv.emoji} {iv.name}</option>)}
+                </select>
+                <input value={l.quantity} onChange={e => setLine(i, { quantity: e.target.value })} placeholder="Qty" style={{ ...input, width: 80, fontFamily: MONO }} />
+                <select value={l.unit} onChange={e => setLine(i, { unit: e.target.value })} style={{ ...input, width: 84 }}>{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select>
+                <input value={l.unitPrice} onChange={e => setLine(i, { unitPrice: e.target.value })} placeholder="₹/unit" style={{ ...input, width: 90, fontFamily: MONO }} />
+                <button onClick={() => setLines(p => p.filter((_, idx) => idx !== i))} style={{ ...iconBtn, color: C.red }}>✕</button>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div><label style={label}>Notes</label><input value={notes} onChange={e => setNotes(e.target.value)} style={input} /></div>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', background: '#fbfaf8', border: `1px solid ${C.border}`, borderRadius: 12 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.sec }}>Order Total</span><span style={{ flex: 1 }} /><span style={{ fontSize: 20, fontWeight: 800, fontFamily: MONO }}>{inr(total)}</span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, padding: '16px 22px', borderTop: `1px solid ${C.border}`, position: 'sticky', bottom: 0, background: '#fff' }}>
+        <span style={{ flex: 1 }} />
+        <button onClick={onClose} style={ghostBtn}>Cancel</button>
+        <button onClick={() => submit('draft')} disabled={saving} style={ghostBtn}>Save Draft</button>
+        <button onClick={() => submit('ordered')} disabled={saving} style={{ ...primaryBtn, opacity: saving ? .6 : 1 }}>{saving ? 'Saving…' : 'Place Order'}</button>
       </div>
     </Overlay>
   );
