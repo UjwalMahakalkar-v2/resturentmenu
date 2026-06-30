@@ -51,6 +51,7 @@ export interface MenuItem {
   type: 'veg' | 'non-veg';
   popular: boolean;
   available: boolean;
+  calories?: number | null;
   createdAt?: Date;
   updatedAt?: Date;
 }

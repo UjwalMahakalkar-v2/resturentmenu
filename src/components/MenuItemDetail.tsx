@@ -98,14 +98,18 @@ export default function MenuItemDetail({ item, isOpen, onClose, categories }: Me
             </p>
           </div>
 
-          {/* Type */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Type</h3>
+          {/* Type + Calories */}
+          <div className="mb-6 flex flex-wrap items-center gap-2">
             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
               item.type === 'veg' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
             }`}>
               {item.type === 'veg' ? 'Vegetarian' : 'Non-Vegetarian'}
             </span>
+            {item.calories != null && (
+              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                🔥 {item.calories} kcal
+              </span>
+            )}
           </div>
 
           {/* Price and Action */}

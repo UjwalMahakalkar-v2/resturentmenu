@@ -26,6 +26,7 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
     type: 'veg' as 'veg' | 'non-veg',
     popular: false,
     available: true,
+    calories: '',
   });
   const [loading, setLoading] = useState(false);
   // Recipe lines are captured from RecipeEditor and persisted on save (new + edit).
@@ -43,6 +44,7 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
         type: editItem.type,
         popular: editItem.popular,
         available: editItem.available,
+        calories: editItem.calories != null ? String(editItem.calories) : '',
       });
     } else {
       resetForm(defaultCategoryId);
@@ -60,6 +62,7 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
       type: 'veg',
       popular: false,
       available: true,
+      calories: '',
     });
   };
 
@@ -100,6 +103,7 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
         type: formData.type,
         popular: formData.popular,
         available: formData.available,
+        calories: formData.calories === '' ? null : Number(formData.calories),
       });
       // Persist the recipe/BOM against the saved item (best-effort; won't block item save).
       const itemId = saved?.id || editItem?.id;
@@ -175,6 +179,22 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
                 min="0"
                 step="0.01"
                 required
+              />
+            </div>
+
+            {/* Calories (optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Calories <span className="text-gray-400 font-normal">(optional · kcal)</span>
+              </label>
+              <input
+                type="number"
+                value={formData.calories}
+                onChange={(e) => setFormData({ ...formData, calories: e.target.value })}
+                className="input-field"
+                placeholder="e.g. 320"
+                min="0"
+                step="1"
               />
             </div>
 

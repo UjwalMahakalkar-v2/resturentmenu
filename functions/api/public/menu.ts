@@ -3,7 +3,7 @@ import { getDB, queryAll } from '../../db';
 const CORS = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
 
 function rowToItem(r: any) {
-  return { id: r.id, tenantId: r.tenant_id, category: r.category_id, name: r.name, description: r.description || '', price: r.price, type: r.type, image: r.image || '', hasImage: !!(r.image && r.image.length > 0), available: r.available === 1, popular: r.popular === 1, sortOrder: r.sort_order ?? 0 };
+  return { id: r.id, tenantId: r.tenant_id, category: r.category_id, name: r.name, description: r.description || '', price: r.price, type: r.type, image: r.image || '', hasImage: !!(r.image && r.image.length > 0), available: r.available === 1, popular: r.popular === 1, calories: r.calories ?? null, sortOrder: r.sort_order ?? 0 };
 }
 
 export async function onRequestOptions() {
