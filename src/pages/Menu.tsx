@@ -136,8 +136,15 @@ export default function Menu() {
     setTimeout(() => menuSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
+  // When the tenant chooses "hide" for out-of-stock items, drop unavailable dishes
+  // before they reach any template; "badge" keeps them (templates show a badge).
+  const visibleItems = useMemo(
+    () => restaurant.outOfStockBehavior === 'hide' ? menuItems.filter(i => i.available !== false) : menuItems,
+    [menuItems, restaurant.outOfStockBehavior],
+  );
+
   const filteredItems = useMemo(() => {
-    return menuItems.filter((item) => {
+    return visibleItems.filter((item) => {
       if (vegOnly && item.type !== 'veg') return false;
       if (activeCategory && activeCategory !== 'all' && item.category !== activeCategory) return false;
       if (searchQuery) {
@@ -150,7 +157,7 @@ export default function Menu() {
       }
       return true;
     });
-  }, [menuItems, activeCategory, searchQuery, categories, vegOnly]);
+  }, [visibleItems, activeCategory, searchQuery, categories, vegOnly]);
 
   if (loading) {
     return (
@@ -170,7 +177,7 @@ export default function Menu() {
         {announcementEl}
         <ModernBistroTemplate
           restaurant={restaurant}
-          menuItems={menuItems}
+          menuItems={visibleItems}
           categories={categories}
           tenant={tenant}
         />
@@ -185,7 +192,7 @@ export default function Menu() {
         {announcementEl}
         <PremiumDarkTemplate
           restaurant={restaurant}
-          menuItems={menuItems}
+          menuItems={visibleItems}
           categories={categories}
           tenant={tenant}
         />
@@ -200,7 +207,7 @@ export default function Menu() {
         {announcementEl}
         <StreetFoodTemplate
           restaurant={restaurant}
-          menuItems={menuItems}
+          menuItems={visibleItems}
           categories={categories}
           tenant={tenant}
         />
@@ -215,7 +222,7 @@ export default function Menu() {
         {announcementEl}
         <OrganicCafeTemplate
           restaurant={restaurant}
-          menuItems={menuItems}
+          menuItems={visibleItems}
           categories={categories}
           tenant={tenant}
         />
@@ -230,7 +237,7 @@ export default function Menu() {
         {announcementEl}
         <LuxuryDiningTemplate
           restaurant={restaurant}
-          menuItems={menuItems}
+          menuItems={visibleItems}
           categories={categories}
           tenant={tenant}
         />

@@ -104,6 +104,9 @@ CREATE TABLE IF NOT EXISTS restaurant_settings (
   template        TEXT DEFAULT 'classic',
   -- Announcement bar config stored as JSON string
   announcement    TEXT,
+  -- Menu display: out-of-stock behaviour ('badge' | 'hide') + share-menu toggle
+  out_of_stock_behavior TEXT DEFAULT 'badge',
+  enable_share_menu     INTEGER DEFAULT 1,
   created_at      TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at      TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE

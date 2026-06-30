@@ -79,6 +79,8 @@ export interface Restaurant {
   theme?: RestaurantTheme;
   template?: MenuTemplate;
   announcement?: AnnouncementBar;
+  outOfStockBehavior?: 'badge' | 'hide';
+  enableShareMenu?: boolean;
   socialAnalytics?: {
     whatsappClicks: number;
     instagramClicks: number;

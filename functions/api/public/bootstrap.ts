@@ -41,6 +41,8 @@ function rowToSettings(r: any) {
     theme: themeObj,
     template,
     announcement: r.announcement ? JSON.parse(r.announcement) : null,
+    outOfStockBehavior: r.out_of_stock_behavior || 'badge',
+    enableShareMenu: r.enable_share_menu !== 0,
   };
 }
 

@@ -105,7 +105,7 @@ export default function MenuCard({ item, onClick }: MenuCardProps) {
             </span>
           )}
           {!item.available && (
-            <span className="bg-gray-800 text-white text-xs font-semibold px-2 py-1 rounded-full">Unavailable</span>
+            <span className="bg-gray-800 text-white text-xs font-semibold px-2 py-1 rounded-full">Out of Stock</span>
           )}
         </div>
 

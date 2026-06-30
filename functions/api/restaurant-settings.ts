@@ -38,6 +38,8 @@ function rowToSettings(r: any) {
     theme: themeObj,
     template,
     announcement: r.announcement ? JSON.parse(r.announcement) : null,
+    outOfStockBehavior: r.out_of_stock_behavior || 'badge',
+    enableShareMenu: r.enable_share_menu !== 0, // default on
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -67,12 +69,19 @@ async function ensureAnnouncementColumn(db: any): Promise<void> {
   }
 }
 
+/** Self-heal: menu-display columns (out-of-stock behaviour + share-menu toggle). */
+async function ensureMenuDisplayColumns(db: any): Promise<void> {
+  await execute(db, "ALTER TABLE restaurant_settings ADD COLUMN out_of_stock_behavior TEXT DEFAULT 'badge'").catch(() => {});
+  await execute(db, 'ALTER TABLE restaurant_settings ADD COLUMN enable_share_menu INTEGER DEFAULT 1').catch(() => {});
+}
+
 export async function onRequestGet(context: any) {
   try {
     const tenantId = getTenantIdFromRequest(context.request);
     const db = getDB(context.env);
     await ensureTemplateColumn(db);
     await ensureAnnouncementColumn(db);
+    await ensureMenuDisplayColumns(db);
     const row = await queryFirst(db, 'SELECT * FROM restaurant_settings WHERE tenant_id = ?', tenantId);
     return new Response(JSON.stringify(row ? rowToSettings(row) : {}), { headers: CORS });
   } catch (error) {
@@ -88,6 +97,7 @@ export async function onRequestPut(context: any) {
     const db = getDB(context.env);
     await ensureTemplateColumn(db);
     await ensureAnnouncementColumn(db);
+    await ensureMenuDisplayColumns(db);
     const now = new Date().toISOString();
 
     const existing = await queryFirst(db, 'SELECT id FROM restaurant_settings WHERE tenant_id = ?', tenantId);
@@ -168,6 +178,15 @@ export async function onRequestPut(context: any) {
           await execute(db, 'UPDATE restaurant_settings SET announcement = ? WHERE tenant_id = ?', JSON.stringify(body.announcement), tenantId);
         } catch { /* column missing on very old DB — ignore */ }
       }
+    }
+
+    // Menu-display settings (out-of-stock behaviour + share toggle) — applies to new & existing rows.
+    if (body.outOfStockBehavior !== undefined || body.enableShareMenu !== undefined) {
+      const sc: string[] = []; const v: any[] = [];
+      if (body.outOfStockBehavior !== undefined) { sc.push('out_of_stock_behavior = ?'); v.push(body.outOfStockBehavior === 'hide' ? 'hide' : 'badge'); }
+      if (body.enableShareMenu !== undefined) { sc.push('enable_share_menu = ?'); v.push(body.enableShareMenu ? 1 : 0); }
+      v.push(tenantId);
+      await execute(db, `UPDATE restaurant_settings SET ${sc.join(', ')} WHERE tenant_id = ?`, ...v).catch(() => {});
     }
 
     const saved = await queryFirst(db, 'SELECT * FROM restaurant_settings WHERE tenant_id = ?', tenantId);
