@@ -194,10 +194,10 @@ export default function InventoryDashboard() {
         {tab === 'categories' && <button onClick={addCategory} style={primaryBtn}>+ New Category</button>}
         {tab === 'suppliers' && <button onClick={() => setSupplierForm({ name: '', contactName: '', phone: '', email: '', address: '', leadTimeDays: '', notes: '' })} style={primaryBtn}>+ Add Supplier</button>}
         {tab === 'orders' && <button onClick={() => setShowPO(true)} style={primaryBtn} title={items.length ? '' : 'Add inventory items first'}>+ New Order</button>}
-        {tab === 'expenses' && <button onClick={() => setExpenseForm({ name: '', category: 'Rent', amount: '', date: new Date().toISOString().slice(0, 10), vendor: '', paymentMethod: 'Cash', recurring: false })} style={primaryBtn}>+ Add Expense</button>}
+        {(tab === 'expenses' || tab === 'dashboard') && <button onClick={() => setExpenseForm({ name: '', category: tab === 'dashboard' ? 'Raw Materials' : 'Rent', amount: '', date: new Date().toISOString().slice(0, 10), vendor: '', paymentMethod: 'Cash', recurring: false })} style={primaryBtn}>+ Add Expense</button>}
       </div>
 
-      {tab === 'dashboard' && <DashboardView kpis={kpis} lowItems={lowItems} cats={cats} onReorder={(it: Item) => setAdjustItem(it)} />}
+      {tab === 'dashboard' && <DashboardView kpis={kpis} lowItems={lowItems} cats={cats} expenses={expenses} onReorder={(it: Item) => setAdjustItem(it)} />}
       {tab === 'items' && <ItemsView items={items} onEdit={(it: Item) => setProductForm(toForm(it))} onAdjust={setAdjustItem} onDelete={deleteProduct} />}
       {tab === 'movements' && <MovementsView movements={movements} />}
       {tab === 'orders' && <OrdersView orders={orders} onReceive={receivePO} onCancel={cancelPO} />}
@@ -273,7 +273,13 @@ const ghostBtn: React.CSSProperties = { padding: '8px 13px', borderRadius: 10, b
 const label: React.CSSProperties = { fontSize: 11.5, fontWeight: 700, color: C.sec, marginBottom: 5, display: 'block' };
 const input: React.CSSProperties = { width: '100%', padding: '11px 13px', border: `1px solid #e7e3de`, borderRadius: 11, fontSize: 13, outline: 'none', fontFamily: SANS, boxSizing: 'border-box' };
 
-function DashboardView({ kpis, lowItems, cats, onReorder }: any) {
+function DashboardView({ kpis, lowItems, cats, expenses = [], onReorder }: any) {
+  const today = new Date().toISOString().slice(0, 10);
+  const month = today.slice(0, 7);
+  const todayExp = expenses.filter((e: any) => (e.date || '').slice(0, 10) === today).reduce((s: number, e: any) => s + e.amount, 0);
+  const monthExp = expenses.filter((e: any) => (e.date || '').slice(0, 7) === month).reduce((s: number, e: any) => s + e.amount, 0);
+  const recentExp = [...expenses].sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
+
   const kpiCards = [
     { icon: '📦', label: 'Total Products', value: String(kpis.total), tint: '#fcefe9' },
     { icon: '⚠️', label: 'Low Stock Items', value: String(kpis.lowCount), tint: '#fdeeee', vc: C.amber },
@@ -281,8 +287,8 @@ function DashboardView({ kpis, lowItems, cats, onReorder }: any) {
     { icon: '💰', label: 'Inventory Value', value: fk(kpis.invValue), tint: '#eef5f0' },
     { icon: '🍽️', label: "Today's Consumption", value: fk(kpis.todaySale), tint: '#eaf0fb' },
     { icon: '🗑️', label: "Today's Wastage", value: fk(kpis.todayWaste), tint: '#fdf4e3', vc: kpis.todayWaste ? C.red : undefined },
-    { icon: '🛒', label: "Today's Purchases", value: fk(kpis.todayPurchase), tint: '#fcefe9' },
-    { icon: '💵', label: 'Stock at Cost', value: fk(kpis.invValue), tint: '#eef5f0', vc: C.green },
+    { icon: '📉', label: "Today's Expenses", value: fk(todayExp), tint: '#fdf4e3', vc: todayExp ? C.red : undefined },
+    { icon: '🧾', label: 'Monthly Expenses', value: fk(monthExp), tint: '#eaf0fb' },
   ];
   const catData = cats.filter((c: any) => c.stockValue > 0);
   const catTotal = catData.reduce((s: number, c: any) => s + c.stockValue, 0) || 1;
@@ -346,6 +352,23 @@ function DashboardView({ kpis, lowItems, cats, onReorder }: any) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {recentExp.length > 0 && (
+        <div style={{ ...cardBox, borderRadius: 18, padding: '18px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 15, fontWeight: 800 }}>Recent Expenses</span>
+            <span style={{ flex: 1 }} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: C.muted }}>This month: {fk(monthExp)}</span>
+          </div>
+          {recentExp.map((e: any) => (
+            <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid #f6f3ef' }}>
+              <span style={{ width: 32, height: 32, borderRadius: 9, background: '#fdf4e3', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{e.source === 'purchase' ? '📦' : '💸'}</span>
+              <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.name}</div><div style={{ fontSize: 11, fontWeight: 600, color: C.muted }}>{e.category} · {e.date}</div></div>
+              <span style={{ fontSize: 14, fontWeight: 800, fontFamily: MONO }}>{inr(e.amount)}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
