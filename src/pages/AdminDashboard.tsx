@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   LogOut, Plus, Settings, BarChart2, QrCode,
-  Upload, Download, GripVertical, Package, Briefcase, ShoppingCart, CalendarClock,
+  Upload, Download, GripVertical, Package, Briefcase, ShoppingCart, CalendarClock, Boxes,
 } from 'lucide-react';
 import { useMenuItems, useCategories } from '@/hooks/useMenu';
 import MenuItemForm from '@/components/MenuItemForm';
@@ -17,13 +17,14 @@ import MenuByCategory from '@/components/admin/MenuByCategory';
 import ManagementDashboard from '@/components/management/ManagementDashboard';
 import POSDashboard from '@/components/pos/POSDashboard';
 import ReservationManager from '@/components/reservations/ReservationManager';
+import InventoryDashboard from '@/components/inventory/InventoryDashboard';
 import api from '@/services/api';
 import { restaurantSettingsAPI } from '@/services/api';
 import { applyTheme } from '@/contexts/ThemeContext';
 import type { TenantMenuItem, TenantCategory } from '@/types/tenant';
 import toast from 'react-hot-toast';
 
-type Tab = 'menu' | 'categories' | 'analytics' | 'qrcode' | 'settings' | 'management' | 'pos' | 'reservations';
+type Tab = 'menu' | 'categories' | 'analytics' | 'qrcode' | 'settings' | 'management' | 'pos' | 'reservations' | 'inventory';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -186,6 +187,7 @@ export default function AdminDashboard() {
     { id: 'management', label: 'Management', icon: <Briefcase className="w-4 h-4" /> },
     { id: 'pos', label: 'POS', icon: <ShoppingCart className="w-4 h-4" /> },
     { id: 'reservations', label: 'Reservations', icon: <CalendarClock className="w-4 h-4" /> },
+    { id: 'inventory', label: 'Inventory', icon: <Boxes className="w-4 h-4" /> },
   ];
 
   return (
@@ -350,6 +352,9 @@ export default function AdminDashboard() {
 
             {/* ── RESERVATIONS TAB ── */}
             {activeTab === 'reservations' && <ReservationManager />}
+
+            {/* ── INVENTORY TAB ── */}
+            {activeTab === 'inventory' && <InventoryDashboard />}
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Building2, Mail, Phone, MapPin, Calendar,
   Eye, Edit, Trash2, Ban, CheckCircle,
-  ShoppingCart, LayoutDashboard,
+  ShoppingCart, LayoutDashboard, Boxes,
 } from 'lucide-react';
 import type { Tenant } from '@/types/tenant';
 import api from '@/services/api';
@@ -108,6 +108,18 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
     try {
       await api.patch(`/tenants/${tenant.id}`, { posEnabled: newVal ? 1 : 0 });
       toast.success(`POS ${newVal ? 'enabled' : 'disabled'} for ${tenant.name}`);
+      await onRefresh();
+    } catch (e: any) {
+      toast.error(e.message || 'Failed');
+    } finally { setLoading(null); }
+  };
+
+  const handleToggleInventory = async (tenant: Tenant) => {
+    const newVal = !tenant.inventoryEnabled;
+    setLoading(tenant.id);
+    try {
+      await api.patch(`/tenants/${tenant.id}`, { inventoryEnabled: newVal ? 1 : 0 });
+      toast.success(`Inventory ${newVal ? 'enabled' : 'disabled'} for ${tenant.name}`);
       await onRefresh();
     } catch (e: any) {
       toast.error(e.message || 'Failed');
@@ -257,6 +269,19 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
               >
                 <ShoppingCart className="w-3.5 h-3.5" />
                 {tenant.posEnabled ? 'Disable POS' : 'Enable POS'}
+              </button>
+
+              {/* Inventory toggle */}
+              <button
+                onClick={() => handleToggleInventory(tenant)}
+                className={`mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  tenant.inventoryEnabled
+                    ? 'border-orange-300 text-orange-700 bg-orange-50 hover:bg-orange-100'
+                    : 'border-gray-200 text-gray-500 bg-white hover:bg-gray-50'
+                }`}
+              >
+                <Boxes className="w-3.5 h-3.5" />
+                {tenant.inventoryEnabled ? 'Disable Inventory' : 'Enable Inventory'}
               </button>
             </div>
           </div>

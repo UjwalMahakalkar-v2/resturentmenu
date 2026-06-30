@@ -48,7 +48,7 @@ export async function onRequestPatch(context: any) {
     const allowed: Record<string, string> = {
       status: 'status', name: 'name', email: 'email',
       phone: 'phone', address: 'address', subscriptionPlan: 'subscription_plan',
-      posEnabled: 'pos_enabled',
+      posEnabled: 'pos_enabled', inventoryEnabled: 'inventory_enabled',
     };
     const setClauses: string[] = ['updated_at = ?'];
     const values: any[] = [new Date().toISOString()];
@@ -71,13 +71,10 @@ export async function onRequestPatch(context: any) {
       await execute(db, sql, ...values);
     } catch (execErr) {
       const execMsg = execErr instanceof Error ? execErr.message : '';
-      // Column doesn't exist yet — run migration then retry once
-      if (execMsg.includes('no such column: pos_enabled')) {
-        try {
-          await execute(db, 'ALTER TABLE tenants ADD COLUMN pos_enabled INTEGER NOT NULL DEFAULT 0');
-        } catch {
-          // Already added by a concurrent request — ignore
-        }
+      // A feature-flag column doesn't exist yet — add the missing one(s), then retry once.
+      if (execMsg.includes('no such column')) {
+        await execute(db, 'ALTER TABLE tenants ADD COLUMN pos_enabled INTEGER NOT NULL DEFAULT 0').catch(() => {});
+        await execute(db, 'ALTER TABLE tenants ADD COLUMN inventory_enabled INTEGER NOT NULL DEFAULT 0').catch(() => {});
         await execute(db, sql, ...values);
       } else {
         throw execErr;
@@ -91,6 +88,7 @@ export async function onRequestPatch(context: any) {
       id: updated.id, slug: updated.slug, name: updated.name, status: updated.status,
       subscriptionPlan: updated.subscription_plan, email: updated.email,
       posEnabled: (updated.pos_enabled ?? 0) === 1,
+      inventoryEnabled: (updated.inventory_enabled ?? 0) === 1,
     }), { headers: CORS });
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Failed to update tenant';

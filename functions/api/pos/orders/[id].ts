@@ -1,5 +1,6 @@
 import { getDB, queryFirst, queryAll, execute } from '../../../db';
 import { getTenantIdFromRequest } from '../../../utils/jwt';
+import { deductForOrder } from '../../../utils/inventory';
 
 const CORS = {
   'Content-Type': 'application/json',
@@ -84,6 +85,11 @@ export async function onRequestPut(context: any) {
     // Free table when order is paid/closed
     if ((body.status === 'paid' || body.status === 'closed') && order.table_id) {
       await execute(db, "UPDATE pos_tables SET status = 'available', updated_at = ? WHERE id = ? AND tenant_id = ?", now, order.table_id, tenantId);
+    }
+
+    // Deduct inventory once when the order becomes paid (best-effort, idempotent).
+    if (body.status === 'paid' || body.paymentStatus === 'paid') {
+      await deductForOrder(db, context.env, tenantId, id, body.customerName || order.customer_name || 'POS');
     }
 
     const updated = await queryFirst(db, 'SELECT * FROM pos_orders WHERE id = ?', id);

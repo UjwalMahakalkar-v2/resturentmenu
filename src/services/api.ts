@@ -332,4 +332,26 @@ export const publicReservationsAPI = {
   },
 };
 
+// Inventory & Finance API (authenticated; gated by tenants.inventory_enabled)
+export const inventoryAPI = {
+  getSettings: async () => (await api.get('/inventory/settings')).data,
+  updateSettings: async (data: Record<string, any>) => (await api.put('/inventory/settings', data)).data,
+  getItems: async () => (await api.get('/inventory/items')).data,
+  createItem: async (data: Record<string, any>) => (await api.post('/inventory/items', data)).data,
+  updateItem: async (id: string, data: Record<string, any>) => (await api.put(`/inventory/items/${id}`, data)).data,
+  deleteItem: async (id: string) => { await api.delete(`/inventory/items/${id}`); },
+  getCategories: async () => (await api.get('/inventory/categories')).data,
+  createCategory: async (data: Record<string, any>) => (await api.post('/inventory/categories', data)).data,
+  getMovements: async (params?: { type?: string; itemId?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.type) q.set('type', params.type);
+    if (params?.itemId) q.set('itemId', params.itemId);
+    if (params?.limit) q.set('limit', String(params.limit));
+    return (await api.get(`/inventory/movements${q.toString() ? '?' + q.toString() : ''}`)).data;
+  },
+  recordMovement: async (data: Record<string, any>) => (await api.post('/inventory/movements', data)).data,
+  getRecipe: async (menuItemId: string) => (await api.get(`/inventory/recipes?menuItemId=${encodeURIComponent(menuItemId)}`)).data,
+  saveRecipe: async (menuItemId: string, lines: any[]) => (await api.put('/inventory/recipes', { menuItemId, lines })).data,
+};
+
 export default api;

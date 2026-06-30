@@ -24,6 +24,7 @@ export interface Tenant {
   ownerId?: string; // Reference to admin user
   ownerName?: string;
   posEnabled?: boolean;
+  inventoryEnabled?: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date; // Soft delete

@@ -1,5 +1,6 @@
 import { getDB, queryAll, queryFirst, execute } from '../../db';
 import { getTenantIdFromRequest } from '../../utils/jwt';
+import { deductForOrder } from '../../utils/inventory';
 
 const CORS = {
   'Content-Type': 'application/json',
@@ -144,6 +145,11 @@ export async function onRequestPost(context: any) {
       const isPaid = body.status === 'paid' || body.paymentStatus === 'paid';
       const newStatus = isPaid ? 'available' : 'occupied';
       await execute(db, `UPDATE pos_tables SET status = '${newStatus}', updated_at = ? WHERE id = ? AND tenant_id = ?`, now, body.tableId, tenantId);
+    }
+
+    // If the bill was created already paid, deduct inventory per recipe (best-effort, idempotent).
+    if (body.status === 'paid' || body.paymentStatus === 'paid') {
+      await deductForOrder(db, context.env, tenantId, id, body.customerName || 'POS');
     }
 
     const savedOrder = await queryFirst(db, 'SELECT * FROM pos_orders WHERE id = ?', id);

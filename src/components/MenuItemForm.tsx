@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MenuItem, Category } from '@/types';
 import Modal from './Modal';
 import ImageUploader from './ImageUploader';
+import RecipeEditor from './inventory/RecipeEditor';
 import toast from 'react-hot-toast';
 
 interface MenuItemFormProps {
@@ -308,6 +309,9 @@ export default function MenuItemForm({ isOpen, onClose, onSave, categories, edit
             </div>
           </div>
         </div>
+
+        {/* Recipe / BOM — only for saved items (needs the menu item id); self-hides if inventory module is off */}
+        {editItem?.id && <RecipeEditor menuItemId={editItem.id} dishPrice={parseFloat(formData.price) || 0} />}
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">

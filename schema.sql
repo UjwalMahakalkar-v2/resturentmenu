@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS tenants (
   status          TEXT NOT NULL DEFAULT 'active',
   subscription_plan TEXT NOT NULL DEFAULT 'starter',
   pos_enabled     INTEGER NOT NULL DEFAULT 0,
+  inventory_enabled INTEGER NOT NULL DEFAULT 0,
   whatsapp_clicks INTEGER NOT NULL DEFAULT 0,
   instagram_clicks INTEGER NOT NULL DEFAULT 0,
   facebook_clicks INTEGER NOT NULL DEFAULT 0,
@@ -296,6 +297,87 @@ CREATE INDEX IF NOT EXISTS idx_pos_orders_tenant      ON pos_orders(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_pos_orders_status      ON pos_orders(status);
 CREATE INDEX IF NOT EXISTS idx_pos_order_items_order  ON pos_order_items(order_id);
 
+-- ── Inventory & Finance (ERP module — gated by tenants.inventory_enabled) ──
+CREATE TABLE IF NOT EXISTS inventory_categories (
+  id          TEXT PRIMARY KEY,
+  tenant_id   TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  icon        TEXT DEFAULT '📦',
+  sort_order  INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS inventory_items (
+  id             TEXT PRIMARY KEY,
+  tenant_id      TEXT NOT NULL,
+  category_id    TEXT,
+  name           TEXT NOT NULL,
+  sku            TEXT,
+  emoji          TEXT,
+  unit           TEXT NOT NULL DEFAULT 'pcs',
+  current_stock  REAL NOT NULL DEFAULT 0,
+  min_stock      REAL NOT NULL DEFAULT 0,
+  max_stock      REAL NOT NULL DEFAULT 0,
+  purchase_price REAL NOT NULL DEFAULT 0,
+  selling_price  REAL NOT NULL DEFAULT 0,
+  gst_rate       REAL NOT NULL DEFAULT 0,
+  supplier       TEXT,
+  notes          TEXT,
+  active         INTEGER NOT NULL DEFAULT 1,
+  created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+-- BOM: links a menu item to inventory items (references inventory IDs, never names)
+CREATE TABLE IF NOT EXISTS recipes (
+  id                TEXT PRIMARY KEY,
+  tenant_id         TEXT NOT NULL,
+  menu_item_id      TEXT NOT NULL,
+  inventory_item_id TEXT NOT NULL,
+  quantity          REAL NOT NULL DEFAULT 0,
+  unit              TEXT NOT NULL DEFAULT 'pcs',
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS stock_movements (
+  id                TEXT PRIMARY KEY,
+  tenant_id         TEXT NOT NULL,
+  inventory_item_id TEXT NOT NULL,
+  type              TEXT NOT NULL,            -- purchase | sale | adjustment | spoilage | waste | return | transfer | correction | production
+  previous_stock    REAL NOT NULL DEFAULT 0,
+  change_qty        REAL NOT NULL DEFAULT 0,  -- signed
+  new_stock         REAL NOT NULL DEFAULT 0,
+  unit              TEXT,
+  reason            TEXT,
+  reference_id      TEXT,                     -- e.g. POS order number
+  user_name         TEXT,
+  created_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS inventory_settings (
+  tenant_id                TEXT PRIMARY KEY,
+  auto_hide                INTEGER NOT NULL DEFAULT 0,
+  show_out_of_stock_badge  INTEGER NOT NULL DEFAULT 1,
+  continue_selling         INTEGER NOT NULL DEFAULT 1,
+  updated_at               TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_inv_items_tenant    ON inventory_items(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_inv_items_category  ON inventory_items(category_id);
+CREATE INDEX IF NOT EXISTS idx_inv_cats_tenant     ON inventory_categories(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_recipes_menu_item   ON recipes(tenant_id, menu_item_id);
+CREATE INDEX IF NOT EXISTS idx_movements_tenant    ON stock_movements(tenant_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_movements_item      ON stock_movements(inventory_item_id);
+
 -- ── Migration note ────────────────────────────────────────────
 -- For existing databases run:
 --   ALTER TABLE tenants ADD COLUMN pos_enabled INTEGER NOT NULL DEFAULT 0;
+--   ALTER TABLE tenants ADD COLUMN inventory_enabled INTEGER NOT NULL DEFAULT 0;
+--   ALTER TABLE pos_orders ADD COLUMN inventory_deducted INTEGER NOT NULL DEFAULT 0;
+-- (All are also applied automatically at runtime by the API self-heal helpers.)

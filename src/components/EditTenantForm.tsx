@@ -20,6 +20,7 @@ export default function EditTenantForm({ tenant, onClose, onSuccess }: EditTenan
     status: tenant.status as TenantStatus,
     plan: (tenant.plan || 'starter') as SubscriptionPlan,
     posEnabled: tenant.posEnabled ?? false,
+    inventoryEnabled: tenant.inventoryEnabled ?? false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -43,6 +44,7 @@ export default function EditTenantForm({ tenant, onClose, onSuccess }: EditTenan
         status: formData.status,
         subscriptionPlan: formData.plan,
         posEnabled: formData.posEnabled ? 1 : 0,
+        inventoryEnabled: formData.inventoryEnabled ? 1 : 0,
       });
       toast.success(`"${formData.name}" updated successfully`);
       onSuccess();
@@ -165,6 +167,21 @@ export default function EditTenantForm({ tenant, onClose, onSuccess }: EditTenan
               className={`relative w-12 h-6 rounded-full transition-colors ${formData.posEnabled ? 'bg-amber-500' : 'bg-gray-300'}`}
             >
               <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.posEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
+            </button>
+          </div>
+
+          {/* Inventory Toggle */}
+          <div className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-xl">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Inventory &amp; Finance</p>
+              <p className="text-xs text-gray-500">Enable stock, recipes & auto-deduction for this tenant</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData(prev => ({ ...prev, inventoryEnabled: !prev.inventoryEnabled }))}
+              className={`relative w-12 h-6 rounded-full transition-colors ${formData.inventoryEnabled ? 'bg-orange-500' : 'bg-gray-300'}`}
+            >
+              <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.inventoryEnabled ? 'translate-x-7' : 'translate-x-1'}`} />
             </button>
           </div>
 
