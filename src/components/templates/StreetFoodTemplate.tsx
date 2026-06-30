@@ -9,6 +9,7 @@ import { Search, X, Phone, MapPin, Flame, Zap } from 'lucide-react';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
 import ReservationWidget from '@/components/ReservationWidget';
+import ShareMenuButton from '@/components/ShareMenuButton';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, Category } from '@/types';
 
@@ -134,6 +135,9 @@ export default function StreetFoodTemplate({ restaurant, menuItems, categories, 
                   triggerClassName="px-6 py-2.5 rounded-xl font-extrabold text-sm border-2 border-white/30 text-white hover:bg-white/10 transition-colors"
                   label="Reserve a Table"
                 />
+              )}
+              {restaurant.enableShareMenu !== false && (
+                <ShareMenuButton title={restaurant.name} label="Share" triggerClassName="px-6 py-2.5 rounded-xl font-extrabold text-sm border-2 border-white/30 text-white hover:bg-white/10 transition-colors" />
               )}
             </div>
           </div>

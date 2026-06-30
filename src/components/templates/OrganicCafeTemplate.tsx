@@ -9,6 +9,7 @@ import { Search, X, Phone, Mail, MapPin, Leaf, Heart } from 'lucide-react';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
 import ReservationWidget from '@/components/ReservationWidget';
+import ShareMenuButton from '@/components/ShareMenuButton';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, Category } from '@/types';
 
@@ -124,8 +125,8 @@ export default function OrganicCafeTemplate({ restaurant, menuItems, categories,
               <Leaf className="w-3 h-3" /> Fresh · Natural · Wholesome
             </div>
             <h2 className="text-2xl sm:text-4xl font-bold text-[#2c2420] leading-tight">{restaurant.name}</h2>
-            {tenant && (
-              <div className="mt-3">
+            <div className="mt-3 flex flex-wrap gap-2.5">
+              {tenant && (
                 <ReservationWidget
                   tenantId={tenant.id}
                   accent="var(--color-primary)"
@@ -133,8 +134,13 @@ export default function OrganicCafeTemplate({ restaurant, menuItems, categories,
                   triggerStyle={{ backgroundColor: 'var(--color-primary)' }}
                   label="Reserve a Table"
                 />
-              </div>
-            )}
+              )}
+              {restaurant.enableShareMenu !== false && (
+                <ShareMenuButton title={restaurant.name}
+                  triggerClassName="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold shadow-sm bg-white hover:opacity-90 transition-opacity"
+                  triggerStyle={{ color: 'var(--color-primary)', border: '1px solid var(--color-primary)' }} />
+              )}
+            </div>
           </div>
         </div>
       </section>

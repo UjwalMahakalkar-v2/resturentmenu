@@ -9,6 +9,7 @@ import { Search, X, Phone, Mail, MapPin, Star } from 'lucide-react';
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
 import ReservationWidget from '@/components/ReservationWidget';
+import ShareMenuButton from '@/components/ShareMenuButton';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, Category } from '@/types';
 
@@ -144,6 +145,10 @@ export default function LuxuryDiningTemplate({ restaurant, menuItems, categories
                 label="Reserve a Table"
                 showIcon={false}
               />
+            )}
+            {restaurant.enableShareMenu !== false && (
+              <ShareMenuButton title={restaurant.name} showIcon={false} label="Share Menu"
+                triggerClassName="px-8 py-3 text-[11px] tracking-[0.25em] uppercase font-semibold text-white border border-white/40 hover:bg-white hover:text-[#1a1612] transition-all duration-300" />
             )}
           </div>
         </div>

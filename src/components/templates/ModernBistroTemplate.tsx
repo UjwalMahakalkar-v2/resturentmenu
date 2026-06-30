@@ -9,6 +9,7 @@ import { Search, X, Phone, Mail, MapPin, Star, Heart, ArrowRight } from 'lucide-
 import MenuItemDetail from '@/components/MenuItemDetail';
 import FloatingSocialButtons from '@/components/FloatingSocialButtons';
 import ReservationWidget from '@/components/ReservationWidget';
+import ShareMenuButton from '@/components/ShareMenuButton';
 import type { TenantMenuItem } from '@/types/tenant';
 import type { Restaurant, Category } from '@/types';
 
@@ -128,6 +129,9 @@ export default function ModernBistroTemplate({ restaurant, menuItems, categories
                   triggerClassName="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-medium text-sm border border-white/60 hover:bg-white/10 transition-colors"
                   label="Reserve a Table"
                 />
+              )}
+              {restaurant.enableShareMenu !== false && (
+                <ShareMenuButton title={restaurant.name} triggerClassName="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-white font-medium text-sm border border-white/60 hover:bg-white/10 transition-colors" />
               )}
             </div>
           </div>

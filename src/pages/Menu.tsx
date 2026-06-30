@@ -19,6 +19,7 @@ import OrganicCafeTemplate from '@/components/templates/OrganicCafeTemplate';
 import LuxuryDiningTemplate from '@/components/templates/LuxuryDiningTemplate';
 import { Loader2, ArrowLeft, Search, X } from 'lucide-react';
 import ReservationWidget from '@/components/ReservationWidget';
+import ShareMenuButton from '@/components/ShareMenuButton';
 import type { TenantMenuItem, TenantCategory } from '@/types/tenant';
 import type { Restaurant, MenuTemplate } from '@/types';
 
@@ -252,15 +253,22 @@ export default function Menu() {
       <Header restaurant={restaurant} />
       <Hero restaurant={restaurant} onViewMenu={scrollToMenu} />
 
-      {/* Reserve a Table CTA */}
+      {/* Reserve a Table + Share CTA */}
       {tenant && (
-        <div className="container-custom py-4 flex justify-center">
+        <div className="container-custom py-4 flex justify-center gap-3 flex-wrap">
           <ReservationWidget
             tenantId={tenant.id}
             accent="var(--color-primary)"
             triggerClassName="flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm text-white shadow-md transition-transform hover:scale-105 active:scale-95"
             triggerStyle={{ background: 'var(--color-primary)' }}
           />
+          {restaurant.enableShareMenu !== false && (
+            <ShareMenuButton
+              title={restaurant.name}
+              triggerClassName="flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm shadow-sm transition-transform hover:scale-105 active:scale-95"
+              triggerStyle={{ background: '#fff', color: 'var(--color-primary)', border: '1px solid var(--color-primary)' }}
+            />
+          )}
         </div>
       )}
 
