@@ -414,6 +414,25 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
   FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS expenses (
+  id            TEXT PRIMARY KEY,
+  tenant_id     TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  category      TEXT,
+  amount        REAL NOT NULL DEFAULT 0,
+  expense_date  TEXT,
+  vendor        TEXT,
+  payment_method TEXT,
+  recurring     INTEGER NOT NULL DEFAULT 0,
+  source        TEXT NOT NULL DEFAULT 'manual',   -- manual | purchase (from a received PO)
+  reference_id  TEXT,
+  user_name     TEXT,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_expenses_tenant     ON expenses(tenant_id, expense_date);
+
 CREATE INDEX IF NOT EXISTS idx_suppliers_tenant    ON suppliers(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_po_tenant           ON purchase_orders(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_poi_po              ON purchase_order_items(po_id);

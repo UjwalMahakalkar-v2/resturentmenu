@@ -33,7 +33,7 @@ const EMPTY_ITEM = {
   currentStock: '0', minStock: '0', maxStock: '0', purchasePrice: '0', sellingPrice: '0', gstRate: '0', supplier: '', notes: '',
 };
 
-type Tab = 'dashboard' | 'items' | 'movements' | 'orders' | 'suppliers' | 'lowstock' | 'categories' | 'settings';
+type Tab = 'dashboard' | 'items' | 'movements' | 'orders' | 'suppliers' | 'expenses' | 'finance' | 'lowstock' | 'categories' | 'settings';
 
 export default function InventoryDashboard() {
   const [enabled, setEnabled] = useState<boolean | null>(null);
@@ -43,6 +43,9 @@ export default function InventoryDashboard() {
   const [movements, setMovements] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [finance, setFinance] = useState<any | null>(null);
+  const [financeRange, setFinanceRange] = useState('month');
   const [settings, setSettings] = useState<any>({ autoHide: false, showOutOfStockBadge: true, continueSelling: true });
   const [loading, setLoading] = useState(true);
 
@@ -51,6 +54,7 @@ export default function InventoryDashboard() {
   const [adjustItem, setAdjustItem] = useState<Item | null>(null);
   const [supplierForm, setSupplierForm] = useState<any | null>(null);
   const [showPO, setShowPO] = useState(false);
+  const [expenseForm, setExpenseForm] = useState<any | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -58,11 +62,12 @@ export default function InventoryDashboard() {
       setEnabled(!!s.inventoryEnabled);
       setSettings(s);
       if (!s.inventoryEnabled) { setLoading(false); return; }
-      const [its, cs, mv, sup, po] = await Promise.all([
+      const [its, cs, mv, sup, po, exp, fin] = await Promise.all([
         inventoryAPI.getItems(), inventoryAPI.getCategories(), inventoryAPI.getMovements({ limit: 80 }),
         inventoryAPI.getSuppliers().catch(() => []), inventoryAPI.getPurchaseOrders().catch(() => []),
+        inventoryAPI.getExpenses().catch(() => []), inventoryAPI.getFinance('month').catch(() => null),
       ]);
-      setItems(its); setCats(cs); setMovements(mv); setSuppliers(sup); setOrders(po);
+      setItems(its); setCats(cs); setMovements(mv); setSuppliers(sup); setOrders(po); setExpenses(exp); setFinance(fin);
     } catch {
       setEnabled(false);
     } finally {
@@ -72,11 +77,17 @@ export default function InventoryDashboard() {
   useEffect(() => { load(); }, [load]);
 
   const refresh = async () => {
-    const [its, mv, cs, sup, po] = await Promise.all([
+    const [its, mv, cs, sup, po, exp, fin] = await Promise.all([
       inventoryAPI.getItems(), inventoryAPI.getMovements({ limit: 80 }), inventoryAPI.getCategories(),
       inventoryAPI.getSuppliers().catch(() => []), inventoryAPI.getPurchaseOrders().catch(() => []),
+      inventoryAPI.getExpenses().catch(() => []), inventoryAPI.getFinance(financeRange).catch(() => null),
     ]);
-    setItems(its); setMovements(mv); setCats(cs); setSuppliers(sup); setOrders(po);
+    setItems(its); setMovements(mv); setCats(cs); setSuppliers(sup); setOrders(po); setExpenses(exp); setFinance(fin);
+  };
+
+  const changeFinanceRange = async (r: string) => {
+    setFinanceRange(r);
+    try { setFinance(await inventoryAPI.getFinance(r)); } catch { /* ignore */ }
   };
 
   /* ── derived KPIs ── */
@@ -141,7 +152,7 @@ export default function InventoryDashboard() {
   const TABS: { id: Tab; label: string; badge?: number }[] = [
     { id: 'dashboard', label: 'Dashboard' }, { id: 'items', label: 'Inventory' },
     { id: 'movements', label: 'Stock Movements' }, { id: 'orders', label: 'Purchase Orders' },
-    { id: 'suppliers', label: 'Suppliers' },
+    { id: 'suppliers', label: 'Suppliers' }, { id: 'expenses', label: 'Expenses' }, { id: 'finance', label: 'Finance' },
     { id: 'lowstock', label: 'Low Stock', badge: kpis.lowCount + kpis.critCount },
     { id: 'categories', label: 'Categories' }, { id: 'settings', label: 'Settings' },
   ];
@@ -168,6 +179,7 @@ export default function InventoryDashboard() {
         {tab === 'categories' && <button onClick={addCategory} style={primaryBtn}>+ New Category</button>}
         {tab === 'suppliers' && <button onClick={() => setSupplierForm({ name: '', contactName: '', phone: '', email: '', address: '', leadTimeDays: '', notes: '' })} style={primaryBtn}>+ Add Supplier</button>}
         {tab === 'orders' && <button onClick={() => setShowPO(true)} style={primaryBtn} title={items.length ? '' : 'Add inventory items first'}>+ New Order</button>}
+        {tab === 'expenses' && <button onClick={() => setExpenseForm({ name: '', category: 'Rent', amount: '', date: new Date().toISOString().slice(0, 10), vendor: '', paymentMethod: 'Cash', recurring: false })} style={primaryBtn}>+ Add Expense</button>}
       </div>
 
       {tab === 'dashboard' && <DashboardView kpis={kpis} lowItems={lowItems} cats={cats} onReorder={(it: Item) => setAdjustItem(it)} />}
@@ -175,6 +187,8 @@ export default function InventoryDashboard() {
       {tab === 'movements' && <MovementsView movements={movements} />}
       {tab === 'orders' && <OrdersView orders={orders} onReceive={receivePO} onCancel={cancelPO} />}
       {tab === 'suppliers' && <SuppliersView suppliers={suppliers} onNewOrder={() => setShowPO(true)} onSettle={settleDues} />}
+      {tab === 'expenses' && <ExpensesView expenses={expenses} onDelete={deleteExpense} />}
+      {tab === 'finance' && <FinanceView finance={finance} range={financeRange} onRange={changeFinanceRange} />}
       {tab === 'lowstock' && <LowStockView lowItems={lowItems} onReorder={setAdjustItem} />}
       {tab === 'categories' && <CategoriesView cats={cats} />}
       {tab === 'settings' && <SettingsView settings={settings} onSave={async (s: any) => { const r = await inventoryAPI.updateSettings(s); setSettings(r); toast.success('Settings saved'); }} />}
@@ -183,6 +197,7 @@ export default function InventoryDashboard() {
       {adjustItem && <AdjustModal item={adjustItem} onClose={() => setAdjustItem(null)} onSaved={async () => { setAdjustItem(null); await refresh(); }} />}
       {supplierForm && <SupplierModal form={supplierForm} setForm={setSupplierForm} onClose={() => setSupplierForm(null)} onSave={saveSupplier} />}
       {showPO && <PurchaseOrderModal items={items} suppliers={suppliers} onClose={() => setShowPO(false)} onSaved={async () => { setShowPO(false); await refresh(); }} />}
+      {expenseForm && <ExpenseModal form={expenseForm} setForm={setExpenseForm} onClose={() => setExpenseForm(null)} onSave={saveExpense} />}
     </div>
   );
 
@@ -216,6 +231,21 @@ export default function InventoryDashboard() {
     if (!sup.outstanding) { toast('No outstanding dues'); return; }
     if (!confirm(`Mark ₹${Math.round(sup.outstanding)} as settled for ${sup.name}?`)) return;
     try { await inventoryAPI.updateSupplier(sup.id, { outstanding: 0 }); toast.success('Dues settled'); await refresh(); } catch { toast.error('Failed'); }
+  }
+
+  async function saveExpense() {
+    const f = expenseForm;
+    if (!(Number(f.amount) > 0)) { toast.error('Enter an amount'); return; }
+    try {
+      await inventoryAPI.createExpense({ ...f, amount: Number(f.amount), name: f.name || f.category });
+      toast.success('Expense added');
+      setExpenseForm(null);
+      await refresh();
+    } catch { toast.error('Failed to save expense'); }
+  }
+  async function deleteExpense(id: string) {
+    if (!confirm('Delete this expense?')) return;
+    try { await inventoryAPI.deleteExpense(id); toast.success('Deleted'); await refresh(); } catch { toast.error('Failed'); }
   }
 }
 
@@ -718,6 +748,152 @@ function PurchaseOrderModal({ items, suppliers, onClose, onSaved }: any) {
         <button onClick={() => submit('draft')} disabled={saving} style={ghostBtn}>Save Draft</button>
         <button onClick={() => submit('ordered')} disabled={saving} style={{ ...primaryBtn, opacity: saving ? .6 : 1 }}>{saving ? 'Saving…' : 'Place Order'}</button>
       </div>
+    </Overlay>
+  );
+}
+
+const EXPENSE_CATS = ['Rent', 'Utilities', 'Salaries', 'Marketing', 'Inventory Purchase', 'Maintenance', 'Licenses', 'Equipment', 'Other'];
+const PAY_METHODS = ['Cash', 'Bank Transfer', 'Card', 'UPI', 'Cheque'];
+
+function ExpensesView({ expenses, onDelete }: any) {
+  const today = new Date().toISOString().slice(0, 10);
+  const month = today.slice(0, 7);
+  const todayTotal = expenses.filter((e: any) => (e.date || '').slice(0, 10) === today).reduce((s: number, e: any) => s + e.amount, 0);
+  const monthTotal = expenses.filter((e: any) => (e.date || '').slice(0, 7) === month).reduce((s: number, e: any) => s + e.amount, 0);
+  const monthOps = expenses.filter((e: any) => (e.date || '').slice(0, 7) === month && e.source !== 'purchase').reduce((s: number, e: any) => s + e.amount, 0);
+  const monthPur = monthTotal - monthOps;
+
+  // group by category (this month)
+  const byCat: Record<string, number> = {};
+  expenses.filter((e: any) => (e.date || '').slice(0, 7) === month).forEach((e: any) => { byCat[e.category] = (byCat[e.category] || 0) + e.amount; });
+
+  const kpiCards = [
+    { icon: '📉', label: "Today's Expenses", value: fk(todayTotal), tint: '#fdf4e3' },
+    { icon: '🗓️', label: 'This Month', value: fk(monthTotal), tint: '#eaf0fb' },
+    { icon: '🧾', label: 'Operating (mo)', value: fk(monthOps), tint: '#fcefe9' },
+    { icon: '📦', label: 'Inventory Buys (mo)', value: fk(monthPur), tint: '#eef5f0' },
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14 }}>
+        {kpiCards.map((c, i) => (
+          <div key={i} style={{ ...cardBox, padding: '16px 17px' }}>
+            <span style={{ width: 36, height: 36, borderRadius: 11, background: c.tint, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{c.icon}</span>
+            <div style={{ marginTop: 12 }}><span style={{ fontSize: 11.5, fontWeight: 700, color: C.muted, display: 'block' }}>{c.label}</span><span style={{ fontSize: 23, fontWeight: 800, fontFamily: MONO }}>{c.value}</span></div>
+          </div>
+        ))}
+      </div>
+
+      {Object.keys(byCat).length > 0 && (
+        <div style={{ ...cardBox, borderRadius: 18, padding: 20 }}>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>Spending by Category · this month</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 11, marginTop: 14 }}>
+            {Object.entries(byCat).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
+              <div key={cat} style={{ display: 'flex', flexDirection: 'column', padding: '12px 13px', background: '#fbfaf8', border: '1px solid #f1ede8', borderRadius: 13 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: C.sec }}>{cat}</span>
+                <span style={{ fontSize: 15, fontWeight: 800, fontFamily: MONO }}>{fk(amt)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ ...cardBox, borderRadius: 18, overflow: 'hidden' }}>
+        <div style={{ padding: '16px 18px 12px', fontSize: 15, fontWeight: 800 }}>Recent Expenses</div>
+        <div style={{ overflowX: 'auto' }}><div style={{ minWidth: 760 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.1fr 1fr 1.1fr 1.1fr 70px', gap: 12, padding: '11px 18px', fontSize: 10.5, fontWeight: 800, color: C.muted, letterSpacing: .5, textTransform: 'uppercase', borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, background: '#fbfaf8' }}>
+            <span>Expense</span><span>Category</span><span style={{ textAlign: 'right' }}>Amount</span><span>Date</span><span>Payment</span><span style={{ textAlign: 'right' }}>···</span>
+          </div>
+          {expenses.length === 0 ? <div style={{ padding: 30, textAlign: 'center', color: C.muted, fontSize: 13 }}>No expenses recorded yet.</div> : expenses.map((x: any) => (
+            <div key={x.id} style={{ display: 'grid', gridTemplateColumns: '1.8fr 1.1fr 1fr 1.1fr 1.1fr 70px', gap: 12, alignItems: 'center', padding: '12px 18px', borderBottom: '1px solid #f4f1ed', fontSize: 13 }}>
+              <span style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.name}{x.source === 'purchase' && <span style={{ marginLeft: 6, fontSize: 10, color: C.green }}>● auto</span>}</span>
+              <span><span style={{ padding: '3px 10px', borderRadius: 20, background: '#f4f1ee', color: C.sec, fontSize: 11, fontWeight: 700 }}>{x.category}</span></span>
+              <span style={{ textAlign: 'right', fontWeight: 800, fontFamily: MONO }}>{inr(x.amount)}</span>
+              <span style={{ color: C.sec, fontWeight: 600 }}>{x.date}</span>
+              <span style={{ color: '#3a352f', fontWeight: 600 }}>{x.paymentMethod || '—'}</span>
+              <span style={{ display: 'flex', justifyContent: 'flex-end' }}>{x.source === 'purchase' ? <span style={{ fontSize: 11, color: C.muted }}>PO</span> : <button onClick={() => onDelete(x.id)} style={{ ...iconBtn, color: C.red }}>🗑</button>}</span>
+            </div>
+          ))}
+        </div></div>
+      </div>
+    </div>
+  );
+}
+
+function FinanceView({ finance, range, onRange }: any) {
+  const RANGES = [['today', 'Today'], ['week', 'This Week'], ['month', 'This Month'], ['year', 'This Year']];
+  const f = finance || { revenue: 0, foodCost: 0, operatingExpenses: 0, payroll: 0, inventoryPurchases: 0, grossProfit: 0, netProfit: 0, grossMargin: 0, netMargin: 0 };
+  const Line = ({ label: l, value, color, strong, neg }: any) => (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: strong ? '12px 0' : '8px 0', borderTop: strong ? `1px solid ${C.border}` : 'none' }}>
+      <span style={{ fontSize: strong ? 14 : 13, fontWeight: strong ? 800 : 600, color: strong ? C.dark : C.sec }}>{l}</span>
+      <span style={{ fontSize: strong ? 20 : 15, fontWeight: 800, fontFamily: MONO, color: color || C.dark }}>{neg && value > 0 ? '−' : ''}{inr(value)}</span>
+    </div>
+  );
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+        {RANGES.map(([id, lbl]) => (
+          <button key={id} onClick={() => onRange(id)} style={{ ...ghostBtn, background: range === id ? C.primary : '#fff', color: range === id ? '#fff' : '#3a352f', border: range === id ? 'none' : ghostBtn.border }}>{lbl}</button>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 16 }}>
+        {/* P&L card */}
+        <div style={{ ...cardBox, gridColumn: 'span 2', minWidth: 300, borderRadius: 18, padding: 22 }}>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>Profit &amp; Loss</span>
+          <div style={{ marginTop: 10 }}>
+            <Line label="Revenue (POS sales)" value={f.revenue} color={C.green} />
+            <Line label="Food Cost (COGS)" value={f.foodCost} color={C.red} neg />
+            <Line label="Gross Profit" value={f.grossProfit} strong />
+            <Line label="Operating Expenses" value={f.operatingExpenses} color={C.red} neg />
+            <Line label="Payroll" value={f.payroll} color={C.red} neg />
+            <Line label="Net Profit (est.)" value={f.netProfit} color={f.netProfit >= 0 ? C.green : C.red} strong />
+          </div>
+        </div>
+        {/* Margins + side metrics */}
+        <div style={{ ...cardBox, background: C.dark, borderRadius: 18, padding: 22, color: '#fff', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>Margins</span>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12.5, color: '#a9a29a', fontWeight: 600 }}>Gross Margin</span><span style={{ fontSize: 13, fontWeight: 800, color: '#6fd19b' }}>{f.grossMargin}%</span></div>
+            <div style={{ height: 8, borderRadius: 6, background: 'rgba(255,255,255,.12)', overflow: 'hidden' }}><div style={{ height: '100%', width: Math.max(0, Math.min(100, f.grossMargin)) + '%', background: '#6fd19b' }} /></div>
+          </div>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ fontSize: 12.5, color: '#a9a29a', fontWeight: 600 }}>Net Margin</span><span style={{ fontSize: 13, fontWeight: 800, color: f.netMargin >= 0 ? '#6fd19b' : '#e8a08a' }}>{f.netMargin}%</span></div>
+            <div style={{ height: 8, borderRadius: 6, background: 'rgba(255,255,255,.12)', overflow: 'hidden' }}><div style={{ height: '100%', width: Math.max(0, Math.min(100, f.netMargin)) + '%', background: f.netMargin >= 0 ? '#6fd19b' : '#e8a08a' }} /></div>
+          </div>
+          <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <span style={{ fontSize: 13, color: '#a9a29a', fontWeight: 600 }}>Inventory Buys</span>
+            <span style={{ fontSize: 16, fontWeight: 800, fontFamily: MONO }}>{fk(f.inventoryPurchases)}</span>
+          </div>
+        </div>
+      </div>
+      <p style={{ fontSize: 11.5, color: C.muted }}>Food cost is the value of inventory consumed by sales (from recipes). Inventory purchases are tracked separately and excluded from operating expenses to avoid double-counting. Payroll is prorated from monthly records.</p>
+    </div>
+  );
+}
+
+function ExpenseModal({ form, setForm, onClose, onSave }: any) {
+  const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
+  return (
+    <Overlay onClose={onClose}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 22px', borderBottom: `1px solid ${C.border}` }}>
+        <span style={{ width: 34, height: 34, borderRadius: 10, background: '#eef5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>💸</span>
+        <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 800 }}>Add Expense</div></div>
+        <button onClick={onClose} style={{ ...iconBtn, width: 32, height: 32 }}>✕</button>
+      </div>
+      <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div><label style={label}>Amount ₹</label><input value={form.amount} onChange={e => set('amount', e.target.value)} placeholder="0" style={{ ...input, fontFamily: MONO, fontSize: 18, fontWeight: 800 }} /></div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 13 }}>
+          <div><label style={label}>Category</label><select value={form.category} onChange={e => set('category', e.target.value)} style={input}>{EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+          <div><label style={label}>Date</label><input type="date" value={form.date} onChange={e => set('date', e.target.value)} style={input} /></div>
+          <div><label style={label}>Vendor</label><input value={form.vendor} onChange={e => set('vendor', e.target.value)} placeholder="e.g. BSES" style={input} /></div>
+          <div><label style={label}>Payment Method</label><select value={form.paymentMethod} onChange={e => set('paymentMethod', e.target.value)} style={input}>{PAY_METHODS.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+        </div>
+        <div><label style={label}>Description</label><input value={form.name} onChange={e => set('name', e.target.value)} placeholder="What was this for?" style={input} /></div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: C.sec, cursor: 'pointer' }}>
+          <input type="checkbox" checked={form.recurring} onChange={e => set('recurring', e.target.checked)} /> Recurring monthly expense
+        </label>
+      </div>
+      <div style={{ display: 'flex', gap: 10, padding: '16px 22px', borderTop: `1px solid ${C.border}` }}><span style={{ flex: 1 }} /><button onClick={onClose} style={ghostBtn}>Cancel</button><button onClick={onSave} style={{ ...primaryBtn, background: C.green }}>Save Expense</button></div>
     </Overlay>
   );
 }

@@ -362,6 +362,17 @@ export const inventoryAPI = {
   createPurchaseOrder: async (data: Record<string, any>) => (await api.post('/inventory/purchase-orders', data)).data,
   updatePurchaseOrder: async (id: string, data: Record<string, any>) => (await api.put(`/inventory/purchase-orders/${id}`, data)).data,
   deletePurchaseOrder: async (id: string) => { await api.delete(`/inventory/purchase-orders/${id}`); },
+  // Expenses
+  getExpenses: async (params?: { from?: string; to?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.from) q.set('from', params.from);
+    if (params?.to) q.set('to', params.to);
+    return (await api.get(`/inventory/expenses${q.toString() ? '?' + q.toString() : ''}`)).data;
+  },
+  createExpense: async (data: Record<string, any>) => (await api.post('/inventory/expenses', data)).data,
+  deleteExpense: async (id: string) => { await api.delete(`/inventory/expenses/${id}`); },
+  // Finance / P&L
+  getFinance: async (range: string) => (await api.get(`/inventory/finance?range=${encodeURIComponent(range)}`)).data,
 };
 
 export default api;

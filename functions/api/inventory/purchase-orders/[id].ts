@@ -87,6 +87,18 @@ export async function onRequestPut(context: any) {
       if (po.supplier_id) {
         await execute(db, 'UPDATE suppliers SET outstanding = outstanding + ?, updated_at = ? WHERE id = ? AND tenant_id = ?', Number(po.total_amount) || 0, now, po.supplier_id, tenantId).catch(() => {});
       }
+      // Record the purchase as an expense (source='purchase' so P&L can separate it
+      // from operating expenses and not double-count against COGS). Best-effort.
+      if (Number(po.total_amount) > 0) {
+        const sup = po.supplier_id ? await queryFirst(db, 'SELECT name FROM suppliers WHERE id = ?', po.supplier_id).catch(() => null) : null;
+        await execute(
+          db,
+          `INSERT INTO expenses (id, tenant_id, name, category, amount, expense_date, vendor, payment_method, recurring, source, reference_id, user_name, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          `exp_${crypto.randomUUID()}`, tenantId, `Stock purchase ${po.po_number}`, 'Inventory Purchase',
+          Number(po.total_amount), now.slice(0, 10), sup?.name || '', '', 0, 'purchase', po.po_number, body.userName || 'Admin', now, now,
+        ).catch(() => {});
+      }
     }
 
     return new Response(JSON.stringify(await loadPO(db, id)), { headers: CORS });
