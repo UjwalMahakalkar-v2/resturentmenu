@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Lock } from 'lucide-react';
 import { inventoryAPI } from '@/services/api';
+import { downloadCSV, printReport, type Column } from './exporters';
 import toast from 'react-hot-toast';
 
 /* ── Design tokens (warm-neutral ERP theme) ─────────────────── */
@@ -33,7 +34,7 @@ const EMPTY_ITEM = {
   currentStock: '0', minStock: '0', maxStock: '0', purchasePrice: '0', sellingPrice: '0', gstRate: '0', supplier: '', notes: '',
 };
 
-type Tab = 'dashboard' | 'items' | 'movements' | 'orders' | 'suppliers' | 'expenses' | 'finance' | 'lowstock' | 'categories' | 'settings';
+type Tab = 'dashboard' | 'items' | 'movements' | 'orders' | 'suppliers' | 'expenses' | 'finance' | 'notifications' | 'reports' | 'lowstock' | 'categories' | 'settings';
 
 export default function InventoryDashboard() {
   const [enabled, setEnabled] = useState<boolean | null>(null);
@@ -112,6 +113,18 @@ export default function InventoryDashboard() {
   const lowItems = useMemo(() => items.filter(i => i.status !== 'In Stock')
     .sort((a, b) => (a.minStock ? a.currentStock / a.minStock : 1) - (b.minStock ? b.currentStock / b.minStock : 1)), [items]);
 
+  // Derived notification feed (no extra storage) — recomputed from live state.
+  const notifications = useMemo(() => {
+    const out: { id: string; icon: string; tone: 'red' | 'amber' | 'blue'; text: string; tab: Tab }[] = [];
+    items.forEach(i => {
+      if (i.status === 'Critical') out.push({ id: 'c' + i.id, icon: '🚨', tone: 'red', text: `${i.name} is critically low (${i.currentStock}${i.unit})`, tab: 'lowstock' });
+      else if (i.status === 'Low') out.push({ id: 'l' + i.id, icon: '⚠️', tone: 'amber', text: `${i.name} is low (${i.currentStock}${i.unit}, min ${i.minStock})`, tab: 'lowstock' });
+    });
+    suppliers.forEach(s => { if (s.outstanding > 0) out.push({ id: 'd' + s.id, icon: '💰', tone: 'amber', text: `${inr(s.outstanding)} payable to ${s.name}`, tab: 'suppliers' }); });
+    orders.forEach(o => { if (o.status === 'ordered') out.push({ id: 'o' + o.id, icon: '📦', tone: 'blue', text: `${o.poNumber} awaiting delivery${o.supplierName ? ' from ' + o.supplierName : ''}`, tab: 'orders' }); });
+    return out;
+  }, [items, suppliers, orders]);
+
   /* ── product save ── */
   const saveProduct = async () => {
     const f = productForm;
@@ -153,6 +166,8 @@ export default function InventoryDashboard() {
     { id: 'dashboard', label: 'Dashboard' }, { id: 'items', label: 'Inventory' },
     { id: 'movements', label: 'Stock Movements' }, { id: 'orders', label: 'Purchase Orders' },
     { id: 'suppliers', label: 'Suppliers' }, { id: 'expenses', label: 'Expenses' }, { id: 'finance', label: 'Finance' },
+    { id: 'notifications', label: 'Notifications', badge: notifications.length },
+    { id: 'reports', label: 'Reports' },
     { id: 'lowstock', label: 'Low Stock', badge: kpis.lowCount + kpis.critCount },
     { id: 'categories', label: 'Categories' }, { id: 'settings', label: 'Settings' },
   ];
@@ -189,6 +204,8 @@ export default function InventoryDashboard() {
       {tab === 'suppliers' && <SuppliersView suppliers={suppliers} onNewOrder={() => setShowPO(true)} onSettle={settleDues} />}
       {tab === 'expenses' && <ExpensesView expenses={expenses} onDelete={deleteExpense} />}
       {tab === 'finance' && <FinanceView finance={finance} range={financeRange} onRange={changeFinanceRange} />}
+      {tab === 'notifications' && <NotificationsView notifications={notifications} onGo={(t: Tab) => setTab(t)} />}
+      {tab === 'reports' && <ReportsView items={items} suppliers={suppliers} orders={orders} expenses={expenses} finance={finance} />}
       {tab === 'lowstock' && <LowStockView lowItems={lowItems} onReorder={setAdjustItem} />}
       {tab === 'categories' && <CategoriesView cats={cats} />}
       {tab === 'settings' && <SettingsView settings={settings} onSave={async (s: any) => { const r = await inventoryAPI.updateSettings(s); setSettings(r); toast.success('Settings saved'); }} />}
@@ -749,6 +766,153 @@ function PurchaseOrderModal({ items, suppliers, onClose, onSaved }: any) {
         <button onClick={() => submit('ordered')} disabled={saving} style={{ ...primaryBtn, opacity: saving ? .6 : 1 }}>{saving ? 'Saving…' : 'Place Order'}</button>
       </div>
     </Overlay>
+  );
+}
+
+function NotificationsView({ notifications, onGo }: any) {
+  const TONE: Record<string, { bg: string; bd: string; fg: string }> = {
+    red: { bg: '#fef6f5', bd: '#f6dcd6', fg: C.red }, amber: { bg: '#fdfaf4', bd: '#f0e6cf', fg: C.amber }, blue: { bg: '#f5f8fd', bd: '#dbe6f7', fg: C.blue },
+  };
+  if (!notifications.length) return <div style={{ ...cardBox, borderRadius: 18, padding: 40, textAlign: 'center', color: C.muted }}>🔔 All clear — no active alerts.</div>;
+  return (
+    <div style={{ ...cardBox, borderRadius: 18, padding: '8px 18px' }}>
+      {notifications.map((n: any) => {
+        const t = TONE[n.tone];
+        return (
+          <div key={n.id} style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 0', borderBottom: '1px solid #f6f3ef' }}>
+            <span style={{ width: 36, height: 36, borderRadius: 11, background: t.bg, border: `1px solid ${t.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flex: '0 0 auto' }}>{n.icon}</span>
+            <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: '#3a352f' }}>{n.text}</span>
+            <button onClick={() => onGo(n.tab)} style={{ ...ghostBtn, padding: '6px 12px', color: t.fg, borderColor: t.bd }}>View →</button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const REPORT_DEFS = [
+  { id: 'inventory', icon: '📦', name: 'Inventory Valuation', desc: 'All products, stock levels & stock value' },
+  { id: 'lowstock', icon: '⚠️', name: 'Low Stock', desc: 'Items at or below minimum level' },
+  { id: 'consumption', icon: '🍽️', name: 'Stock Consumption', desc: 'Quantity & value consumed by POS sales' },
+  { id: 'waste', icon: '🗑️', name: 'Waste & Spoilage', desc: 'Recorded waste, spoilage & losses' },
+  { id: 'purchase', icon: '🛒', name: 'Purchase Orders', desc: 'All purchase orders & their status' },
+  { id: 'supplier', icon: '🚚', name: 'Suppliers', desc: 'Supplier directory, dues & total buys' },
+  { id: 'expense', icon: '💸', name: 'Expenses', desc: 'All recorded expenses' },
+  { id: 'profit', icon: '💵', name: 'Profit & Loss', desc: 'Revenue, COGS, expenses & net profit (this month)' },
+  { id: 'fast', icon: '🔥', name: 'Fast Moving Items', desc: 'Top consumed items by quantity' },
+  { id: 'dead', icon: '🧊', name: 'Slow / Dead Stock', desc: 'Items with little or no consumption' },
+];
+
+function ReportsView({ items, suppliers, orders, expenses, finance }: any) {
+  const [movements, setMovements] = useState<any[]>([]);
+  const [preview, setPreview] = useState<{ title: string; columns: Column[]; rows: any[] } | null>(null);
+  useEffect(() => { inventoryAPI.getMovements({ limit: 1000 }).then(setMovements).catch(() => setMovements([])); }, []);
+
+  const itemById: Record<string, any> = Object.fromEntries(items.map((i: any) => [i.id, i]));
+
+  const consumption = useMemo(() => {
+    const m: Record<string, any> = {};
+    movements.filter(mv => mv.type === 'sale').forEach(mv => {
+      const it = itemById[mv.inventoryItemId];
+      m[mv.inventoryItemId] = m[mv.inventoryItemId] || { item: mv.itemName, unit: mv.itemUnit || mv.unit || '', qty: 0, value: 0 };
+      m[mv.inventoryItemId].qty += Math.abs(mv.changeQty);
+      m[mv.inventoryItemId].value += Math.abs(mv.changeQty) * (it?.purchasePrice || 0);
+    });
+    return m;
+  }, [movements, items]);
+
+  const build = (id: string): { columns: Column[]; rows: any[] } => {
+    switch (id) {
+      case 'inventory': return {
+        columns: [{ key: 'name', label: 'Product' }, { key: 'sku', label: 'SKU' }, { key: 'categoryName', label: 'Category' }, { key: 'currentStock', label: 'Stock' }, { key: 'minStock', label: 'Min' }, { key: 'unit', label: 'Unit' }, { key: 'purchasePrice', label: 'Buy ₹' }, { key: 'sellingPrice', label: 'Sell ₹' }, { key: 'value', label: 'Stock Value ₹' }, { key: 'status', label: 'Status' }],
+        rows: items.map((i: any) => ({ ...i, value: Math.round(i.currentStock * i.purchasePrice) })),
+      };
+      case 'lowstock': return {
+        columns: [{ key: 'name', label: 'Product' }, { key: 'categoryName', label: 'Category' }, { key: 'currentStock', label: 'Stock' }, { key: 'minStock', label: 'Min' }, { key: 'unit', label: 'Unit' }, { key: 'supplier', label: 'Supplier' }, { key: 'status', label: 'Status' }],
+        rows: items.filter((i: any) => i.status !== 'In Stock'),
+      };
+      case 'consumption': return {
+        columns: [{ key: 'item', label: 'Item' }, { key: 'qty', label: 'Qty Consumed' }, { key: 'unit', label: 'Unit' }, { key: 'value', label: 'Cost Value ₹' }],
+        rows: Object.values(consumption).map((c: any) => ({ ...c, qty: Math.round(c.qty * 1000) / 1000, value: Math.round(c.value) })).sort((a, b) => b.value - a.value),
+      };
+      case 'waste': return {
+        columns: [{ key: 'item', label: 'Item' }, { key: 'qty', label: 'Qty' }, { key: 'unit', label: 'Unit' }, { key: 'reason', label: 'Reason' }, { key: 'type', label: 'Type' }, { key: 'date', label: 'Date' }],
+        rows: movements.filter(m => m.type === 'waste' || m.type === 'spoilage').map(m => ({ item: m.itemName, qty: Math.abs(m.changeQty), unit: m.unit, reason: m.reason, type: m.type, date: new Date(m.createdAt).toLocaleDateString('en-IN') })),
+      };
+      case 'purchase': return {
+        columns: [{ key: 'poNumber', label: 'PO #' }, { key: 'supplierName', label: 'Supplier' }, { key: 'status', label: 'Status' }, { key: 'itemCount', label: 'Items' }, { key: 'totalAmount', label: 'Total ₹' }, { key: 'expectedDate', label: 'Expected' }],
+        rows: orders.map((o: any) => ({ ...o, totalAmount: Math.round(o.totalAmount) })),
+      };
+      case 'supplier': return {
+        columns: [{ key: 'name', label: 'Supplier' }, { key: 'contactName', label: 'Contact' }, { key: 'phone', label: 'Phone' }, { key: 'email', label: 'Email' }, { key: 'outstanding', label: 'Payable ₹' }, { key: 'totalBuys', label: 'Total Buys ₹' }],
+        rows: suppliers.map((s: any) => ({ ...s, outstanding: Math.round(s.outstanding), totalBuys: Math.round(s.totalBuys) })),
+      };
+      case 'expense': return {
+        columns: [{ key: 'name', label: 'Expense' }, { key: 'category', label: 'Category' }, { key: 'amount', label: 'Amount ₹' }, { key: 'date', label: 'Date' }, { key: 'vendor', label: 'Vendor' }, { key: 'paymentMethod', label: 'Payment' }, { key: 'source', label: 'Source' }],
+        rows: expenses.map((e: any) => ({ ...e, amount: Math.round(e.amount) })),
+      };
+      case 'profit': {
+        const f = finance || {};
+        return {
+          columns: [{ key: 'metric', label: 'Metric' }, { key: 'amount', label: 'Amount ₹' }],
+          rows: [
+            { metric: 'Revenue', amount: Math.round(f.revenue || 0) },
+            { metric: 'Food Cost (COGS)', amount: -Math.round(f.foodCost || 0) },
+            { metric: 'Gross Profit', amount: Math.round(f.grossProfit || 0) },
+            { metric: 'Operating Expenses', amount: -Math.round(f.operatingExpenses || 0) },
+            { metric: 'Payroll', amount: -Math.round(f.payroll || 0) },
+            { metric: 'Net Profit', amount: Math.round(f.netProfit || 0) },
+          ],
+        };
+      }
+      case 'fast': return {
+        columns: [{ key: 'item', label: 'Item' }, { key: 'qty', label: 'Qty Consumed' }, { key: 'unit', label: 'Unit' }, { key: 'value', label: 'Cost Value ₹' }],
+        rows: Object.values(consumption).map((c: any) => ({ ...c, qty: Math.round(c.qty * 1000) / 1000, value: Math.round(c.value) })).sort((a, b) => b.qty - a.qty).slice(0, 20),
+      };
+      case 'dead': {
+        const consumed = new Set(Object.keys(consumption).filter(k => consumption[k].qty > 0));
+        return {
+          columns: [{ key: 'name', label: 'Product' }, { key: 'categoryName', label: 'Category' }, { key: 'currentStock', label: 'Stock' }, { key: 'unit', label: 'Unit' }, { key: 'value', label: 'Stock Value ₹' }],
+          rows: items.filter((i: any) => !consumed.has(i.id)).map((i: any) => ({ ...i, value: Math.round(i.currentStock * i.purchasePrice) })),
+        };
+      }
+      default: return { columns: [], rows: [] };
+    }
+  };
+
+  const open = (def: any) => { const { columns, rows } = build(def.id); setPreview({ title: def.name, columns, rows }); };
+
+  return (
+    <>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
+        {REPORT_DEFS.map(r => (
+          <div key={r.id} style={{ ...cardBox, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, background: '#faf6ef', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>{r.icon}</span>
+            <div><div style={{ fontSize: 15, fontWeight: 800 }}>{r.name}</div><div style={{ fontSize: 12.5, fontWeight: 600, color: C.muted, marginTop: 4 }}>{r.desc}</div></div>
+            <button onClick={() => open(r)} style={{ ...ghostBtn, marginTop: 'auto' }}>Generate →</button>
+          </div>
+        ))}
+      </div>
+      {preview && (
+        <Overlay onClose={() => setPreview(null)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '18px 22px', borderBottom: `1px solid ${C.border}`, position: 'sticky', top: 0, background: '#fff' }}>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 16, fontWeight: 800 }}>{preview.title}</div><div style={{ fontSize: 12, color: C.muted }}>{preview.rows.length} rows</div></div>
+            <button onClick={() => downloadCSV(preview.title.replace(/\s+/g, '-').toLowerCase(), preview.columns, preview.rows)} style={ghostBtn}>⬇ CSV / Excel</button>
+            <button onClick={() => printReport(preview.title, 'Inventory & Finance report', preview.columns, preview.rows)} style={primaryBtn}>🖨 Print / PDF</button>
+            <button onClick={() => setPreview(null)} style={{ ...iconBtn, width: 32, height: 32 }}>✕</button>
+          </div>
+          <div style={{ padding: '8px 22px 22px', overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 520 }}>
+              <thead><tr>{preview.columns.map(c => <th key={c.key} style={{ textAlign: 'left', padding: '10px 8px', borderBottom: `2px solid ${C.border}`, fontSize: 10.5, textTransform: 'uppercase', color: C.muted, letterSpacing: .4, whiteSpace: 'nowrap' }}>{c.label}</th>)}</tr></thead>
+              <tbody>
+                {preview.rows.length === 0 ? <tr><td colSpan={preview.columns.length} style={{ padding: 24, textAlign: 'center', color: C.muted }}>No data</td></tr>
+                  : preview.rows.map((row, i) => <tr key={i}>{preview.columns.map(c => <td key={c.key} style={{ padding: '8px', borderBottom: '1px solid #f4f1ed', whiteSpace: 'nowrap' }}>{String(row[c.key] ?? '')}</td>)}</tr>)}
+              </tbody>
+            </table>
+          </div>
+        </Overlay>
+      )}
+    </>
   );
 }
 
