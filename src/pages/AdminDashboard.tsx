@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const { tenantSlug: slugFromUrl } = useParams<{ tenantSlug?: string }>();
   const { items, loading: itemsLoading, deleteItem, addItem, updateItem, refetch } = useMenuItems();
-  const { categories, loading: categoriesLoading, deleteCategory, updateCategory, addCategory } = useCategories();
+  const { categories, loading: categoriesLoading, deleteCategory, updateCategory, addCategory, refetch: refetchCategories } = useCategories();
   const [activeTab, setActiveTab] = useState<Tab>('menu');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<TenantMenuItem | null>(null);
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
   // Export CSV
   const handleExportCSV = () => {
     if (items.length === 0) { toast.error('No items to export'); return; }
-    const headers = ['name', 'description', 'price', 'category', 'type', 'available', 'popular', 'image'];
+    const headers = ['name', 'description', 'price', 'category', 'type', 'available', 'popular', 'calories', 'image'];
     const rows = items.map(item => [
       `"${(item.name || '').replace(/"/g, '""')}"`,
       `"${(item.description || '').replace(/"/g, '""')}"`,
@@ -114,9 +114,10 @@ export default function AdminDashboard() {
       item.type || 'veg',
       item.available ? 'true' : 'false',
       item.popular ? 'true' : 'false',
+      item.calories ?? '',
       `"${(item.image || '').replace(/"/g, '""')}"`,
     ]);
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const csv = '﻿' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -156,6 +157,7 @@ export default function AdminDashboard() {
       toast.success(`Imported ${success} items${failed > 0 ? `, ${failed} failed` : ''}`);
       if (errors?.length > 0) console.warn('Import errors:', errors);
       await refetch();
+      await refetchCategories?.(); // pick up any categories auto-created during import
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Import failed');
     } finally {
@@ -270,7 +272,7 @@ export default function AdminDashboard() {
                 )}
 
                 <div className="mb-4 text-xs text-gray-500 bg-gray-50 rounded p-3 border border-gray-200">
-                  <strong>CSV import columns:</strong> name, description, price, category (name or id), type (veg/non-veg), available (true/false), popular (true/false), image (URL)
+                  <strong>CSV import columns:</strong> name, description, price, category (name or id — new names are created), type (veg/non-veg), available (true/false), popular (true/false), calories (optional), image (URL)
                 </div>
 
                 {itemsLoading || categoriesLoading ? (
