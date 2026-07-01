@@ -1,4 +1,4 @@
-import { getDB, execute, queryAll } from '../db';
+import { getDB, execute, queryAll, queryFirst } from '../db';
 import { getTenantIdFromRequest } from '../utils/jwt';
 
 const CORS = {
@@ -25,7 +25,7 @@ export async function onRequestPost(context: any) {
     }
 
     const db = getDB(context.env);
-    const results = { success: 0, failed: 0, errors: [] as string[] };
+    const results = { success: 0, updated: 0, failed: 0, errors: [] as string[] };
     const now = new Date().toISOString();
 
     // Optional calories column may not exist on older DBs.
@@ -58,23 +58,39 @@ export async function onRequestPost(context: any) {
         const price = parseFloat(raw.price);
         if (isNaN(price) || price < 0) { results.failed++; results.errors.push(`Row ${index + 1}: invalid price`); continue; }
 
-        const id = `item_${crypto.randomUUID()}`;
         const categoryId = await resolveCategory(typeof raw.category === 'string' ? raw.category : '');
         const available = raw.available !== 'false' && raw.available !== false ? 1 : 0;
         const popular = raw.popular === 'true' || raw.popular === true ? 1 : 0;
         const calRaw = raw.calories;
         const calNum = calRaw === '' || calRaw === undefined || calRaw === null ? NaN : parseFloat(calRaw);
         const calories = isNaN(calNum) ? null : calNum;
+        const description = typeof raw.description === 'string' ? raw.description.trim() : '';
+        const type = raw.type === 'non-veg' ? 'non-veg' : 'veg';
+        const image = typeof raw.image === 'string' ? raw.image.trim() : '';
+        const soRaw = raw.sortorder ?? raw.sort_order;
+        const sortOrder = soRaw === '' || soRaw === undefined || soRaw === null ? null : (parseInt(soRaw, 10) || 0);
 
-        await execute(db,
-          'INSERT INTO menu_items (id, tenant_id, category_id, name, description, price, type, image, available, popular, calories, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',
-          id, tenantId, categoryId, name,
-          typeof raw.description === 'string' ? raw.description.trim() : '',
-          price, raw.type === 'non-veg' ? 'non-veg' : 'veg',
-          typeof raw.image === 'string' ? raw.image.trim() : '',
-          available, popular, calories, now, now
-        );
-        results.success++;
+        // Upsert: a matching id (scoped to this tenant) updates in place; otherwise insert.
+        // This makes export → edit → re-import idempotent instead of duplicating the menu.
+        const rawId = typeof raw.id === 'string' ? raw.id.trim() : '';
+        const existing = rawId
+          ? await queryFirst(db, 'SELECT id FROM menu_items WHERE id = ? AND tenant_id = ?', rawId, tenantId).catch(() => null)
+          : null;
+
+        if (existing) {
+          await execute(db,
+            `UPDATE menu_items SET category_id = ?, name = ?, description = ?, price = ?, type = ?, image = ?, available = ?, popular = ?, calories = ?, sort_order = COALESCE(?, sort_order), updated_at = ? WHERE id = ? AND tenant_id = ?`,
+            categoryId, name, description, price, type, image, available, popular, calories, sortOrder, now, rawId, tenantId,
+          );
+          results.updated++;
+        } else {
+          await execute(db,
+            'INSERT INTO menu_items (id, tenant_id, category_id, name, description, price, type, image, available, popular, calories, sort_order, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            `item_${crypto.randomUUID()}`, tenantId, categoryId, name, description,
+            price, type, image, available, popular, calories, sortOrder ?? 0, now, now,
+          );
+          results.success++;
+        }
       } catch (err) {
         results.failed++;
         results.errors.push(`Row ${index + 1}: ${err instanceof Error ? err.message : 'unknown error'}`);

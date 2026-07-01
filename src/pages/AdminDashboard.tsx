@@ -105,8 +105,9 @@ export default function AdminDashboard() {
   // Export CSV
   const handleExportCSV = () => {
     if (items.length === 0) { toast.error('No items to export'); return; }
-    const headers = ['name', 'description', 'price', 'category', 'type', 'available', 'popular', 'calories', 'image'];
+    const headers = ['id', 'name', 'description', 'price', 'category', 'type', 'available', 'popular', 'calories', 'sortOrder', 'image'];
     const rows = items.map(item => [
+      item.id || '',
       `"${(item.name || '').replace(/"/g, '""')}"`,
       `"${(item.description || '').replace(/"/g, '""')}"`,
       item.price,
@@ -115,6 +116,7 @@ export default function AdminDashboard() {
       item.available ? 'true' : 'false',
       item.popular ? 'true' : 'false',
       item.calories ?? '',
+      item.sortOrder ?? '',
       `"${(item.image || '').replace(/"/g, '""')}"`,
     ]);
     const csv = '﻿' + [headers.join(','), ...rows.map(r => r.join(','))].join('\r\n');
@@ -153,8 +155,8 @@ export default function AdminDashboard() {
         return obj;
       });
       const response = await api.post('/menu-bulk-import', { items: parsedItems });
-      const { success, failed, errors } = response.data;
-      toast.success(`Imported ${success} items${failed > 0 ? `, ${failed} failed` : ''}`);
+      const { success, updated = 0, failed, errors } = response.data;
+      toast.success(`Imported ${success} new${updated > 0 ? `, updated ${updated}` : ''}${failed > 0 ? `, ${failed} failed` : ''}`);
       if (errors?.length > 0) console.warn('Import errors:', errors);
       await refetch();
       await refetchCategories?.(); // pick up any categories auto-created during import
@@ -272,7 +274,7 @@ export default function AdminDashboard() {
                 )}
 
                 <div className="mb-4 text-xs text-gray-500 bg-gray-50 rounded p-3 border border-gray-200">
-                  <strong>CSV import columns:</strong> name, description, price, category (name or id — new names are created), type (veg/non-veg), available (true/false), popular (true/false), calories (optional), image (URL)
+                  <strong>CSV import columns:</strong> id (optional — keep to update existing, blank to add new), name, description, price, category (name or id — new names are created), type (veg/non-veg), available (true/false), popular (true/false), calories (optional), sortOrder (optional), image (URL)
                 </div>
 
                 {itemsLoading || categoriesLoading ? (
