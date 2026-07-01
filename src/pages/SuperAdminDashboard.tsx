@@ -38,8 +38,9 @@ export default function SuperAdminDashboard() {
   });
 
   useEffect(() => {
-    // Clear any tenant impersonation token so super-admin API calls use auth_token
-    localStorage.removeItem('admin_token');
+    // Note: we intentionally do NOT clear admin_token here. The API interceptor already
+    // forces the super-admin token on /super-admin routes, and wiping admin_token would
+    // break an impersonated tenant tab that's open at the same time (shared localStorage).
     if (!isSuperAdmin()) {
       toast.error('Access denied: Super Admin only');
       navigate('/');

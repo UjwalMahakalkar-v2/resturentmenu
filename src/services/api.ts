@@ -12,9 +12,16 @@ const api = axios.create({
   },
 });
 
-// Add auth token to requests — check admin_token (tenant admin) first, then auth_token (super admin)
+// Add auth token to requests.
+// On the super-admin console we must send the super-admin token (auth_token) even if a
+// tenant-impersonation token (admin_token) is present in shared localStorage — otherwise
+// after "Open Dashboard" the super-admin's own calls would go out as a tenant owner and
+// get "Forbidden — super_admin only". pathname is per-tab, so this stays correct across tabs.
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_token') || localStorage.getItem('auth_token');
+  const adminToken = localStorage.getItem('admin_token');
+  const authToken = localStorage.getItem('auth_token');
+  const onSuperAdmin = typeof window !== 'undefined' && window.location.pathname.startsWith('/super-admin');
+  const token = onSuperAdmin ? (authToken || adminToken) : (adminToken || authToken);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
