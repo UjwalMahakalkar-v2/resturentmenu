@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { posAPI, staffAPI } from '@/services/api';
+import POSSkeleton from './POSSkeleton';
 import toast from 'react-hot-toast';
 
 
@@ -388,12 +389,7 @@ export default function POSAnalyticsDashboard() {
   const payDotColor: Record<string, string> = { cash:C.primary, card:C.blue, upi:C.green };
 
   if (loading) {
-    return (
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
-        height:400, fontFamily:SANS, color:C.muted, fontSize:14 }}>
-        Loading dashboard…
-      </div>
-    );
+    return <POSSkeleton />;
   }
 
   /* ────────────────────────────────────────────────────────── */

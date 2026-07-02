@@ -5,6 +5,7 @@ import POSTerminal from './POSTerminal';
 import POSOrderHistory from './POSOrderHistory';
 import POSSettings from './POSSettings';
 import POSAnalyticsDashboard from './POSAnalyticsDashboard';
+import POSSkeleton from './POSSkeleton';
 
 type POSView = 'dashboard' | 'terminal' | 'history' | 'settings';
 
@@ -27,7 +28,7 @@ export default function POSDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="text-center py-16 text-gray-500">Loading POS…</div>;
+  if (loading) return <POSSkeleton tabs />;
 
   if (!posEnabled) {
     return (
