@@ -174,14 +174,14 @@ export default function TenantManagementTable({ tenants, onRefresh, onEdit }: Te
                 </div>
               </div>
 
-              {/* Contact info */}
+              {/* Contact info — domain-specific email (Cloudflare email routing) */}
               <div className="space-y-1.5 mb-4">
-                {tenant.email && (
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 truncate">
-                    <Mail className="w-3 h-3 flex-shrink-0 text-gray-400" />
-                    <span className="truncate">{tenant.email}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 truncate">
+                  <Mail className="w-3 h-3 flex-shrink-0 text-gray-400" />
+                  <span className="truncate">
+                    {`contact@${tenant.subdomain && tenant.subdomain.includes('.') ? tenant.subdomain : `${tenant.slug}.dinemate.in`}`}
+                  </span>
+                </div>
                 {tenant.phone && (
                   <div className="flex items-center gap-1.5 text-xs text-gray-500">
                     <Phone className="w-3 h-3 flex-shrink-0 text-gray-400" />
