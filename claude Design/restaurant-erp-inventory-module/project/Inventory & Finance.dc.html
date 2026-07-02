@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+button{font-family:inherit}
+input,textarea,select{font-family:inherit}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#d8d2cb;border-radius:9px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+@keyframes toastIn{from{transform:translate(-50%,16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+@keyframes barGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes overlayIn{from{opacity:0}to{opacity:1}}
+@keyframes sheetIn{from{transform:translateY(24px) scale(.98);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+</helmet>
+
+<div style="position:relative;width:100%;height:100vh;min-height:680px;display:flex;background:#f4f3f1;font-family:'Plus Jakarta Sans',sans-serif;color:#1c1a18;overflow:hidden">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside style="flex:0 0 248px;display:flex;flex-direction:column;background:#fff;border-right:1px solid #ece8e3;z-index:6">
+    <div style="display:flex;align-items:center;gap:11px;padding:18px 18px 16px">
+      <div style="width:40px;height:40px;border-radius:12px;background:#d9542b;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;letter-spacing:.5px">SR</div>
+      <div style="display:flex;flex-direction:column;line-height:1.15">
+        <div style="font-weight:800;font-size:15px">Spice Route</div>
+        <div style="font-size:10.5px;color:#9a938b;font-weight:700;letter-spacing:.5px">INVENTORY &amp; FINANCE</div>
+      </div>
+    </div>
+    <div style="padding:6px 14px 4px;font-size:10px;font-weight:800;color:#bcb4ab;letter-spacing:.8px">MODULES</div>
+    <nav style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:3px;padding:2px 12px 12px">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="11">
+        <button onClick="{{ n.select }}" style="{{ n.style }}">
+          <span style="font-size:16px;width:20px;text-align:center;flex:0 0 auto">{{ n.icon }}</span>
+          <span style="flex:1;text-align:left">{{ n.label }}</span>
+          <sc-if value="{{ n.badge }}" hint-placeholder-val="{{ false }}"><span style="{{ n.badgeStyle }}">{{ n.badge }}</span></sc-if>
+        </button>
+      </sc-for>
+    </nav>
+    <div style="margin:0 12px 12px;padding:11px 12px;display:flex;align-items:center;gap:10px;background:#faf8f6;border:1px solid #f0ece7;border-radius:13px">
+      <div style="width:32px;height:32px;border-radius:50%;background:#1c1a18;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex:0 0 auto">R</div>
+      <div style="display:flex;flex-direction:column;line-height:1.2;min-width:0">
+        <span style="font-size:12.5px;font-weight:700">Ravi Kapoor</span>
+        <span style="font-size:10.5px;color:#9a938b;font-weight:600">Owner · Spice Route</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+    <!-- TOP BAR -->
+    <div style="flex:0 0 auto;min-height:66px;display:flex;align-items:center;gap:14px;padding:0 24px;background:#fff;border-bottom:1px solid #ece8e3;z-index:5;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;line-height:1.18">
+        <span style="font-size:11px;font-weight:700;color:#9a938b;letter-spacing:.6px;text-transform:uppercase">Inventory &amp; Finance</span>
+        <span style="font-size:21px;font-weight:800">{{ pageTitle }}</span>
+      </div>
+      <span style="flex:1;min-width:8px"></span>
+      <div style="display:flex;align-items:center;gap:8px;padding:0 13px;height:40px;background:#f4f1ee;border:1px solid #efeae5;border-radius:11px;min-width:180px;max-width:280px;flex:0 1 240px">
+        <span style="font-size:14px;color:#9a938b">⌕</span>
+        <input placeholder="Search inventory, suppliers…" style="flex:1;min-width:0;border:none;background:none;outline:none;font-size:13px;color:#1c1a18">
+      </div>
+      <sc-for list="{{ actions }}" as="a" hint-placeholder-count="2">
+        <button onClick="{{ a.click }}" style="{{ a.style }}"><span style="font-size:15px">{{ a.icon }}</span>{{ a.label }}</button>
+      </sc-for>
+    </div>
+
+    <!-- SCROLL BODY -->
+    <div style="flex:1;overflow-y:auto;min-height:0">
+      <div style="max-width:1340px;margin:0 auto;padding:22px 24px 48px">
+
+        <!-- ===================== DASHBOARD ===================== -->
+        <sc-if value="{{ isDashboard }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <!-- KPI GRID -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px">
+            <sc-for list="{{ kpis }}" as="c" hint-placeholder-count="8">
+              <div style="background:#fff;border:1px solid #ece8e3;border-radius:16px;padding:16px 17px;display:flex;flex-direction:column;gap:12px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <span style="{{ c.iconStyle }}">{{ c.icon }}</span>
+                  <span style="{{ c.trendStyle }}">{{ c.trend }}</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <span style="font-size:11.5px;font-weight:700;color:#9a938b">{{ c.label }}</span>
+                  <span style="font-size:23px;font-weight:800;font-family:'Spline Sans Mono',monospace;letter-spacing:-.5px;color:{{ c.valueColor }}">{{ c.value }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- LOW STOCK STRIP -->
+          <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:18px 20px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+              <span style="width:30px;height:30px;border-radius:9px;background:#fdeeee;display:flex;align-items:center;justify-content:center;font-size:15px">⚠️</span>
+              <div style="display:flex;flex-direction:column;line-height:1.2">
+                <span style="font-size:15px;font-weight:800">Low Stock Alerts</span>
+                <span style="font-size:12px;font-weight:600;color:#9a938b">12 items need attention</span>
+              </div>
+              <span style="flex:1"></span>
+              <button onClick="{{ goLowStock }}" style="font-size:12px;font-weight:700;color:#d9542b;background:none;border:none;cursor:pointer">View all →</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px">
+              <sc-for list="{{ lowStock }}" as="l" hint-placeholder-count="4">
+                <div style="{{ l.cardStyle }}">
+                  <div style="display:flex;align-items:center;gap:11px">
+                    <span style="{{ l.iconStyle }}">{{ l.icon }}</span>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:13.5px;font-weight:800">{{ l.name }}</div>
+                      <div style="font-size:11px;font-weight:600;color:#9a938b">{{ l.cat }}</div>
+                    </div>
+                    <span style="{{ l.tagStyle }}">{{ l.tag }}</span>
+                  </div>
+                  <div style="display:flex;align-items:flex-end;gap:14px;margin-top:11px">
+                    <div style="display:flex;flex-direction:column"><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Remaining</span><span style="font-size:16px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:{{ l.remColor }}">{{ l.remaining }}</span></div>
+                    <div style="display:flex;flex-direction:column"><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Minimum</span><span style="font-size:16px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:#6b645d">{{ l.minimum }}</span></div>
+                    <span style="flex:1"></span>
+                    <button onClick="{{ l.reorder }}" style="padding:7px 12px;border-radius:9px;border:none;background:#1c1a18;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap">Reorder</button>
+                  </div>
+                  <div style="height:6px;border-radius:5px;background:#f1ede8;overflow:hidden;margin-top:11px"><div style="{{ l.barStyle }}"></div></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- ROW: Inventory value trend + Category distribution -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px">
+            <div style="grid-column:span 2;min-width:300px;background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+                <div style="display:flex;flex-direction:column;line-height:1.2"><span style="font-size:15px;font-weight:800">Inventory Value Trend</span><span style="font-size:12px;font-weight:600;color:#9a938b">Last 7 days</span></div>
+                <span style="flex:1"></span>
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:22px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ invTotal }}</span><span style="font-size:12px;font-weight:700;color:#1f8a5b">▲ 6.4%</span></div>
+              </div>
+              <div data-om-raster="1">{{ invChart }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;flex-direction:column">
+              <span style="font-size:15px;font-weight:800;margin-bottom:2px">Category Distribution</span>
+              <span style="font-size:12px;font-weight:600;color:#9a938b;margin-bottom:14px">Stock value by category</span>
+              <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+                <div style="position:relative;flex:0 0 auto" data-om-raster="1">{{ catDonut }}
+                  <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none"><span style="font-size:10px;font-weight:700;color:#9a938b;letter-spacing:.4px;text-transform:uppercase">Total</span><span style="font-size:15px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ catTotal }}</span></div>
+                </div>
+                <div style="flex:1;min-width:120px;display:flex;flex-direction:column;gap:9px">
+                  <sc-for list="{{ catLegend }}" as="g" hint-placeholder-count="5">
+                    <div style="display:flex;align-items:center;gap:9px"><span style="{{ g.dotStyle }}"></span><span style="flex:1;font-size:12.5px;font-weight:700">{{ g.name }}</span><span style="font-size:11.5px;font-weight:700;color:#9a938b">{{ g.pct }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW: Expense trend + Monthly spending -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px">
+            <div style="grid-column:span 2;min-width:300px;background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+                <div style="display:flex;flex-direction:column;line-height:1.2"><span style="font-size:15px;font-weight:800">Expense Trend</span><span style="font-size:12px;font-weight:600;color:#9a938b">Daily spend · last 7 days</span></div>
+                <span style="flex:1"></span>
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:22px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ expWeekTotal }}</span><span style="font-size:12px;font-weight:700;color:#c0392b">▲ 3.1%</span></div>
+              </div>
+              <div data-om-raster="1">{{ expChart }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+              <div style="display:flex;align-items:center;margin-bottom:18px"><div style="display:flex;flex-direction:column;line-height:1.2"><span style="font-size:15px;font-weight:800">Monthly Spending</span><span style="font-size:12px;font-weight:600;color:#9a938b">Jan – Jun</span></div></div>
+              <div style="display:flex;align-items:flex-end;gap:9px;height:150px;padding-top:8px">
+                <sc-for list="{{ monthBars }}" as="b" hint-placeholder-count="6">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end">
+                    <span style="font-size:9.5px;font-weight:700;color:#6b645d;font-family:'Spline Sans Mono',monospace">{{ b.value }}</span>
+                    <div style="{{ b.barStyle }}"></div>
+                    <span style="font-size:10px;font-weight:600;color:#9a938b">{{ b.label }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <!-- ROW: Stock consumption + Purchase summary -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px">
+            <div style="grid-column:span 2;min-width:300px;background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+              <div style="display:flex;align-items:center;margin-bottom:16px"><span style="font-size:15px;font-weight:800">Stock Consumption</span><span style="flex:1"></span><span style="font-size:12px;font-weight:600;color:#9a938b">This week · by quantity</span></div>
+              <div style="display:flex;flex-direction:column;gap:13px">
+                <sc-for list="{{ consumption }}" as="c" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:center;gap:13px">
+                    <span style="font-size:18px;width:26px;text-align:center;flex:0 0 auto">{{ c.icon }}</span>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                      <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:700">{{ c.name }}</span><span style="flex:1"></span><span style="font-size:12.5px;font-weight:700;font-family:'Spline Sans Mono',monospace">{{ c.qty }}</span></div>
+                      <div style="height:7px;border-radius:6px;background:#f1ede8;overflow:hidden"><div style="{{ c.barStyle }}"></div></div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background:#1c1a18;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:16px;color:#fff">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-size:15px;font-weight:800">Purchasing</span><span style="padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.12);color:#e9d9a8;font-size:10px;font-weight:700">This month</span></div>
+              <div style="display:flex;flex-direction:column;gap:13px">
+                <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600;color:#a9a29a">Open Orders</span><span style="font-size:17px;font-weight:800;font-family:'Spline Sans Mono',monospace">7</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600;color:#a9a29a">Pending Deliveries</span><span style="font-size:17px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:#e9c46a">3</span></div>
+                <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600;color:#a9a29a">Spent on Stock</span><span style="font-size:17px;font-weight:800;font-family:'Spline Sans Mono',monospace">₹1,86,400</span></div>
+                <div style="height:1px;background:rgba(255,255,255,.12)"></div>
+                <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;font-weight:700">Payable to Suppliers</span><span style="font-size:22px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:#e8a08a">₹44,700</span></div>
+              </div>
+              <button onClick="{{ goOrders }}" style="margin-top:auto;padding:11px;border-radius:11px;border:none;background:#d9542b;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Manage Purchase Orders →</button>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ===================== INVENTORY ===================== -->
+        <sc-if value="{{ isInventory }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <!-- toolbar -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;background:#fff;border:1px solid #ece8e3;border-radius:11px;padding:4px;gap:2px;overflow-x:auto">
+              <sc-for list="{{ invFilters }}" as="f" hint-placeholder-count="5"><button onClick="{{ f.select }}" style="{{ f.style }}">{{ f.label }}</button></sc-for>
+            </div>
+            <span style="flex:1"></span>
+            <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:8px;padding:5px 6px 5px 13px;background:#fff;border:1px solid #ece8e3;border-radius:11px">
+                <span style="font-size:12px;font-weight:700;color:#6b645d">{{ selCount }} selected</span>
+                <button onClick="{{ bulkAdjust }}" style="padding:6px 11px;border-radius:8px;border:1px solid #e7e3de;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#3a352f">Adjust</button>
+                <button onClick="{{ bulkDelete }}" style="padding:6px 11px;border-radius:8px;border:none;background:#fdeeee;color:#c0392b;font-size:12px;font-weight:700;cursor:pointer">Delete</button>
+              </div>
+            </sc-if>
+            <button onClick="{{ exportInv }}" style="display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:11px;border:1px solid #e7e3de;background:#fff;cursor:pointer;font-size:12.5px;font-weight:700;color:#3a352f"><span style="font-size:14px">⬇</span>Export</button>
+          </div>
+          <!-- table -->
+          <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden">
+            <div style="overflow-x:auto">
+              <div style="min-width:980px">
+                <div style="display:grid;grid-template-columns:40px 2fr 1fr 1.1fr 0.9fr 1.2fr 1.2fr 1.3fr 1fr 70px;gap:12px;align-items:center;padding:13px 18px;font-size:10.5px;font-weight:800;color:#9a938b;letter-spacing:.5px;text-transform:uppercase;border-bottom:1px solid #ece8e3;background:#fbfaf8">
+                  <span></span><span>Product</span><span>Category</span><span style="text-align:right">Stock / Min</span><span>Unit</span><span style="text-align:right">Purchase ₹</span><span style="text-align:right">Selling ₹</span><span>Supplier</span><span>Status</span><span style="text-align:right">···</span>
+                </div>
+                <sc-for list="{{ products }}" as="p" hint-placeholder-count="8">
+                  <div style="display:grid;grid-template-columns:40px 2fr 1fr 1.1fr 0.9fr 1.2fr 1.2fr 1.3fr 1fr 70px;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid #f4f1ed;font-size:13px">
+                    <span style="{{ p.imgStyle }}">{{ p.emoji }}</span>
+                    <div style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><span style="font-weight:700">{{ p.name }}</span><span style="font-size:11px;color:#9a938b;font-weight:600;font-family:'Spline Sans Mono',monospace">{{ p.sku }}</span></div>
+                    <span style="font-weight:600;color:#3a352f">{{ p.cat }}</span>
+                    <span style="text-align:right;font-weight:700;font-family:'Spline Sans Mono',monospace;color:{{ p.stockColor }}">{{ p.stock }} <span style="color:#bcb4ab;font-weight:600">/ {{ p.min }}</span></span>
+                    <span style="color:#6b645d;font-weight:600">{{ p.unit }}</span>
+                    <span style="text-align:right;font-weight:700;font-family:'Spline Sans Mono',monospace;color:#6b645d">{{ p.pp }}</span>
+                    <span style="text-align:right;font-weight:700;font-family:'Spline Sans Mono',monospace">{{ p.sp }}</span>
+                    <span style="font-weight:600;color:#3a352f;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.supplier }}</span>
+                    <span><span style="{{ p.statusStyle }}">{{ p.status }}</span></span>
+                    <span style="display:flex;justify-content:flex-end;gap:4px"><button onClick="{{ p.edit }}" style="width:28px;height:28px;border-radius:8px;border:1px solid #ece8e3;background:#fff;cursor:pointer;font-size:13px">✎</button></span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;padding:13px 18px;font-size:12px;font-weight:600;color:#9a938b"><span>Showing 8 of 248 products</span><span style="flex:1"></span><div style="display:flex;gap:6px"><button style="width:30px;height:30px;border-radius:8px;border:1px solid #ece8e3;background:#fff;cursor:pointer;font-weight:700">‹</button><button style="width:30px;height:30px;border-radius:8px;border:none;background:#1c1a18;color:#fff;cursor:pointer;font-weight:700">1</button><button style="width:30px;height:30px;border-radius:8px;border:1px solid #ece8e3;background:#fff;cursor:pointer;font-weight:700">2</button><button style="width:30px;height:30px;border-radius:8px;border:1px solid #ece8e3;background:#fff;cursor:pointer;font-weight:700">›</button></div></div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ===================== STOCK MOVEMENTS ===================== -->
+        <sc-if value="{{ isMovements }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;background:#fff;border:1px solid #ece8e3;border-radius:11px;padding:4px;gap:2px;align-self:flex-start;overflow-x:auto">
+            <sc-for list="{{ moveFilters }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.select }}" style="{{ f.style }}">{{ f.label }}</button></sc-for>
+          </div>
+          <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:8px 20px 20px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+            <sc-for list="{{ movements }}" as="m" hint-placeholder-count="7">
+              <div style="display:flex;gap:16px">
+                <div style="display:flex;flex-direction:column;align-items:center;flex:0 0 auto;padding-top:18px">
+                  <span style="{{ m.dotStyle }}">{{ m.dir }}</span>
+                  <div style="flex:1;width:2px;background:#f1ede8;margin:4px 0"></div>
+                </div>
+                <div style="flex:1;min-width:0;padding:14px 0;border-bottom:1px solid #f6f3ef;display:flex;align-items:center;gap:14px">
+                  <span style="{{ m.iconStyle }}">{{ m.icon }}</span>
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:baseline;gap:9px;flex-wrap:wrap"><span style="font-size:15px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:{{ m.qtyColor }}">{{ m.qty }}</span><span style="font-size:14px;font-weight:700">{{ m.name }}</span><span style="{{ m.tagStyle }}">{{ m.tag }}</span></div>
+                    <div style="font-size:11.5px;font-weight:600;color:#9a938b;margin-top:3px">{{ m.meta }}</div>
+                  </div>
+                  <div style="text-align:right;flex:0 0 auto"><div style="font-size:12px;font-weight:700;color:#3a352f">{{ m.time }}</div><div style="font-size:11px;font-weight:600;color:#9a938b">{{ m.by }}</div></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ===================== PURCHASE ORDERS ===================== -->
+        <sc-if value="{{ isOrders }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="display:flex;background:#fff;border:1px solid #ece8e3;border-radius:11px;padding:4px;gap:2px;overflow-x:auto">
+              <sc-for list="{{ orderFilters }}" as="f" hint-placeholder-count="5"><button onClick="{{ f.select }}" style="{{ f.style }}">{{ f.label }}</button></sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px">
+            <sc-for list="{{ orders }}" as="o" hint-placeholder-count="6">
+              <div style="background:#fff;border:1px solid #ece8e3;border-radius:16px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:flex-start;gap:11px">
+                  <span style="{{ o.iconStyle }}">{{ o.icon }}</span>
+                  <div style="flex:1;min-width:0;line-height:1.25"><div style="font-size:14px;font-weight:800">{{ o.supplier }}</div><div style="font-size:11.5px;font-weight:700;color:#9a938b;font-family:'Spline Sans Mono',monospace">{{ o.id }}</div></div>
+                  <span style="{{ o.statusStyle }}">{{ o.status }}</span>
+                </div>
+                <div style="display:flex;gap:18px;padding:13px 0;border-top:1px solid #f4f1ed;border-bottom:1px solid #f4f1ed">
+                  <div style="display:flex;flex-direction:column"><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Items</span><span style="font-size:15px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ o.items }}</span></div>
+                  <div style="display:flex;flex-direction:column"><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Total</span><span style="font-size:15px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ o.total }}</span></div>
+                  <span style="flex:1"></span>
+                  <div style="display:flex;flex-direction:column;text-align:right"><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Expected</span><span style="font-size:13px;font-weight:700;color:#3a352f">{{ o.expected }}</span></div>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button onClick="{{ o.view }}" style="flex:1;padding:9px;border-radius:10px;border:1px solid #e7e3de;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;color:#3a352f">View</button>
+                  <button onClick="{{ o.action }}" style="{{ o.actionStyle }}">{{ o.actionLabel }}</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ===================== SUPPLIERS ===================== -->
+        <sc-if value="{{ isSuppliers }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">
+          <sc-for list="{{ suppliers }}" as="s" hint-placeholder-count="6">
+            <div style="background:#fff;border:1px solid #ece8e3;border-radius:16px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="{{ s.avStyle }}">{{ s.initials }}</span>
+                <div style="flex:1;min-width:0;line-height:1.25"><div style="font-size:15px;font-weight:800">{{ s.company }}</div><div style="font-size:12px;font-weight:600;color:#9a938b">{{ s.contact }}</div></div>
+                <sc-if value="{{ s.pendingFlag }}" hint-placeholder-val="{{ false }}"><span style="width:9px;height:9px;border-radius:50%;background:#e9a23b;flex:0 0 auto;animation:pulseDot 1.6s infinite"></span></sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <div style="display:flex;align-items:center;gap:9px;font-size:12.5px"><span style="width:15px;text-align:center">📞</span><span style="color:#3a352f;font-weight:600;font-family:'Spline Sans Mono',monospace">{{ s.phone }}</span></div>
+                <div style="display:flex;align-items:center;gap:9px;font-size:12.5px"><span style="width:15px;text-align:center">✉️</span><span style="color:#3a352f;font-weight:600">{{ s.email }}</span></div>
+              </div>
+              <div style="display:flex;gap:10px;padding-top:13px;border-top:1px solid #f4f1ed">
+                <div style="flex:1;display:flex;flex-direction:column"><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Pending</span><span style="font-size:15px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:{{ s.pendColor }}">{{ s.pending }}</span></div>
+                <div style="flex:1;display:flex;flex-direction:column"><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Total Buys</span><span style="font-size:15px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ s.total }}</span></div>
+                <div style="flex:1;display:flex;flex-direction:column"><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Last Buy</span><span style="font-size:12.5px;font-weight:700;color:#3a352f;padding-top:2px">{{ s.last }}</span></div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button onClick="{{ s.order }}" style="flex:1;padding:9px;border-radius:10px;border:none;background:#1c1a18;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer">New Order</button>
+                <button onClick="{{ s.pay }}" style="flex:1;padding:9px;border-radius:10px;border:1px solid #e7e3de;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;color:#3a352f">Settle Dues</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- ===================== EXPENSES ===================== -->
+        <sc-if value="{{ isExpenses }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
+            <sc-for list="{{ expKpis }}" as="c" hint-placeholder-count="4">
+              <div style="{{ c.cardStyle }}">
+                <div style="display:flex;align-items:center;justify-content:space-between"><span style="{{ c.iconStyle }}">{{ c.icon }}</span><span style="font-size:11.5px;font-weight:700;color:{{ c.trendColor }}">{{ c.trend }}</span></div>
+                <div style="display:flex;flex-direction:column;gap:3px;margin-top:12px"><span style="font-size:11.5px;font-weight:700;color:#9a938b">{{ c.label }}</span><span style="font-size:23px;font-weight:800;font-family:'Spline Sans Mono',monospace;letter-spacing:-.5px">{{ c.value }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+          <!-- category breakdown -->
+          <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+            <div style="display:flex;align-items:center;margin-bottom:16px"><span style="font-size:15px;font-weight:800">Spending by Category</span><span style="flex:1"></span><span style="font-size:12px;font-weight:600;color:#9a938b">This month</span></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px">
+              <sc-for list="{{ expCats }}" as="e" hint-placeholder-count="9">
+                <div style="display:flex;align-items:center;gap:11px;padding:12px 13px;background:#fbfaf8;border:1px solid #f1ede8;border-radius:13px">
+                  <span style="{{ e.iconStyle }}">{{ e.icon }}</span>
+                  <div style="display:flex;flex-direction:column;line-height:1.25;min-width:0"><span style="font-size:12px;font-weight:700;color:#6b645d">{{ e.name }}</span><span style="font-size:15px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ e.value }}</span></div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- expense table -->
+          <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;box-shadow:0 1px 2px rgba(0,0,0,.03);overflow:hidden">
+            <div style="display:flex;align-items:center;padding:16px 18px 12px"><span style="font-size:15px;font-weight:800">Recent Expenses</span><span style="flex:1"></span><button onClick="{{ exportExp }}" style="display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:9px;border:1px solid #e7e3de;background:#fff;cursor:pointer;font-size:12px;font-weight:700;color:#3a352f">⬇ Export</button></div>
+            <div style="overflow-x:auto"><div style="min-width:880px">
+              <div style="display:grid;grid-template-columns:1.8fr 1.1fr 1fr 1.1fr 1.2fr 1fr 0.9fr;gap:12px;align-items:center;padding:11px 18px;font-size:10.5px;font-weight:800;color:#9a938b;letter-spacing:.5px;text-transform:uppercase;border-top:1px solid #ece8e3;border-bottom:1px solid #ece8e3;background:#fbfaf8">
+                <span>Expense</span><span>Category</span><span style="text-align:right">Amount</span><span>Date</span><span>Payment</span><span>Added by</span><span style="text-align:right">Invoice</span>
+              </div>
+              <sc-for list="{{ expenses }}" as="x" hint-placeholder-count="8">
+                <div style="display:grid;grid-template-columns:1.8fr 1.1fr 1fr 1.1fr 1.2fr 1fr 0.9fr;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid #f4f1ed;font-size:13px">
+                  <div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="{{ x.iconStyle }}">{{ x.icon }}</span><span style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ x.name }}</span></div>
+                  <span><span style="{{ x.catStyle }}">{{ x.cat }}</span></span>
+                  <span style="text-align:right;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ x.amount }}</span>
+                  <span style="color:#6b645d;font-weight:600">{{ x.date }}</span>
+                  <span style="display:flex;align-items:center;gap:6px;font-weight:600;color:#3a352f"><span style="{{ x.payDot }}"></span>{{ x.method }}</span>
+                  <span style="color:#3a352f;font-weight:600">{{ x.by }}</span>
+                  <span style="display:flex;justify-content:flex-end"><span style="{{ x.invStyle }}">{{ x.invoice }}</span></span>
+                </div>
+              </sc-for>
+            </div></div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ===================== CATEGORIES ===================== -->
+        <sc-if value="{{ isCategories }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px">
+          <sc-for list="{{ categories }}" as="c" hint-placeholder-count="6">
+            <div style="background:#fff;border:1px solid #ece8e3;border-radius:16px;padding:18px;box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:12px"><span style="{{ c.iconStyle }}">{{ c.icon }}</span><div style="flex:1;min-width:0;line-height:1.25"><div style="font-size:15px;font-weight:800">{{ c.name }}</div><div style="font-size:12px;font-weight:600;color:#9a938b">{{ c.count }} products</div></div></div>
+              <div style="display:flex;gap:12px;padding-top:13px;border-top:1px solid #f4f1ed">
+                <div style="flex:1"><div style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Stock Value</div><div style="font-size:16px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ c.value }}</div></div>
+                <div style="flex:1"><div style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Low Stock</div><div style="font-size:16px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:{{ c.lowColor }}">{{ c.low }}</div></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- ===================== LOW STOCK ALERTS ===================== -->
+        <sc-if value="{{ isLowStock }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+          <sc-for list="{{ lowStockFull }}" as="l" hint-placeholder-count="6">
+            <div style="{{ l.cardStyle }}">
+              <div style="display:flex;align-items:center;gap:12px">
+                <span style="{{ l.iconStyle }}">{{ l.icon }}</span>
+                <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800">{{ l.name }}</div><div style="font-size:11.5px;font-weight:600;color:#9a938b">{{ l.cat }} · {{ l.supplier }}</div></div>
+                <span style="{{ l.tagStyle }}">{{ l.tag }}</span>
+              </div>
+              <div style="display:flex;align-items:flex-end;gap:18px;margin-top:14px">
+                <div><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Remaining</span><div style="font-size:22px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:{{ l.remColor }}">{{ l.remaining }}</div></div>
+                <div><span style="font-size:10px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Minimum</span><div style="font-size:22px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:#6b645d">{{ l.minimum }}</div></div>
+              </div>
+              <div style="height:7px;border-radius:6px;background:#f1ede8;overflow:hidden;margin:14px 0"><div style="{{ l.barStyle }}"></div></div>
+              <button onClick="{{ l.reorder }}" style="padding:10px;border-radius:11px;border:none;background:#1c1a18;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Create Reorder →</button>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- ===================== REPORTS ===================== -->
+        <sc-if value="{{ isReports }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px">
+          <sc-for list="{{ reports }}" as="r" hint-placeholder-count="6">
+            <div style="background:#fff;border:1px solid #ece8e3;border-radius:16px;padding:20px;box-shadow:0 1px 2px rgba(0,0,0,.03);display:flex;flex-direction:column;gap:13px">
+              <span style="{{ r.iconStyle }}">{{ r.icon }}</span>
+              <div style="line-height:1.3"><div style="font-size:15.5px;font-weight:800">{{ r.name }}</div><div style="font-size:12.5px;font-weight:600;color:#9a938b;margin-top:4px">{{ r.desc }}</div></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:6px">
+                <span style="font-size:11.5px;font-weight:700;color:#9a938b">{{ r.updated }}</span>
+                <span style="flex:1"></span>
+                <button onClick="{{ r.gen }}" style="padding:8px 13px;border-radius:10px;border:1px solid #e7e3de;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#3a352f" style-hover="border-color:#1c1a18">Generate →</button>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <!-- ===================== DESIGN SYSTEM ===================== -->
+        <sc-if value="{{ isSystem }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <!-- palette -->
+          <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:22px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+            <div style="font-size:16px;font-weight:800;margin-bottom:3px">Color Palette</div>
+            <div style="font-size:12.5px;font-weight:600;color:#9a938b;margin-bottom:16px">Warm, appetite-forward neutrals with functional accents</div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">
+              <sc-for list="{{ palette }}" as="p" hint-placeholder-count="8">
+                <div style="border:1px solid #f1ede8;border-radius:13px;overflow:hidden"><div style="height:56px;background:{{ p.hex }};border-bottom:1px solid rgba(0,0,0,.04)"></div><div style="padding:9px 11px"><div style="font-size:12px;font-weight:700">{{ p.name }}</div><div style="font-size:11px;font-weight:600;color:#9a938b;font-family:'Spline Sans Mono',monospace">{{ p.hex }}</div></div></div>
+              </sc-for>
+            </div>
+          </div>
+          <!-- type -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px">
+            <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:22px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+              <div style="font-size:16px;font-weight:800;margin-bottom:16px">Typography</div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="border-bottom:1px solid #f4f1ed;padding-bottom:12px"><div style="font-size:11px;font-weight:700;color:#9a938b">Plus Jakarta Sans · UI &amp; Headings</div><div style="font-size:28px;font-weight:800">Inventory at a glance</div></div>
+                <div style="border-bottom:1px solid #f4f1ed;padding-bottom:12px"><div style="font-size:11px;font-weight:700;color:#9a938b">Body · 13–15px / weight 600</div><div style="font-size:14px;font-weight:600;color:#3a352f">Track stock, expenses and purchase orders in one warm, focused workspace.</div></div>
+                <div><div style="font-size:11px;font-weight:700;color:#9a938b">Spline Sans Mono · Numbers &amp; Money</div><div style="font-size:24px;font-weight:800;font-family:'Spline Sans Mono',monospace">₹4,82,000</div></div>
+              </div>
+            </div>
+            <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:22px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+              <div style="font-size:16px;font-weight:800;margin-bottom:16px">Components &amp; Tokens</div>
+              <div style="display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px">
+                <span style="padding:5px 12px;border-radius:20px;background:#eef5f0;color:#1f8a5b;font-size:12px;font-weight:700">In Stock</span>
+                <span style="padding:5px 12px;border-radius:20px;background:#fdf4e3;color:#c9851f;font-size:12px;font-weight:700">Low</span>
+                <span style="padding:5px 12px;border-radius:20px;background:#fdeeee;color:#c0392b;font-size:12px;font-weight:700">Critical</span>
+                <span style="padding:5px 12px;border-radius:20px;background:#eaf0fb;color:#2a6fdb;font-size:12px;font-weight:700">Ordered</span>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:9px;margin-bottom:16px">
+                <button style="padding:9px 15px;border-radius:11px;border:none;background:#1c1a18;color:#fff;font-size:12.5px;font-weight:700">Primary</button>
+                <button style="padding:9px 15px;border-radius:11px;border:none;background:#d9542b;color:#fff;font-size:12.5px;font-weight:700">Accent</button>
+                <button style="padding:9px 15px;border-radius:11px;border:1px solid #e7e3de;background:#fff;color:#3a352f;font-size:12.5px;font-weight:700">Secondary</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px;font-weight:600;color:#6b645d">
+                <div style="display:flex;justify-content:space-between"><span>Radius</span><span style="font-family:'Spline Sans Mono',monospace">9 · 11 · 16 · 18 px</span></div>
+                <div style="display:flex;justify-content:space-between"><span>Card shadow</span><span style="font-family:'Spline Sans Mono',monospace">0 1px 2px rgba(0,0,0,.03)</span></div>
+                <div style="display:flex;justify-content:space-between"><span>Grid gap</span><span style="font-family:'Spline Sans Mono',monospace">14 · 16 · 18 px</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- hierarchy + UX -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px">
+            <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:22px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+              <div style="font-size:16px;font-weight:800;margin-bottom:14px">Component Hierarchy</div>
+              <div style="font-family:'Spline Sans Mono',monospace;font-size:12px;line-height:1.9;color:#3a352f;white-space:pre">{{ hierarchy }}</div>
+            </div>
+            <div style="background:#fff;border:1px solid #ece8e3;border-radius:18px;padding:22px;box-shadow:0 1px 2px rgba(0,0,0,.03)">
+              <div style="font-size:16px;font-weight:800;margin-bottom:14px">UX Recommendations</div>
+              <div style="display:flex;flex-direction:column;gap:13px">
+                <sc-for list="{{ uxRecs }}" as="u" hint-placeholder-count="6">
+                  <div style="display:flex;gap:11px"><span style="width:26px;height:26px;border-radius:8px;background:#fcefe9;color:#d9542b;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto">{{ u.n }}</span><div style="font-size:12.5px;font-weight:600;color:#3a352f;line-height:1.45">{{ u.text }}</div></div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+
+        <!-- ===================== RESPONSIVE ===================== -->
+        <sc-if value="{{ isResponsive }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:13px;font-weight:600;color:#6b645d;max-width:680px;line-height:1.5">Tablet-first layouts: tables collapse to cards, primary actions move to a floating button, and detail editing happens in bottom sheets. Below: the Inventory list on tablet and the mobile dashboard.</div>
+          <div style="display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start;justify-content:center;padding:24px 0">
+
+            <!-- TABLET -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+              <div style="position:relative;width:640px;max-width:88vw;height:470px;background:#1c1a18;border-radius:28px;padding:12px;box-shadow:0 24px 60px rgba(0,0,0,.22)">
+                <div style="width:100%;height:100%;background:#f4f3f1;border-radius:18px;overflow:hidden;display:flex;flex-direction:column">
+                  <div style="flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:13px 16px;background:#fff;border-bottom:1px solid #ece8e3">
+                    <div style="width:30px;height:30px;border-radius:9px;background:#d9542b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px">SR</div>
+                    <span style="font-size:15px;font-weight:800">Inventory</span><span style="flex:1"></span>
+                    <span style="width:32px;height:32px;border-radius:9px;background:#f4f1ee;display:flex;align-items:center;justify-content:center;font-size:14px;color:#9a938b">⌕</span>
+                    <span style="width:32px;height:32px;border-radius:9px;background:#f4f1ee;display:flex;align-items:center;justify-content:center;font-size:14px;color:#9a938b">⚙</span>
+                  </div>
+                  <div style="flex:1;overflow-y:auto;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:11px;align-content:start">
+                    <sc-for list="{{ tabletCards }}" as="t" hint-placeholder-count="6">
+                      <div style="background:#fff;border:1px solid #ece8e3;border-radius:14px;padding:13px">
+                        <div style="display:flex;align-items:center;gap:9px;margin-bottom:10px"><span style="{{ t.iconStyle }}">{{ t.icon }}</span><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:800">{{ t.name }}</div><div style="font-size:10.5px;font-weight:600;color:#9a938b">{{ t.cat }}</div></div><span style="{{ t.tagStyle }}">{{ t.tag }}</span></div>
+                        <div style="display:flex;align-items:flex-end;gap:12px"><div><div style="font-size:9px;font-weight:700;color:#9a938b;text-transform:uppercase">Stock</div><div style="font-size:15px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:{{ t.col }}">{{ t.stock }}</div></div><div><div style="font-size:9px;font-weight:700;color:#9a938b;text-transform:uppercase">Price</div><div style="font-size:15px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ t.price }}</div></div></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="position:absolute;right:30px;bottom:30px;width:50px;height:50px;border-radius:16px;background:#d9542b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:300;box-shadow:0 8px 22px rgba(217,84,43,.45)">+</div>
+              </div>
+              <span style="font-size:12px;font-weight:700;color:#9a938b">Tablet · Inventory (card grid + FAB)</span>
+            </div>
+
+            <!-- PHONE -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+              <div style="position:relative;width:286px;height:580px;background:#1c1a18;border-radius:42px;padding:11px;box-shadow:0 24px 60px rgba(0,0,0,.22)">
+                <div style="width:100%;height:100%;background:#f4f3f1;border-radius:32px;overflow:hidden;display:flex;flex-direction:column">
+                  <div style="flex:0 0 auto;padding:16px 16px 12px;background:#fff;border-bottom:1px solid #ece8e3">
+                    <div style="display:flex;align-items:center;gap:9px;margin-bottom:2px"><div style="width:28px;height:28px;border-radius:8px;background:#d9542b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px">SR</div><div style="line-height:1.1"><div style="font-size:9px;font-weight:700;color:#9a938b;text-transform:uppercase;letter-spacing:.4px">Dashboard</div><div style="font-size:14px;font-weight:800">Spice Route</div></div><span style="flex:1"></span><span style="width:30px;height:30px;border-radius:50%;background:#1c1a18;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">R</div></div>
+                  </div>
+                  <div style="flex:1;overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:11px">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                      <sc-for list="{{ phoneKpis }}" as="k" hint-placeholder-count="4">
+                        <div style="background:#fff;border:1px solid #ece8e3;border-radius:13px;padding:12px"><span style="{{ k.iconStyle }}">{{ k.icon }}</span><div style="font-size:10.5px;font-weight:700;color:#9a938b;margin-top:9px">{{ k.label }}</div><div style="font-size:17px;font-weight:800;font-family:'Spline Sans Mono',monospace">{{ k.value }}</div></div>
+                      </sc-for>
+                    </div>
+                    <div style="background:#fff;border:1px solid #ece8e3;border-radius:13px;padding:13px">
+                      <div style="display:flex;align-items:center;gap:7px;margin-bottom:11px"><span style="font-size:13px">⚠️</span><span style="font-size:12.5px;font-weight:800">Low Stock</span><span style="flex:1"></span><span style="font-size:10px;font-weight:700;color:#d9542b">3 →</span></div>
+                      <sc-for list="{{ phoneLow }}" as="l" hint-placeholder-count="3">
+                        <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-top:1px solid #f6f3ef"><span style="font-size:15px">{{ l.icon }}</span><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700">{{ l.name }}</div><div style="font-size:10px;font-weight:600;color:#9a938b">{{ l.left }}</div></div><span style="{{ l.tagStyle }}">{{ l.tag }}</span></div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="flex:0 0 auto;display:flex;align-items:center;justify-content:space-around;padding:9px 8px 14px;background:#fff;border-top:1px solid #ece8e3">
+                    <sc-for list="{{ phoneNav }}" as="b" hint-placeholder-count="4">
+                      <div style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="font-size:17px;opacity:{{ b.op }}">{{ b.icon }}</span><span style="font-size:8.5px;font-weight:700;color:{{ b.color }}">{{ b.label }}</span></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="position:absolute;right:18px;bottom:64px;width:46px;height:46px;border-radius:15px;background:#d9542b;color:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:300;box-shadow:0 8px 22px rgba(217,84,43,.45)">+</div>
+              </div>
+              <span style="font-size:12px;font-weight:700;color:#9a938b">Phone · Dashboard (bottom nav + FAB)</span>
+            </div>
+
+          </div>
+        </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADD PRODUCT MODAL ============ -->
+  <sc-if value="{{ showProduct }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeProduct }}" style="position:absolute;inset:0;z-index:40;background:rgba(28,26,24,.42);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px;animation:overlayIn .2s ease">
+    <div onClick="{{ stop }}" style="width:640px;max-width:100%;max-height:90%;overflow-y:auto;background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.32);animation:sheetIn .26s cubic-bezier(.2,.8,.2,1)">
+      <div style="display:flex;align-items:center;gap:12px;padding:20px 22px;border-bottom:1px solid #ece8e3;position:sticky;top:0;background:#fff;z-index:1">
+        <span style="width:34px;height:34px;border-radius:10px;background:#fcefe9;display:flex;align-items:center;justify-content:center;font-size:16px">📦</span>
+        <div style="flex:1;line-height:1.2"><div style="font-size:16px;font-weight:800">Add Product</div><div style="font-size:12px;font-weight:600;color:#9a938b">New inventory item</div></div>
+        <button onClick="{{ closeProduct }}" style="width:32px;height:32px;border-radius:9px;border:1px solid #ece8e3;background:#fff;cursor:pointer;font-size:15px;color:#6b645d">✕</button>
+      </div>
+      <div style="padding:20px 22px;display:flex;flex-direction:column;gap:15px">
+        <div style="display:flex;gap:14px;align-items:center">
+          <div style="width:78px;height:78px;border-radius:14px;border:2px dashed #ddd6cd;background:#faf8f6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:0 0 auto;cursor:pointer"><span style="font-size:20px">🖼️</span><span style="font-size:9.5px;font-weight:700;color:#9a938b">Image</span></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Product Name</label><input placeholder="e.g. Mozzarella Cheese" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none" style-focus="border-color:#d9542b"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">SKU</label><input placeholder="SKU-0249" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none;font-family:'Spline Sans Mono',monospace" style-focus="border-color:#d9542b"></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Barcode</label><input placeholder="890123456789" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none;font-family:'Spline Sans Mono',monospace" style-focus="border-color:#d9542b"></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Category</label><div style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;color:#9a938b;display:flex;align-items:center;justify-content:space-between">Select category<span>▾</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Supplier</label><div style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;color:#9a938b;display:flex;align-items:center;justify-content:space-between">Select supplier<span>▾</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Purchase Price ₹</label><input placeholder="320" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none;font-family:'Spline Sans Mono',monospace" style-focus="border-color:#d9542b"></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Selling Price ₹</label><input placeholder="0" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none;font-family:'Spline Sans Mono',monospace" style-focus="border-color:#d9542b"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:13px">
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Current</label><input placeholder="0" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none;font-family:'Spline Sans Mono',monospace" style-focus="border-color:#d9542b"></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Minimum</label><input placeholder="5" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none;font-family:'Spline Sans Mono',monospace" style-focus="border-color:#d9542b"></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Maximum</label><input placeholder="50" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none;font-family:'Spline Sans Mono',monospace" style-focus="border-color:#d9542b"></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Unit</label><div style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;color:#9a938b;display:flex;align-items:center;justify-content:space-between">KG<span>▾</span></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:13px">
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">GST %</label><input placeholder="5" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none;font-family:'Spline Sans Mono',monospace" style-focus="border-color:#d9542b"></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Notes</label><input placeholder="Storage / handling notes" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none" style-focus="border-color:#d9542b"></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;padding:16px 22px;border-top:1px solid #ece8e3;position:sticky;bottom:0;background:#fff"><span style="flex:1"></span><button onClick="{{ closeProduct }}" style="padding:11px 18px;border-radius:11px;border:1px solid #e7e3de;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:#3a352f">Cancel</button><button onClick="{{ saveProduct }}" style="padding:11px 22px;border-radius:11px;border:none;background:#d9542b;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Save Product</button></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ============ ADD EXPENSE MODAL ============ -->
+  <sc-if value="{{ showExpense }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeExpense }}" style="position:absolute;inset:0;z-index:40;background:rgba(28,26,24,.42);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px;animation:overlayIn .2s ease">
+    <div onClick="{{ stop }}" style="width:520px;max-width:100%;max-height:90%;overflow-y:auto;background:#fff;border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.32);animation:sheetIn .26s cubic-bezier(.2,.8,.2,1)">
+      <div style="display:flex;align-items:center;gap:12px;padding:20px 22px;border-bottom:1px solid #ece8e3">
+        <span style="width:34px;height:34px;border-radius:10px;background:#eef5f0;display:flex;align-items:center;justify-content:center;font-size:16px">💸</span>
+        <div style="flex:1;line-height:1.2"><div style="font-size:16px;font-weight:800">Add Expense</div><div style="font-size:12px;font-weight:600;color:#9a938b">Record a new expense</div></div>
+        <button onClick="{{ closeExpense }}" style="width:32px;height:32px;border-radius:9px;border:1px solid #ece8e3;background:#fff;cursor:pointer;font-size:15px;color:#6b645d">✕</button>
+      </div>
+      <div style="padding:20px 22px;display:flex;flex-direction:column;gap:15px">
+        <div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Amount</label><div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border:1px solid #e7e3de;border-radius:13px"><span style="font-size:24px;font-weight:800;color:#9a938b">₹</span><input placeholder="0" style="flex:1;border:none;outline:none;font-size:26px;font-weight:800;font-family:'Spline Sans Mono',monospace;color:#1c1a18"></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:13px">
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Category</label><div style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;color:#9a938b;display:flex;align-items:center;justify-content:space-between">Rent<span>▾</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Date</label><input value="30 Jun 2026" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none" style-focus="border-color:#1f8a5b"></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Vendor</label><input placeholder="e.g. BSES Electricity" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none" style-focus="border-color:#1f8a5b"></div>
+          <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Payment Method</label><div style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;color:#9a938b;display:flex;align-items:center;justify-content:space-between">Bank Transfer<span>▾</span></div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Description</label><input placeholder="What was this for?" style="padding:11px 13px;border:1px solid #e7e3de;border-radius:11px;font-size:13px;outline:none" style-focus="border-color:#1f8a5b"></div>
+        <div style="display:flex;gap:13px;align-items:stretch">
+          <div style="flex:1;border:2px dashed #ddd6cd;background:#faf8f6;border-radius:13px;padding:14px;display:flex;align-items:center;gap:10px;cursor:pointer"><span style="font-size:18px">📎</span><div style="line-height:1.2"><div style="font-size:12.5px;font-weight:700">Upload Invoice</div><div style="font-size:10.5px;font-weight:600;color:#9a938b">PDF, JPG up to 5MB</div></div></div>
+          <div style="display:flex;flex-direction:column;justify-content:center;gap:6px;padding:0 4px"><label style="font-size:11.5px;font-weight:700;color:#6b645d">Recurring</label><button onClick="{{ toggleRecurring }}" style="{{ recurringStyle }}"><span style="{{ recurringKnob }}"></span></button></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;padding:16px 22px;border-top:1px solid #ece8e3"><span style="flex:1"></span><button onClick="{{ closeExpense }}" style="padding:11px 18px;border-radius:11px;border:1px solid #e7e3de;background:#fff;font-size:13px;font-weight:700;cursor:pointer;color:#3a352f">Cancel</button><button onClick="{{ saveExpense }}" style="padding:11px 22px;border-radius:11px;border:none;background:#1f8a5b;color:#fff;font-size:13px;font-weight:700;cursor:pointer">Save Expense</button></div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- TOAST -->
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;bottom:26px;left:50%;z-index:60;background:#1c1a18;color:#fff;padding:13px 22px;border-radius:13px;font-size:13.5px;font-weight:600;box-shadow:0 12px 34px rgba(0,0,0,.3);animation:toastIn .22s ease;display:flex;align-items:center;gap:10px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#34c759"></span>{{ toast }}
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:880}}">
+class Component extends DCLogic {
+  state = { nav:'dashboard', invFilter:'all', moveFilter:'all', orderFilter:'all',
+    showProduct:false, showExpense:false, recurring:false, sel:{}, toast:'' };
+
+  toastMsg(m){ this.setState({toast:m}); clearTimeout(this._tt); this._tt=setTimeout(()=>this.setState({toast:''}),2400); }
+  go(id){ this.setState({nav:id}); }
+
+  f0(n){ return '₹'+Math.round(n).toLocaleString('en-IN'); }
+  fk(n){ return n>=100000 ? '₹'+(n/100000).toFixed(2).replace(/\.?0+$/,'')+'L' : (n>=1000 ? '₹'+(n/1000).toFixed(n>=10000?0:1)+'K' : '₹'+n); }
+
+  lineChart(series, color){
+    const h=React.createElement;
+    const W=560,H=180, pad={l:6,r:6,t:14,b:26};
+    const max=Math.max(...series.map(p=>p.v))*1.15 || 1;
+    const iw=W-pad.l-pad.r, ih=H-pad.t-pad.b, n=series.length;
+    const pts=series.map((p,i)=>{ const x=pad.l+(n<=1?iw/2:i/(n-1)*iw); const y=pad.t+ih-(p.v/max)*ih; return [x,y]; });
+    const lineD='M'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L');
+    const areaD=`M${pts[0][0].toFixed(1)},${(pad.t+ih).toFixed(1)} `+pts.map(p=>'L'+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')+` L${pts[n-1][0].toFixed(1)},${(pad.t+ih).toFixed(1)} Z`;
+    const gid='g'+(this._g=(this._g||0)+1);
+    const grid=[0,.5,1].map((f,i)=>h('line',{key:'gl'+i,x1:pad.l,x2:W-pad.r,y1:pad.t+ih*f,y2:pad.t+ih*f,stroke:'#f1ede8',strokeWidth:1}));
+    const dots=pts.map((p,i)=>h('circle',{key:'d'+i,cx:p[0],cy:p[1],r:i===n-1?4.5:3,fill:'#fff',stroke:color,strokeWidth:2.2}));
+    const labels=series.map((p,i)=>h('text',{key:'t'+i,x:pts[i][0],y:H-7,textAnchor:'middle',fill:'#9a938b',fontSize:10,fontFamily:"'Spline Sans Mono',monospace",fontWeight:600},p.x));
+    return h('svg',{viewBox:'0 0 '+W+' '+H,width:'100%',style:{display:'block',height:'auto'}},
+      h('defs',null,h('linearGradient',{id:gid,x1:0,y1:0,x2:0,y2:1},
+        h('stop',{offset:'0%',stopColor:color,stopOpacity:.22}),
+        h('stop',{offset:'100%',stopColor:color,stopOpacity:0}))),
+      grid, h('path',{d:areaD,fill:'url(#'+gid+')'}),
+      h('path',{d:lineD,fill:'none',stroke:color,strokeWidth:2.6,strokeLinejoin:'round',strokeLinecap:'round'}),
+      dots, labels);
+  }
+  donut(segs, size, thickness){
+    const h=React.createElement;
+    const r=(size-thickness)/2, c=size/2, circ=2*Math.PI*r;
+    let off=0;
+    const circles=segs.map((s,i)=>{ const len=s.frac*circ; const el=h('circle',{key:'c'+i,cx:c,cy:c,r,fill:'none',stroke:s.color,strokeWidth:thickness,strokeDasharray:`${len.toFixed(2)} ${(circ-len).toFixed(2)}`,strokeDashoffset:(-off).toFixed(2)}); off+=len; return el; });
+    return h('svg',{width:size,height:size,viewBox:'0 0 '+size+' '+size,style:{transform:'rotate(-90deg)'}},
+      h('circle',{cx:c,cy:c,r,fill:'none',stroke:'#f1ede8',strokeWidth:thickness}), circles);
+  }
+
+  statusBadge(s){
+    const m={'In Stock':{bg:'#eef5f0',fg:'#1f8a5b'},'Low':{bg:'#fdf4e3',fg:'#c9851f'},'Critical':{bg:'#fdeeee',fg:'#c0392b'}};
+    const c=m[s]||m['In Stock'];
+    return {padding:'3px 11px',borderRadius:'20px',background:c.bg,color:c.fg,fontSize:'11px',fontWeight:700,whiteSpace:'nowrap'};
+  }
+
+  renderVals(){
+    const S=this.state, A='#d9542b';
+    const titles={dashboard:'Dashboard',inventory:'Inventory',movements:'Stock Movements',orders:'Purchase Orders',suppliers:'Suppliers',expenses:'Expenses',categories:'Categories',lowstock:'Low Stock Alerts',reports:'Reports',system:'Design System & UX',responsive:'Mobile & Tablet'};
+
+    // ---- NAV ----
+    const navDefs=[['dashboard','Dashboard','▦'],['inventory','Inventory','📦'],['movements','Stock Movements','🔁'],['orders','Purchase Orders','🛒'],['suppliers','Suppliers','🚚'],['expenses','Expenses','💸'],['categories','Categories','🗂️'],['lowstock','Low Stock Alerts','⚠️',12],['reports','Reports','📊'],['system','Design System & UX','🎨'],['responsive','Mobile & Tablet','📱']];
+    const nav=navDefs.map(([id,label,icon,badge])=>{ const a=id===S.nav; return { label, icon, badge:badge||0,
+      select:()=>this.go(id),
+      style:{display:'flex',alignItems:'center',gap:'11px',padding:'9px 11px',borderRadius:'11px',border:'none',cursor:'pointer',fontSize:'13px',fontWeight:700,width:'100%',background:a?'#1c1a18':'transparent',color:a?'#fff':'#6b645d'},
+      badgeStyle:{padding:'1px 8px',borderRadius:'20px',background:a?'rgba(255,255,255,.18)':'#fdeeee',color:a?'#fff':'#c0392b',fontSize:'10.5px',fontWeight:800,fontFamily:"'Spline Sans Mono',monospace"} }; });
+
+    // ---- TOP BAR ACTIONS ----
+    let actions=[];
+    const primary=(icon,label,click)=>({icon,label,click,style:{display:'flex',alignItems:'center',gap:'7px',padding:'10px 16px',borderRadius:'11px',border:'none',background:A,color:'#fff',cursor:'pointer',fontSize:'13px',fontWeight:700,whiteSpace:'nowrap'}});
+    const ghost=(icon,label,click)=>({icon,label,click,style:{display:'flex',alignItems:'center',gap:'7px',padding:'10px 14px',borderRadius:'11px',border:'1px solid #e7e3de',background:'#fff',color:'#3a352f',cursor:'pointer',fontSize:'13px',fontWeight:700,whiteSpace:'nowrap'}});
+    if(S.nav==='inventory') actions=[primary('+','Add Product',()=>this.setState({showProduct:true}))];
+    else if(S.nav==='expenses') actions=[primary('+','Add Expense',()=>this.setState({showExpense:true}))];
+    else if(S.nav==='orders') actions=[primary('+','New Order',()=>this.toastMsg('New purchase order — draft created'))];
+    else if(S.nav==='suppliers') actions=[primary('+','Add Supplier',()=>this.toastMsg('Add supplier form — opening…'))];
+    else if(S.nav==='categories') actions=[ghost('+','New Category',()=>this.toastMsg('New category — opening…'))];
+    else if(S.nav==='dashboard') actions=[ghost('⬇','Export',()=>this.toastMsg('Dashboard exported as PDF'))];
+
+    // ---- DASHBOARD KPIs ----
+    const kpiDefs=[
+      {icon:'📦',label:'Total Products',value:'248',trend:'+6',up:true,tint:'#fcefe9'},
+      {icon:'⚠️',label:'Low Stock Items',value:'12',trend:'+3',up:false,tint:'#fdeeee',vc:'#c0392b'},
+      {icon:'💰',label:'Inventory Value',value:'₹4.82L',trend:'+6.4%',up:true,tint:'#eef5f0'},
+      {icon:'📉',label:"Today's Expenses",value:'₹6,200',trend:'+3.1%',up:false,tint:'#fdf4e3'},
+      {icon:'📈',label:'Monthly Expenses',value:'₹2.42L',trend:'+8%',up:false,tint:'#eaf0fb'},
+      {icon:'🛒',label:'Purchase Orders',value:'7',trend:'2 new',up:true,tint:'#fcefe9'},
+      {icon:'🚚',label:'Pending Deliveries',value:'3',trend:'1 late',up:false,tint:'#fdf4e3'},
+      {icon:'💵',label:'Estimated Profit',value:'₹1.94L',trend:'+11%',up:true,tint:'#eef5f0',vc:'#1f8a5b'},
+    ];
+    const kpis=kpiDefs.map(c=>({icon:c.icon,label:c.label,value:c.value,valueColor:c.vc||'#1c1a18',trend:(c.up?'▲ ':'▼ ')+c.trend,
+      iconStyle:{width:'36px',height:'36px',borderRadius:'11px',background:c.tint,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'18px'},
+      trendStyle:{fontSize:'11.5px',fontWeight:700,color:c.up?'#1f8a5b':'#c0392b'} }));
+
+    // ---- LOW STOCK (dashboard strip) ----
+    const lowDefs=[
+      {icon:'🧀',name:'Mozzarella',cat:'Dairy',rem:2,min:5,unit:'KG',tag:'Reorder',crit:false},
+      {icon:'🛢️',name:'Cooking Oil',cat:'Pantry',rem:1,min:4,unit:'L',tag:'Critical',crit:true},
+      {icon:'🥤',name:'Soft Drinks',cat:'Beverages',rem:6,min:24,unit:'Crate',tag:'Reorder',crit:false},
+      {icon:'☕',name:'Coffee Beans',cat:'Beverages',rem:3,min:5,unit:'KG',tag:'Low',crit:false},
+    ];
+    const lowCard=(l)=>{ const pct=Math.min(100,Math.round(l.rem/l.min*100)); const col=l.crit?'#c0392b':'#e0902f';
+      return {icon:l.icon,name:l.name,cat:l.cat,tag:l.tag,remaining:l.rem+' '+l.unit,minimum:l.min+' '+l.unit,supplier:l.supplier||'',
+        remColor:col,
+        cardStyle:{background:l.crit?'#fef6f5':'#fdfaf4',border:'1px solid '+(l.crit?'#f6dcd6':'#f0e6cf'),borderRadius:'14px',padding:'14px'},
+        iconStyle:{width:'38px',height:'38px',borderRadius:'11px',background:'#fff',border:'1px solid #f0e8df',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'19px',flex:'0 0 auto'},
+        tagStyle:{padding:'3px 10px',borderRadius:'20px',background:l.crit?'#fdeeee':'#fdf4e3',color:l.crit?'#c0392b':'#c9851f',fontSize:'10.5px',fontWeight:800,whiteSpace:'nowrap'},
+        barStyle:{height:'100%',width:pct+'%',borderRadius:'5px',background:col},
+        reorder:()=>this.toastMsg('Reorder draft created for '+l.name) }; };
+    const lowStock=lowDefs.map(lowCard);
+
+    // full low stock page
+    const lowFullDefs=lowDefs.concat([
+      {icon:'🧈',name:'Paneer',cat:'Dairy',rem:6,min:6,unit:'KG',tag:'Low',crit:false,supplier:'Amul'},
+      {icon:'🧂',name:'Sea Salt',cat:'Spices',rem:1,min:3,unit:'KG',tag:'Critical',crit:true,supplier:'Gupta'},
+    ]).map(l=>({...lowCard(l), supplier:l.supplier||'—',
+      cardStyle:{background:l.crit?'#fef6f5':'#fff',border:'1px solid '+(l.crit?'#f6dcd6':'#ece8e3'),borderRadius:'16px',padding:'18px',display:'flex',flexDirection:'column',boxShadow:'0 1px 2px rgba(0,0,0,.03)'},
+      iconStyle:{width:'42px',height:'42px',borderRadius:'12px',background:l.crit?'#fdeeee':'#faf6ef',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'21px',flex:'0 0 auto'} }));
+    // fix supplier text
+    lowFullDefs.forEach((x,i)=>{ const src=lowDefs.concat([{supplier:'Amul'},{supplier:'Gupta'}])[i]; x.supplier=src.supplier||['Amul Distr.','Gupta Traders','CocaCola','BeanHouse'][i]||'—'; });
+
+    // ---- CHARTS ----
+    const invSeries=[4.55,4.62,4.48,4.71,4.66,4.79,4.82].map((v,i)=>({x:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],v}));
+    const invChart=this.lineChart(invSeries,A);
+    const expSeries=[5200,6800,4100,7400,5600,8200,6200].map((v,i)=>({x:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],v}));
+    const expChart=this.lineChart(expSeries,'#1f8a5b');
+
+    const catData=[{name:'Meat',v:110000,c:'#d9542b'},{name:'Dairy',v:86000,c:'#2a6fdb'},{name:'Beverages',v:64000,c:'#c9a227'},{name:'Pantry',v:48000,c:'#1f8a5b'},{name:'Vegetables',v:24000,c:'#9a59c5'}];
+    const catTot=catData.reduce((a,b)=>a+b.v,0);
+    const catDonut=this.donut(catData.map(d=>({frac:d.v/catTot,color:d.c})),130,22);
+    const catLegend=catData.map(d=>({name:d.name,pct:Math.round(d.v/catTot*100)+'%',dotStyle:{width:'11px',height:'11px',borderRadius:'4px',background:d.c,flex:'0 0 auto'}}));
+
+    const mData=[210000,225000,198000,242000,231000,242000];
+    const mMax=Math.max(...mData);
+    const monthBars=['Jan','Feb','Mar','Apr','May','Jun'].map((label,i)=>{ const pct=Math.round(mData[i]/mMax*100); const last=i===5;
+      return {label,value:this.fk(mData[i]),barStyle:{width:'100%',maxWidth:'30px',height:pct+'%',minHeight:'4px',borderRadius:'6px 6px 3px 3px',background:last?'#1c1a18':'#2a6fdb',opacity:last?1:.82,transformOrigin:'bottom',animation:'barGrow .5s ease '+(i*.04)+'s both'}}; });
+
+    const consDefs=[{icon:'🌾',name:'Flour',q:60,u:'KG'},{icon:'🍅',name:'Tomatoes',q:42,u:'KG'},{icon:'🍗',name:'Chicken',q:28,u:'KG'},{icon:'🧀',name:'Cheese',q:18,u:'KG'},{icon:'🛢️',name:'Cooking Oil',q:14,u:'L'}];
+    const cMax=Math.max(...consDefs.map(d=>d.q));
+    const consCols=['#d9542b','#2a6fdb','#c9a227','#1f8a5b','#9a59c5'];
+    const consumption=consDefs.map((d,i)=>({icon:d.icon,name:d.name,qty:d.q+' '+d.u,barStyle:{height:'100%',width:Math.round(d.q/cMax*100)+'%',borderRadius:'6px',background:consCols[i]}}));
+
+    // ---- INVENTORY ----
+    const invFilterDefs=[['all','All'],['low','Low Stock'],['dairy','Dairy'],['meat','Meat'],['beverages','Beverages']];
+    const invFilters=invFilterDefs.map(([id,label])=>{ const a=id===S.invFilter; return {label,select:()=>this.setState({invFilter:id}),
+      style:{padding:'8px 14px',borderRadius:'8px',border:'none',cursor:'pointer',fontSize:'12.5px',fontWeight:700,whiteSpace:'nowrap',background:a?'#1c1a18':'transparent',color:a?'#fff':'#6b645d'}}; });
+
+    const prodDefs=[
+      {emoji:'🧀',name:'Mozzarella Cheese',sku:'SKU-0182',cat:'Dairy',stock:2,min:5,unit:'KG',pp:320,sp:0,supplier:'Amul Distributors',status:'Low',tint:'#eaf0fb'},
+      {emoji:'🛢️',name:'Cooking Oil',sku:'SKU-0094',cat:'Pantry',stock:1,min:4,unit:'Litre',pp:140,sp:0,supplier:'Gupta Traders',status:'Critical',tint:'#fdf4e3'},
+      {emoji:'🍅',name:'Tomatoes',sku:'SKU-0211',cat:'Vegetables',stock:18,min:10,unit:'KG',pp:40,sp:0,supplier:'FreshFarm Produce',status:'In Stock',tint:'#fcefe9'},
+      {emoji:'🍗',name:'Chicken',sku:'SKU-0067',cat:'Meat',stock:12,min:8,unit:'KG',pp:220,sp:0,supplier:'MeatCo Suppliers',status:'In Stock',tint:'#fef0ee'},
+      {emoji:'🥤',name:'Soft Drinks',sku:'SKU-0143',cat:'Beverages',stock:6,min:24,unit:'Crate',pp:280,sp:360,supplier:'CocaCola Bev.',status:'Low',tint:'#eaf0fb'},
+      {emoji:'🧈',name:'Paneer',sku:'SKU-0185',cat:'Dairy',stock:9,min:6,unit:'KG',pp:300,sp:0,supplier:'Amul Distributors',status:'In Stock',tint:'#eaf0fb'},
+      {emoji:'🌾',name:'Refined Flour',sku:'SKU-0031',cat:'Pantry',stock:45,min:20,unit:'KG',pp:38,sp:0,supplier:'Gupta Traders',status:'In Stock',tint:'#fdf4e3'},
+      {emoji:'☕',name:'Coffee Beans',sku:'SKU-0120',cat:'Beverages',stock:3,min:5,unit:'KG',pp:900,sp:0,supplier:'BeanHouse Coffee',status:'Low',tint:'#eef5f0'},
+    ];
+    const products=prodDefs.map(p=>({emoji:p.emoji,name:p.name,sku:p.sku,cat:p.cat,stock:p.stock,min:p.min,unit:p.unit,pp:this.f0(p.pp),sp:p.sp?this.f0(p.sp):'—',supplier:p.supplier,status:p.status,
+      stockColor:p.status==='Critical'?'#c0392b':(p.status==='Low'?'#c9851f':'#1c1a18'),
+      imgStyle:{width:'32px',height:'32px',borderRadius:'9px',background:p.tint,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'16px',flex:'0 0 auto'},
+      statusStyle:this.statusBadge(p.status),
+      edit:()=>this.setState({showProduct:true}) }));
+
+    // ---- STOCK MOVEMENTS ----
+    const moveFilterDefs=[['all','All'],['in','Stock In'],['out','Stock Out'],['waste','Wastage']];
+    const moveFilters=moveFilterDefs.map(([id,label])=>{ const a=id===S.moveFilter; return {label,select:()=>this.setState({moveFilter:id}),
+      style:{padding:'8px 14px',borderRadius:'8px',border:'none',cursor:'pointer',fontSize:'12.5px',fontWeight:700,whiteSpace:'nowrap',background:a?'#1c1a18':'transparent',color:a?'#fff':'#6b645d'}}; });
+    const moveDefs=[
+      {qty:'+20 KG',name:'Mozzarella',tag:'Purchased',type:'in',meta:'PO-1042 · Amul Distributors',time:'Today · 9:10 AM',by:'Ravi K.',icon:'🧀'},
+      {qty:'−3 KG',name:'Mozzarella',tag:'Used',type:'out',meta:'Kitchen · Lunch shift',time:'Today · 1:30 PM',by:'Chef Arun',icon:'🧀'},
+      {qty:'−10',name:'Soft Drinks',tag:'Sold',type:'out',meta:'POS · 14 bills',time:'Today · 8:05 PM',by:'POS System',icon:'🥤'},
+      {qty:'+50 KG',name:'Refined Flour',tag:'Purchased',type:'in',meta:'PO-1038 · Gupta Traders',time:'Yesterday · 11:20 AM',by:'Ravi K.',icon:'🌾'},
+      {qty:'−8 KG',name:'Chicken',tag:'Used',type:'out',meta:'Kitchen · Dinner prep',time:'Yesterday · 6:40 PM',by:'Chef Arun',icon:'🍗'},
+      {qty:'−2 KG',name:'Tomatoes',tag:'Wastage',type:'waste',meta:'Spoiled · discarded',time:'Yesterday · 10:05 PM',by:'Priya N.',icon:'🍅'},
+      {qty:'+12 KG',name:'Coffee Beans',tag:'Purchased',type:'in',meta:'PO-1033 · BeanHouse',time:'2 days ago',by:'Ravi K.',icon:'☕'},
+    ];
+    const tagCol={Purchased:{bg:'#eef5f0',fg:'#1f8a5b'},Used:{bg:'#eaf0fb',fg:'#2a6fdb'},Sold:{bg:'#fcefe9',fg:'#d9542b'},Wastage:{bg:'#fdeeee',fg:'#c0392b'}};
+    const movements=moveDefs.filter(m=>S.moveFilter==='all'||m.type===S.moveFilter).map(m=>{ const inb=m.type==='in'; const c=tagCol[m.tag];
+      return {qty:m.qty,name:m.name,tag:m.tag,meta:m.meta,time:m.time,by:m.by,icon:m.icon,
+        qtyColor:inb?'#1f8a5b':(m.type==='waste'?'#c0392b':'#3a352f'),
+        dir:inb?'↓':'↑',
+        dotStyle:{width:'30px',height:'30px',borderRadius:'50%',background:inb?'#eef5f0':(m.type==='waste'?'#fdeeee':'#eaf0fb'),color:inb?'#1f8a5b':(m.type==='waste'?'#c0392b':'#2a6fdb'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',fontWeight:800,flex:'0 0 auto'},
+        iconStyle:{width:'40px',height:'40px',borderRadius:'12px',background:'#faf8f6',border:'1px solid #f1ede8',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'19px',flex:'0 0 auto'},
+        tagStyle:{padding:'2px 9px',borderRadius:'20px',background:c.bg,color:c.fg,fontSize:'10.5px',fontWeight:700} }; });
+
+    // ---- PURCHASE ORDERS ----
+    const orderFilterDefs=[['all','All'],['draft','Draft'],['ordered','Ordered'],['received','Received'],['cancelled','Cancelled']];
+    const orderFilters=orderFilterDefs.map(([id,label])=>{ const a=id===S.orderFilter; return {label,select:()=>this.setState({orderFilter:id}),
+      style:{padding:'8px 14px',borderRadius:'8px',border:'none',cursor:'pointer',fontSize:'12.5px',fontWeight:700,whiteSpace:'nowrap',background:a?'#1c1a18':'transparent',color:a?'#fff':'#6b645d'}}; });
+    const orderDefs=[
+      {id:'PO-1042',supplier:'Amul Distributors',items:4,total:12400,status:'Ordered',expected:'2 Jul 2026',icon:'🥛',tint:'#eaf0fb'},
+      {id:'PO-1041',supplier:'FreshFarm Produce',items:7,total:6800,status:'Received',expected:'28 Jun 2026',icon:'🥬',tint:'#eef5f0'},
+      {id:'PO-1040',supplier:'Gupta Traders',items:3,total:4200,status:'Draft',expected:'—',icon:'🌾',tint:'#fdf4e3'},
+      {id:'PO-1039',supplier:'MeatCo Suppliers',items:5,total:18900,status:'Ordered',expected:'1 Jul 2026',icon:'🍗',tint:'#fcefe9'},
+      {id:'PO-1038',supplier:'BeanHouse Coffee',items:2,total:5400,status:'Cancelled',expected:'—',icon:'☕',tint:'#f3efe9'},
+      {id:'PO-1037',supplier:'CocaCola Beverages',items:6,total:9200,status:'Received',expected:'26 Jun 2026',icon:'🥤',tint:'#eaf0fb'},
+    ];
+    const oStat={Draft:{bg:'#f3efe9',fg:'#857c72'},Ordered:{bg:'#eaf0fb',fg:'#2a6fdb'},Received:{bg:'#eef5f0',fg:'#1f8a5b'},Cancelled:{bg:'#fdeeee',fg:'#c0392b'}};
+    const orders=orderDefs.filter(o=>S.orderFilter==='all'||o.status.toLowerCase()===S.orderFilter).map(o=>{ const c=oStat[o.status];
+      const actLabel=o.status==='Draft'?'Send':(o.status==='Ordered'?'Receive':'Reorder');
+      return {id:o.id,supplier:o.supplier,items:o.items,total:this.f0(o.total),status:o.status,expected:o.expected,
+        iconStyle:{width:'42px',height:'42px',borderRadius:'12px',background:o.tint,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'20px',flex:'0 0 auto'},
+        statusStyle:{padding:'4px 11px',borderRadius:'20px',background:c.bg,color:c.fg,fontSize:'11px',fontWeight:700,whiteSpace:'nowrap'},
+        icon:o.icon, view:()=>this.toastMsg(o.id+' — opening details'), actionLabel:actLabel,
+        action:()=>this.toastMsg(o.id+' '+actLabel.toLowerCase()+'ed'),
+        actionStyle:{flex:1,padding:'9px',borderRadius:'10px',border:'none',background:'#1c1a18',color:'#fff',fontSize:'12.5px',fontWeight:700,cursor:'pointer'} }; });
+
+    // ---- SUPPLIERS ----
+    const supDefs=[
+      {company:'Amul Distributors',contact:'Rajesh Kumar',phone:'+91 98765 43210',email:'rajesh@amuldist.in',pending:12400,total:240000,last:'28 Jun'},
+      {company:'FreshFarm Produce',contact:'Sunita Devi',phone:'+91 99887 11223',email:'orders@freshfarm.in',pending:0,total:110000,last:'28 Jun'},
+      {company:'Gupta Traders',contact:'Mahesh Gupta',phone:'+91 98111 22334',email:'mahesh@guptatraders.in',pending:4200,total:86000,last:'25 Jun'},
+      {company:'MeatCo Suppliers',contact:'Imran Khan',phone:'+91 97000 55667',email:'imran@meatco.in',pending:18900,total:320000,last:'27 Jun'},
+      {company:'BeanHouse Coffee',contact:'Anita Rao',phone:'+91 90909 80808',email:'hello@beanhouse.in',pending:0,total:54000,last:'22 Jun'},
+      {company:'CocaCola Beverages',contact:'Vikram Singh',phone:'+91 93333 44556',email:'vikram@ccbev.in',pending:9200,total:140000,last:'26 Jun'},
+    ];
+    const avCols=['#d9542b','#1f8a5b','#c9a227','#2a6fdb','#9a59c5','#d9542b'];
+    const suppliers=supDefs.map((s,i)=>({company:s.company,contact:s.contact,phone:s.phone,email:s.email,pending:this.f0(s.pending),total:this.fk(s.total),last:s.last,pendingFlag:s.pending>0,
+      initials:s.company.split(' ').slice(0,2).map(w=>w[0]).join(''),
+      avStyle:{width:'44px',height:'44px',borderRadius:'13px',background:avCols[i%6],color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'15px',fontWeight:800,flex:'0 0 auto'},
+      pendColor:s.pending>0?'#c0392b':'#1f8a5b',
+      order:()=>this.toastMsg('New order for '+s.company),
+      pay:()=>this.toastMsg(s.pending>0?'Settling ₹'+s.pending.toLocaleString('en-IN')+' to '+s.company:'No dues for '+s.company) }));
+
+    // ---- EXPENSES ----
+    const expKpiDefs=[
+      {icon:'📅',label:"Today",value:'₹6,200',trend:'+3%',tint:'#fcefe9',tc:'#c0392b'},
+      {icon:'🗓️',label:'This Week',value:'₹38,400',trend:'−2%',tint:'#eaf0fb',tc:'#1f8a5b'},
+      {icon:'📆',label:'This Month',value:'₹2,42,000',trend:'+8%',tint:'#eef5f0',tc:'#c0392b'},
+      {icon:'📈',label:'This Year',value:'₹28.6L',trend:'+14%',tint:'#fdf4e3',tc:'#c0392b'},
+    ];
+    const expKpis=expKpiDefs.map(c=>({icon:c.icon,label:c.label,value:c.value,trend:c.trend,trendColor:c.tc,
+      cardStyle:{background:'#fff',border:'1px solid #ece8e3',borderRadius:'16px',padding:'17px',boxShadow:'0 1px 2px rgba(0,0,0,.03)'},
+      iconStyle:{width:'36px',height:'36px',borderRadius:'11px',background:c.tint,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'18px'} }));
+
+    const expCatDefs=[['Rent','🏠',45000,'#d9542b'],['Salary','👥',120000,'#2a6fdb'],['Electricity','⚡',8400,'#c9a227'],['Gas','🔥',2200,'#1f8a5b'],['Marketing','📣',5000,'#9a59c5'],['Repairs','🔧',3500,'#e0902f'],['Cleaning','🧽',1800,'#2a9d8f'],['Packaging','📦',4800,'#c0567a'],['Misc','•••',2300,'#857c72']];
+    const expCats=expCatDefs.map(([name,icon,v,col])=>({name,icon,value:this.fk(v),
+      iconStyle:{width:'34px',height:'34px',borderRadius:'10px',background:col+'1f',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'15px',flex:'0 0 auto'} }));
+
+    const expDefs=[
+      {name:'Staff Salary — June',cat:'Salary',amount:120000,date:'1 Jun',method:'Bank Transfer',by:'Ravi K.',inv:true,icon:'👥',dot:'#2a6fdb'},
+      {name:'Shop Rent',cat:'Rent',amount:45000,date:'1 Jun',method:'Bank Transfer',by:'Ravi K.',inv:true,icon:'🏠',dot:'#2a6fdb'},
+      {name:'Electricity Bill',cat:'Electricity',amount:8400,date:'28 Jun',method:'UPI',by:'Priya N.',inv:true,icon:'⚡',dot:'#1f8a5b'},
+      {name:'Packaging Boxes',cat:'Packaging',amount:4800,date:'27 Jun',method:'UPI',by:'Priya N.',inv:false,icon:'📦',dot:'#1f8a5b'},
+      {name:'Instagram Ads',cat:'Marketing',amount:5000,date:'25 Jun',method:'Card',by:'Ravi K.',inv:true,icon:'📣',dot:'#c9a227'},
+      {name:'AC Repair',cat:'Repairs',amount:3500,date:'24 Jun',method:'Cash',by:'Arun S.',inv:false,icon:'🔧',dot:'#d9542b'},
+      {name:'LPG Gas Refill',cat:'Gas',amount:2200,date:'23 Jun',method:'Cash',by:'Arun S.',inv:true,icon:'🔥',dot:'#d9542b'},
+      {name:'Deep Cleaning',cat:'Cleaning',amount:1800,date:'22 Jun',method:'Cash',by:'Priya N.',inv:false,icon:'🧽',dot:'#d9542b'},
+    ];
+    const catTagCol={Salary:'#eaf0fb,#2a6fdb',Rent:'#fcefe9,#d9542b',Electricity:'#fdf4e3,#c9851f',Packaging:'#eef5f0,#1f8a5b',Marketing:'#f4eefb,#9a59c5',Repairs:'#fdf4e3,#e0902f',Gas:'#eef5f0,#1f8a5b',Cleaning:'#eafaf5,#2a9d8f'};
+    const expenses=expDefs.map(x=>{ const cc=(catTagCol[x.cat]||'#f3efe9,#857c72').split(',');
+      return {name:x.name,cat:x.cat,amount:this.f0(x.amount),date:x.date,method:x.method,by:x.by,invoice:x.inv?'View':'—',icon:x.icon,
+        iconStyle:{width:'30px',height:'30px',borderRadius:'9px',background:'#faf8f6',border:'1px solid #f1ede8',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'15px',flex:'0 0 auto'},
+        catStyle:{padding:'3px 10px',borderRadius:'20px',background:cc[0],color:cc[1],fontSize:'11px',fontWeight:700,whiteSpace:'nowrap'},
+        payDot:{width:'7px',height:'7px',borderRadius:'50%',background:x.dot,flex:'0 0 auto'},
+        invStyle:x.inv?{fontSize:'12px',fontWeight:700,color:'#d9542b',cursor:'pointer'}:{fontSize:'12px',fontWeight:700,color:'#bcb4ab'} }; });
+
+    // ---- CATEGORIES ----
+    const catCardDefs=[['Meat','🍗',5,110000,2,'#fef0ee'],['Dairy','🥛',4,86000,1,'#eaf0fb'],['Beverages','🥤',8,64000,2,'#eef5f0'],['Pantry','🌾',12,48000,1,'#fdf4e3'],['Vegetables','🥬',6,24000,0,'#eafaf5'],['Spices','🧂',9,32000,1,'#f4eefb']];
+    const categories=catCardDefs.map(([name,icon,count,value,low,tint])=>({name,icon,count,value:this.fk(value),low,lowColor:low>0?'#c0392b':'#1f8a5b',
+      iconStyle:{width:'46px',height:'46px',borderRadius:'13px',background:tint,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px',flex:'0 0 auto'} }));
+
+    // ---- REPORTS ----
+    const repDefs=[
+      {icon:'📦',name:'Inventory Report',desc:'Full stock valuation, ageing & turnover by category.',updated:'Updated today',tint:'#fcefe9'},
+      {icon:'🛒',name:'Purchase Report',desc:'Orders, receipts & spend by supplier and period.',updated:'Updated today',tint:'#eaf0fb'},
+      {icon:'🚚',name:'Supplier Report',desc:'Payables, lead times & purchase volume per vendor.',updated:'2 days ago',tint:'#eef5f0'},
+      {icon:'💸',name:'Expense Report',desc:'Category breakdown, trends & recurring commitments.',updated:'Updated today',tint:'#fdf4e3'},
+      {icon:'🗓️',name:'Monthly Summary',desc:'Sales, costs & cash position for the month.',updated:'1 Jun',tint:'#f4eefb'},
+      {icon:'💵',name:'Profit Estimate',desc:'Revenue minus COGS & expenses with margin trend.',updated:'Updated today',tint:'#eafaf5'},
+    ];
+    const reports=repDefs.map(r=>({icon:r.icon,name:r.name,desc:r.desc,updated:r.updated,
+      iconStyle:{width:'46px',height:'46px',borderRadius:'13px',background:r.tint,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'22px'},
+      gen:()=>this.toastMsg(r.name+' generated')}));
+
+    // ---- DESIGN SYSTEM ----
+    const palette=[
+      {name:'Canvas',hex:'#f4f3f1'},{name:'Surface',hex:'#ffffff'},{name:'Ink',hex:'#1c1a18'},{name:'Muted',hex:'#9a938b'},
+      {name:'Accent',hex:'#d9542b'},{name:'Info',hex:'#2a6fdb'},{name:'Success',hex:'#1f8a5b'},{name:'Warning',hex:'#c9851f'},{name:'Danger',hex:'#c0392b'},{name:'Gold',hex:'#c9a227'}
+    ];
+    const hierarchy='InventoryFinance\n├─ Sidebar\n│  ├─ NavItem (badge)\n│  └─ UserChip\n├─ TopBar\n│  ├─ SearchField\n│  └─ ActionButton\n├─ Screen\n│  ├─ KpiCard\n│  ├─ ChartCard\n│  │  ├─ LineChart\n│  │  ├─ Donut\n│  │  └─ BarRow\n│  ├─ DataTable / Row\n│  ├─ TimelineItem\n│  ├─ EntityCard\n│  └─ AlertCard\n└─ Overlay\n   ├─ ProductModal\n   ├─ ExpenseModal\n   └─ Toast';
+    const uxRecs=[
+      'Surface low-stock and payables on the dashboard so owners act before they run out or fall behind on dues.',
+      'Use one consistent status vocabulary (In Stock / Low / Critical) with the same colors everywhere.',
+      'Keep money in a monospace face so figures align and scan vertically in tables.',
+      'Bulk actions appear only when rows are selected — no permanent clutter in the toolbar.',
+      'Tablet-first: tables become cards, primary create actions move to a floating button, edits open in bottom sheets.',
+      'Every destructive or financial action confirms with a toast so staff trust what happened.',
+    ].map((text,i)=>({n:i+1,text}));
+
+    // ---- RESPONSIVE ----
+    const tabletCards=prodDefs.slice(0,6).map(p=>({name:p.name,cat:p.cat,stock:p.stock+' '+p.unit,price:this.f0(p.pp),tag:p.status,col:p.status==='Critical'?'#c0392b':(p.status==='Low'?'#c9851f':'#1c1a18'),
+      iconStyle:{width:'30px',height:'30px',borderRadius:'9px',background:p.tint,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'15px',flex:'0 0 auto'},
+      tagStyle:this.statusBadge(p.status),icon:p.emoji}));
+    const phoneKpis=[{icon:'📦',label:'Products',value:'248',tint:'#fcefe9'},{icon:'⚠️',label:'Low Stock',value:'12',tint:'#fdeeee'},{icon:'💰',label:'Value',value:'₹4.8L',tint:'#eef5f0'},{icon:'💸',label:'Expenses',value:'₹2.4L',tint:'#eaf0fb'}].map(k=>({...k,iconStyle:{width:'30px',height:'30px',borderRadius:'9px',background:k.tint,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'15px'}}));
+    const phoneLow=[{icon:'🧀',name:'Mozzarella',left:'2 / 5 KG',tag:'Low',crit:false},{icon:'🛢️',name:'Cooking Oil',left:'1 / 4 L',tag:'Critical',crit:true},{icon:'☕',name:'Coffee Beans',left:'3 / 5 KG',tag:'Low',crit:false}].map(l=>({...l,tagStyle:{padding:'2px 9px',borderRadius:'20px',background:l.crit?'#fdeeee':'#fdf4e3',color:l.crit?'#c0392b':'#c9851f',fontSize:'9.5px',fontWeight:800}}));
+    const phoneNav=[['Home','▦',true],['Stock','📦',false],['Spend','💸',false],['More','☰',false]].map(([label,icon,act])=>({label,icon,op:act?1:.4,color:act?'#d9542b':'#9a938b'}));
+
+    return {
+      pageTitle:titles[S.nav], nav, actions, toast:S.toast,
+      isDashboard:S.nav==='dashboard', isInventory:S.nav==='inventory', isMovements:S.nav==='movements', isOrders:S.nav==='orders', isSuppliers:S.nav==='suppliers', isExpenses:S.nav==='expenses', isCategories:S.nav==='categories', isLowStock:S.nav==='lowstock', isReports:S.nav==='reports', isSystem:S.nav==='system', isResponsive:S.nav==='responsive',
+      kpis, lowStock, goLowStock:()=>this.go('lowstock'), goOrders:()=>this.go('orders'),
+      invChart, invTotal:'₹4.82L', expChart, expWeekTotal:'₹43,500',
+      catDonut, catTotal:this.fk(catTot), catLegend, monthBars, consumption,
+      invFilters, products, exportInv:()=>this.toastMsg('Inventory exported as Excel'),
+      hasSelection:false, selCount:0, bulkAdjust:()=>this.toastMsg('Bulk adjust'), bulkDelete:()=>this.toastMsg('Deleted'),
+      moveFilters, movements,
+      orderFilters, orders,
+      suppliers,
+      expKpis, expCats, expenses, exportExp:()=>this.toastMsg('Expenses exported as Excel'),
+      categories, lowStockFull:lowFullDefs, reports,
+      palette, hierarchy, uxRecs,
+      tabletCards, phoneKpis, phoneLow, phoneNav,
+      // modals
+      showProduct:S.showProduct, showExpense:S.showExpense,
+      closeProduct:()=>this.setState({showProduct:false}), saveProduct:()=>{this.setState({showProduct:false});this.toastMsg('Product added to inventory');},
+      closeExpense:()=>this.setState({showExpense:false}), saveExpense:()=>{this.setState({showExpense:false});this.toastMsg('Expense recorded');},
+      stop:(e)=>e.stopPropagation(),
+      toggleRecurring:()=>this.setState(s=>({recurring:!s.recurring})),
+      recurringStyle:{width:'44px',height:'25px',borderRadius:'20px',border:'none',cursor:'pointer',background:S.recurring?'#1f8a5b':'#ddd6cd',position:'relative',transition:'background .2s',padding:0},
+      recurringKnob:{position:'absolute',top:'3px',left:S.recurring?'22px':'3px',width:'19px',height:'19px',borderRadius:'50%',background:'#fff',transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'},
+    };
+  }
+}
+</script>
+</body>
+</html>
